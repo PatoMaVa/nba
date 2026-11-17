@@ -50,17 +50,6 @@ function formatGameTime(game) {
   });
 }
 
-function getPlayerName(player) {
-  if (
-    player?.firstname === "Victor" &&
-    player?.lastname === "Wembanyama"
-  ) {
-    return "Nico Marín";
-  }
-
-  return `${player?.firstname ?? ""} ${player?.lastname ?? ""}`.trim();
-}
-
 function TeamLogo({ team, size = "small" }) {
   const containerSize =
     size === "large"
@@ -135,8 +124,11 @@ function PlayerStatsTable({
         stat.team?.id === team?.id
     )
     .sort((a, b) => {
-      const minutesA = Number(a.min || 0);
-      const minutesB = Number(b.min || 0);
+      const minutesA =
+        Number(a.min || 0);
+
+      const minutesB =
+        Number(b.min || 0);
 
       return minutesB - minutesA;
     });
@@ -169,22 +161,53 @@ function PlayerStatsTable({
                 Jugador
               </th>
 
-              <th className="p-3">MIN</th>
+              <th className="p-3">
+                MIN
+              </th>
 
               <th className="p-3 text-orange-600">
                 PTS
               </th>
 
-              <th className="p-3">REB</th>
-              <th className="p-3">AST</th>
-              <th className="p-3">ROB</th>
-              <th className="p-3">TAP</th>
-              <th className="p-3">TC</th>
-              <th className="p-3">3PT</th>
-              <th className="p-3">TL</th>
-              <th className="p-3">PERD</th>
-              <th className="p-3">FALT</th>
-              <th className="p-3">+/-</th>
+              <th className="p-3">
+                REB
+              </th>
+
+              <th className="p-3">
+                AST
+              </th>
+
+              <th className="p-3">
+                ROB
+              </th>
+
+              <th className="p-3">
+                TAP
+              </th>
+
+              <th className="p-3">
+                TC
+              </th>
+
+              <th className="p-3">
+                3PT
+              </th>
+
+              <th className="p-3">
+                TL
+              </th>
+
+              <th className="p-3">
+                PERD
+              </th>
+
+              <th className="p-3">
+                FALT
+              </th>
+
+              <th className="p-3">
+                +/-
+              </th>
             </tr>
           </thead>
 
@@ -196,7 +219,8 @@ function PlayerStatsTable({
               >
                 <td className="whitespace-nowrap p-3 text-left">
                   <div className="font-bold text-slate-950">
-                    {getPlayerName(stat.player)}
+                    {stat.player?.firstname}{" "}
+                    {stat.player?.lastname}
                   </div>
 
                   <div className="text-xs text-slate-400">
@@ -279,11 +303,17 @@ function GameDetail({
   statsLoading,
   statsError,
 }) {
-  const visitors = game.teams?.visitors;
-  const home = game.teams?.home;
+  const visitors =
+    game.teams?.visitors;
 
-  const visitorsScore = game.scores?.visitors;
-  const homeScore = game.scores?.home;
+  const home =
+    game.teams?.home;
+
+  const visitorsScore =
+    game.scores?.visitors;
+
+  const homeScore =
+    game.scores?.home;
 
   const visitorsLines =
     visitorsScore?.linescore || [];
@@ -509,7 +539,7 @@ function GameDetail({
             </p>
 
             <h3 className="text-xl font-black text-slate-950">
-              Estadísticas de jugadores
+              Estadísticas del partido
             </h3>
           </div>
 
@@ -519,12 +549,13 @@ function GameDetail({
             </div>
           )}
 
-          {!statsLoading && statsError && (
-            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-              <AlertCircle size={19} />
-              {statsError}
-            </div>
-          )}
+          {!statsLoading &&
+            statsError && (
+              <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+                <AlertCircle size={19} />
+                {statsError}
+              </div>
+            )}
 
           {!statsLoading &&
             !statsError &&
@@ -698,7 +729,7 @@ export default function App() {
       setPlayerStats([]);
 
       setStatsError(
-        "No ha sido posible cargar las estadísticas de jugadores."
+        "No ha sido posible cargar las estadísticas del partido."
       );
     } finally {
       setStatsLoading(false);
@@ -987,17 +1018,25 @@ export default function App() {
 
             {tab === "Players" && (
               <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-                <p className="text-sm font-semibold text-orange-600">
-                  PLAYERS
-                </p>
+                <div className="flex items-start gap-4">
+                  <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-600">
+                    <Users size={24} />
+                  </div>
 
-                <h2 className="mt-1 text-2xl font-bold text-slate-950">
-                  Jugadores
-                </h2>
+                  <div>
+                    <p className="text-sm font-semibold text-orange-600">
+                      PLAYERS
+                    </p>
 
-                <p className="mt-3 text-slate-500">
-                  Próximamente: estadísticas de jugadores y líderes NBA.
-                </p>
+                    <h2 className="mt-1 text-2xl font-bold text-slate-950">
+                      Jugadores
+                    </h2>
+
+                    <p className="mt-3 max-w-2xl text-slate-500">
+                      Las estadísticas individuales están disponibles dentro del detalle de cada partido.
+                    </p>
+                  </div>
+                </div>
               </section>
             )}
 
