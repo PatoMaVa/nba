@@ -45,22 +45,64 @@ const SPANISH_PLAYERS = [
 ];
 
 function normalizeText(value = "") {
-  return value
+  return String(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
 }
 
-function isSpanishPlayer(player) {
-  const firstname = normalizeText(player?.firstname);
-  const lastname = normalizeText(player?.lastname);
+function findSpanishPlayer(player) {
+  const firstname =
+    normalizeText(player?.firstname);
 
-  return SPANISH_PLAYERS.some(
-    (spanishPlayer) =>
-      normalizeText(spanishPlayer.firstname) === firstname &&
-      normalizeText(spanishPlayer.lastname) === lastname
+  const lastname =
+    normalizeText(player?.lastname);
+
+  return SPANISH_PLAYERS.find(
+    (spanishPlayer) => {
+      const spanishFirstname =
+        normalizeText(
+          spanishPlayer.firstname
+        );
+
+      const spanishLastname =
+        normalizeText(
+          spanishPlayer.lastname
+        );
+
+      const normalOrder =
+        firstname === spanishFirstname &&
+        lastname === spanishLastname;
+
+      const reversedOrder =
+        firstname === spanishLastname &&
+        lastname === spanishFirstname;
+
+      return normalOrder || reversedOrder;
+    }
   );
+}
+
+function isSpanishPlayer(player) {
+  return Boolean(
+    findSpanishPlayer(player)
+  );
+}
+
+function getSpanishPlayerDisplayName(
+  player
+) {
+  const matchedPlayer =
+    findSpanishPlayer(player);
+
+  if (matchedPlayer) {
+    return `${matchedPlayer.firstname} ${matchedPlayer.lastname}`;
+  }
+
+  return `${player?.firstname || ""} ${
+    player?.lastname || ""
+  }`.trim();
 }
 
 function formatGameStatus(game) {
@@ -69,14 +111,20 @@ function formatGameStatus(game) {
   }
 
   if (game.status?.short === 2) {
-    const period = game.periods?.current;
+    const period =
+      game.periods?.current;
 
     return `${period ? `Q${period}` : "EN JUEGO"}${
-      game.status?.clock ? ` · ${game.status.clock}` : ""
+      game.status?.clock
+        ? ` · ${game.status.clock}`
+        : ""
     }`;
   }
 
-  return game.status?.long?.toUpperCase() || "PROGRAMADO";
+  return (
+    game.status?.long?.toUpperCase() ||
+    "PROGRAMADO"
+  );
 }
 
 function formatGameTime(game) {
@@ -84,13 +132,18 @@ function formatGameTime(game) {
     return "";
   }
 
-  return new Date(game.date.start).toLocaleTimeString("es-ES", {
+  return new Date(
+    game.date.start
+  ).toLocaleTimeString("es-ES", {
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
-function TeamLogo({ team, size = "small" }) {
+function TeamLogo({
+  team,
+  size = "small",
+}) {
   const containerSize =
     size === "large"
       ? "h-20 w-20"
@@ -120,7 +173,11 @@ function TeamLogo({ team, size = "small" }) {
   );
 }
 
-function TeamRow({ team, score, winner }) {
+function TeamRow({
+  team,
+  score,
+  winner,
+}) {
   return (
     <div className="flex items-center gap-3">
       <TeamLogo team={team} />
@@ -158,20 +215,21 @@ function PlayerStatsTable({
   team,
   playerStats,
 }) {
-  const teamPlayers = playerStats
-    .filter(
-      (stat) =>
-        stat.team?.id === team?.id
-    )
-    .sort((a, b) => {
-      const minutesA =
-        Number(a.min || 0);
+  const teamPlayers =
+    playerStats
+      .filter(
+        (stat) =>
+          stat.team?.id === team?.id
+      )
+      .sort((a, b) => {
+        const minutesA =
+          Number(a.min || 0);
 
-      const minutesB =
-        Number(b.min || 0);
+        const minutesB =
+          Number(b.min || 0);
 
-      return minutesB - minutesA;
-    });
+        return minutesB - minutesA;
+      });
 
   if (teamPlayers.length === 0) {
     return null;
@@ -252,83 +310,98 @@ function PlayerStatsTable({
           </thead>
 
           <tbody className="text-slate-700">
-            {teamPlayers.map((stat) => (
-              <tr
-                key={stat.player?.id}
-                className="border-t border-slate-200"
-              >
-                <td className="whitespace-nowrap p-3 text-left">
-                  <div className="font-bold text-slate-950">
-                    {stat.player?.firstname}{" "}
-                    {stat.player?.lastname}
-                  </div>
-
-                  <div className="text-xs text-slate-400">
-                    {stat.pos || "-"}
-                  </div>
-                </td>
-
-                <td className="p-3">
-                  {stat.min ?? "-"}
-                </td>
-
-                <td className="p-3 font-black text-orange-600">
-                  {stat.points ?? 0}
-                </td>
-
-                <td className="p-3">
-                  {stat.totReb ?? 0}
-                </td>
-
-                <td className="p-3">
-                  {stat.assists ?? 0}
-                </td>
-
-                <td className="p-3">
-                  {stat.steals ?? 0}
-                </td>
-
-                <td className="p-3">
-                  {stat.blocks ?? 0}
-                </td>
-
-                <td className="whitespace-nowrap p-3">
-                  {stat.fgm ?? 0}/{stat.fga ?? 0}
-                </td>
-
-                <td className="whitespace-nowrap p-3">
-                  {stat.tpm ?? 0}/{stat.tpa ?? 0}
-                </td>
-
-                <td className="whitespace-nowrap p-3">
-                  {stat.ftm ?? 0}/{stat.fta ?? 0}
-                </td>
-
-                <td className="p-3">
-                  {stat.turnovers ?? 0}
-                </td>
-
-                <td className="p-3">
-                  {stat.pFouls ?? 0}
-                </td>
-
-                <td
-                  className={`p-3 font-semibold ${
-                    String(
-                      stat.plusMinus || ""
-                    ).startsWith("+")
-                      ? "text-emerald-600"
-                      : String(
-                          stat.plusMinus || ""
-                        ).startsWith("-")
-                      ? "text-red-600"
-                      : "text-slate-500"
-                  }`}
+            {teamPlayers.map(
+              (stat) => (
+                <tr
+                  key={
+                    stat.player?.id
+                  }
+                  className="border-t border-slate-200"
                 >
-                  {stat.plusMinus ?? "-"}
-                </td>
-              </tr>
-            ))}
+                  <td className="whitespace-nowrap p-3 text-left">
+                    <div className="font-bold text-slate-950">
+                      {
+                        stat.player
+                          ?.firstname
+                      }{" "}
+                      {
+                        stat.player
+                          ?.lastname
+                      }
+                    </div>
+
+                    <div className="text-xs text-slate-400">
+                      {stat.pos || "-"}
+                    </div>
+                  </td>
+
+                  <td className="p-3">
+                    {stat.min ?? "-"}
+                  </td>
+
+                  <td className="p-3 font-black text-orange-600">
+                    {stat.points ?? 0}
+                  </td>
+
+                  <td className="p-3">
+                    {stat.totReb ?? 0}
+                  </td>
+
+                  <td className="p-3">
+                    {stat.assists ?? 0}
+                  </td>
+
+                  <td className="p-3">
+                    {stat.steals ?? 0}
+                  </td>
+
+                  <td className="p-3">
+                    {stat.blocks ?? 0}
+                  </td>
+
+                  <td className="whitespace-nowrap p-3">
+                    {stat.fgm ?? 0}/
+                    {stat.fga ?? 0}
+                  </td>
+
+                  <td className="whitespace-nowrap p-3">
+                    {stat.tpm ?? 0}/
+                    {stat.tpa ?? 0}
+                  </td>
+
+                  <td className="whitespace-nowrap p-3">
+                    {stat.ftm ?? 0}/
+                    {stat.fta ?? 0}
+                  </td>
+
+                  <td className="p-3">
+                    {stat.turnovers ?? 0}
+                  </td>
+
+                  <td className="p-3">
+                    {stat.pFouls ?? 0}
+                  </td>
+
+                  <td
+                    className={`p-3 font-semibold ${
+                      String(
+                        stat.plusMinus ||
+                          ""
+                      ).startsWith("+")
+                        ? "text-emerald-600"
+                        : String(
+                            stat.plusMinus ||
+                              ""
+                          ).startsWith("-")
+                        ? "text-red-600"
+                        : "text-slate-500"
+                    }`}
+                  >
+                    {stat.plusMinus ?? "-"}
+                  </td>
+                </tr>
+              )
+            )}
           </tbody>
         </table>
       </div>
@@ -336,7 +409,14 @@ function PlayerStatsTable({
   );
 }
 
-function SpanishPerformanceCard({ stat }) {
+function SpanishPerformanceCard({
+  stat,
+}) {
+  const playerName =
+    getSpanishPlayerDisplayName(
+      stat.player
+    );
+
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-center gap-3">
@@ -344,43 +424,60 @@ function SpanishPerformanceCard({ stat }) {
 
         <div className="min-w-0">
           <h3 className="truncate text-lg font-black text-slate-950">
-            {stat.player?.firstname}{" "}
-            {stat.player?.lastname}
+            {playerName}
           </h3>
 
           <p className="text-sm text-slate-500">
             {stat.team?.name}
-            {stat.pos ? ` · ${stat.pos}` : ""}
+
+            {stat.pos
+              ? ` · ${stat.pos}`
+              : ""}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2">
         {[
-          ["MIN", stat.min ?? "-"],
-          ["PTS", stat.points ?? 0],
-          ["REB", stat.totReb ?? 0],
-          ["AST", stat.assists ?? 0],
-        ].map(([label, value]) => (
-          <div
-            key={label}
-            className="rounded-2xl bg-slate-100 p-3 text-center"
-          >
-            <div className="text-xl font-black text-slate-950">
-              {value}
-            </div>
+          [
+            "MIN",
+            stat.min ?? "-",
+          ],
+          [
+            "PTS",
+            stat.points ?? 0,
+          ],
+          [
+            "REB",
+            stat.totReb ?? 0,
+          ],
+          [
+            "AST",
+            stat.assists ?? 0,
+          ],
+        ].map(
+          ([label, value]) => (
+            <div
+              key={label}
+              className="rounded-2xl bg-slate-100 p-3 text-center"
+            >
+              <div className="text-xl font-black text-slate-950">
+                {value}
+              </div>
 
-            <div className="mt-1 text-[10px] font-bold text-slate-400">
-              {label}
+              <div className="mt-1 text-[10px] font-bold text-slate-400">
+                {label}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
         <div className="rounded-xl border border-slate-200 p-2">
           <strong className="text-slate-950">
-            {stat.fgm ?? 0}/{stat.fga ?? 0}
+            {stat.fgm ?? 0}/
+            {stat.fga ?? 0}
           </strong>
 
           <div className="text-xs text-slate-400">
@@ -390,7 +487,8 @@ function SpanishPerformanceCard({ stat }) {
 
         <div className="rounded-xl border border-slate-200 p-2">
           <strong className="text-slate-950">
-            {stat.tpm ?? 0}/{stat.tpa ?? 0}
+            {stat.tpm ?? 0}/
+            {stat.tpa ?? 0}
           </strong>
 
           <div className="text-xs text-slate-400">
@@ -423,21 +521,35 @@ function SpanishPerformanceCard({ stat }) {
 
       <div className="mt-4 grid grid-cols-4 gap-2 border-t border-slate-200 pt-4 text-center">
         {[
-          ["ROB", stat.steals ?? 0],
-          ["TAP", stat.blocks ?? 0],
-          ["PERD", stat.turnovers ?? 0],
-          ["FALT", stat.pFouls ?? 0],
-        ].map(([label, value]) => (
-          <div key={label}>
-            <div className="font-black text-slate-950">
-              {value}
-            </div>
+          [
+            "ROB",
+            stat.steals ?? 0,
+          ],
+          [
+            "TAP",
+            stat.blocks ?? 0,
+          ],
+          [
+            "PERD",
+            stat.turnovers ?? 0,
+          ],
+          [
+            "FALT",
+            stat.pFouls ?? 0,
+          ],
+        ].map(
+          ([label, value]) => (
+            <div key={label}>
+              <div className="font-black text-slate-950">
+                {value}
+              </div>
 
-            <div className="text-[10px] font-bold text-slate-400">
-              {label}
+              <div className="text-[10px] font-bold text-slate-400">
+                {label}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        )}
       </div>
     </article>
   );
@@ -463,21 +575,27 @@ function GameDetail({
     game.scores?.home;
 
   const visitorsLines =
-    visitorsScore?.linescore || [];
+    visitorsScore?.linescore ||
+    [];
 
   const homeLines =
-    homeScore?.linescore || [];
+    homeScore?.linescore ||
+    [];
 
-  const maxPeriods = Math.max(
-    visitorsLines.length,
-    homeLines.length,
-    4
-  );
+  const maxPeriods =
+    Math.max(
+      visitorsLines.length,
+      homeLines.length,
+      4
+    );
 
-  const periods = Array.from(
-    { length: maxPeriods },
-    (_, index) => index
-  );
+  const periods =
+    Array.from(
+      {
+        length: maxPeriods,
+      },
+      (_, index) => index
+    );
 
   return (
     <section>
@@ -492,12 +610,17 @@ function GameDetail({
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 px-5 py-6 text-center">
           <div className="text-sm font-black tracking-widest text-white">
-            {formatGameStatus(game)}
+            {formatGameStatus(
+              game
+            )}
           </div>
 
-          {game.status?.short !== 3 && (
+          {game.status?.short !==
+            3 && (
             <div className="mt-1 text-sm text-orange-100">
-              {formatGameTime(game)}
+              {formatGameTime(
+                game
+              )}
             </div>
           )}
         </div>
@@ -520,7 +643,8 @@ function GameDetail({
 
           <div className="flex items-center gap-3 px-1">
             <span className="text-4xl font-black text-slate-950 sm:text-5xl">
-              {visitorsScore?.points ?? "-"}
+              {visitorsScore?.points ??
+                "-"}
             </span>
 
             <span className="text-xl text-slate-300">
@@ -528,7 +652,8 @@ function GameDetail({
             </span>
 
             <span className="text-4xl font-black text-slate-950 sm:text-5xl">
-              {homeScore?.points ?? "-"}
+              {homeScore?.points ??
+                "-"}
             </span>
           </div>
 
@@ -561,16 +686,24 @@ function GameDetail({
                     EQUIPO
                   </th>
 
-                  {periods.map((period) => (
-                    <th
-                      key={period}
-                      className="pb-3"
-                    >
-                      {period < 4
-                        ? `Q${period + 1}`
-                        : `OT${period - 3}`}
-                    </th>
-                  ))}
+                  {periods.map(
+                    (period) => (
+                      <th
+                        key={period}
+                        className="pb-3"
+                      >
+                        {period < 4
+                          ? `Q${
+                              period +
+                              1
+                            }`
+                          : `OT${
+                              period -
+                              3
+                            }`}
+                      </th>
+                    )
+                  )}
 
                   <th className="pb-3 text-orange-600">
                     TOTAL
@@ -584,17 +717,22 @@ function GameDetail({
                     {visitors?.code}
                   </td>
 
-                  {periods.map((period) => (
-                    <td
-                      key={period}
-                      className="py-4"
-                    >
-                      {visitorsLines[period] ?? "-"}
-                    </td>
-                  ))}
+                  {periods.map(
+                    (period) => (
+                      <td
+                        key={period}
+                        className="py-4"
+                      >
+                        {visitorsLines[
+                          period
+                        ] ?? "-"}
+                      </td>
+                    )
+                  )}
 
                   <td className="py-4 font-black text-slate-950">
-                    {visitorsScore?.points ?? "-"}
+                    {visitorsScore?.points ??
+                      "-"}
                   </td>
                 </tr>
 
@@ -603,17 +741,22 @@ function GameDetail({
                     {home?.code}
                   </td>
 
-                  {periods.map((period) => (
-                    <td
-                      key={period}
-                      className="py-4"
-                    >
-                      {homeLines[period] ?? "-"}
-                    </td>
-                  ))}
+                  {periods.map(
+                    (period) => (
+                      <td
+                        key={period}
+                        className="py-4"
+                      >
+                        {homeLines[
+                          period
+                        ] ?? "-"}
+                      </td>
+                    )
+                  )}
 
                   <td className="py-4 font-black text-slate-950">
-                    {homeScore?.points ?? "-"}
+                    {homeScore?.points ??
+                      "-"}
                   </td>
                 </tr>
               </tbody>
@@ -636,13 +779,20 @@ function GameDetail({
 
                 <div>
                   <div className="font-semibold text-slate-950">
-                    {game.arena.name}
+                    {
+                      game.arena
+                        .name
+                    }
                   </div>
 
                   <div className="text-sm text-slate-500">
-                    {game.arena.city}
+                    {
+                      game.arena
+                        .city
+                    }
 
-                    {game.arena.state
+                    {game.arena
+                      .state
                       ? `, ${game.arena.state}`
                       : ""}
                   </div>
@@ -664,14 +814,20 @@ function GameDetail({
 
                   <div className="text-sm text-slate-500">
                     {new Date(
-                      game.date.start
-                    ).toLocaleString("es-ES", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                      game.date
+                        .start
+                    ).toLocaleString(
+                      "es-ES",
+                      {
+                        day: "2-digit",
+                        month:
+                          "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute:
+                          "2-digit",
+                      }
+                    )}
                   </div>
                 </div>
               </div>
@@ -699,14 +855,18 @@ function GameDetail({
           {!statsLoading &&
             statsError && (
               <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-                <AlertCircle size={19} />
+                <AlertCircle
+                  size={19}
+                />
+
                 {statsError}
               </div>
             )}
 
           {!statsLoading &&
             !statsError &&
-            playerStats.length === 0 && (
+            playerStats.length ===
+              0 && (
               <div className="rounded-2xl bg-slate-100 p-6 text-center text-sm text-slate-500">
                 Estadísticas individuales todavía no disponibles para este partido.
               </div>
@@ -714,16 +874,23 @@ function GameDetail({
 
           {!statsLoading &&
             !statsError &&
-            playerStats.length > 0 && (
+            playerStats.length >
+              0 && (
               <div className="space-y-8">
                 <PlayerStatsTable
-                  team={visitors}
-                  playerStats={playerStats}
+                  team={
+                    visitors
+                  }
+                  playerStats={
+                    playerStats
+                  }
                 />
 
                 <PlayerStatsTable
                   team={home}
-                  playerStats={playerStats}
+                  playerStats={
+                    playerStats
+                  }
                 />
               </div>
             )}
@@ -740,37 +907,67 @@ export default function App() {
   const [games, setGames] =
     useState([]);
 
-  const [gameDate, setGameDate] =
+  const [
+    gameDate,
+    setGameDate,
+  ] =
     useState("");
 
-  const [selectedGame, setSelectedGame] =
+  const [
+    selectedGame,
+    setSelectedGame,
+  ] =
     useState(null);
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
   const [error, setError] =
     useState("");
 
-  const [lastUpdate, setLastUpdate] =
+  const [
+    lastUpdate,
+    setLastUpdate,
+  ] =
     useState(null);
 
-  const [playerStats, setPlayerStats] =
+  const [
+    playerStats,
+    setPlayerStats,
+  ] =
     useState([]);
 
-  const [statsLoading, setStatsLoading] =
+  const [
+    statsLoading,
+    setStatsLoading,
+  ] =
     useState(false);
 
-  const [statsError, setStatsError] =
+  const [
+    statsError,
+    setStatsError,
+  ] =
     useState("");
 
-  const [allPlayerStats, setAllPlayerStats] =
+  const [
+    allPlayerStats,
+    setAllPlayerStats,
+  ] =
     useState([]);
 
-  const [spanishLoading, setSpanishLoading] =
+  const [
+    spanishLoading,
+    setSpanishLoading,
+  ] =
     useState(true);
 
-  const [spanishError, setSpanishError] =
+  const [
+    spanishError,
+    setSpanishError,
+  ] =
     useState("");
 
   async function loadGames(
@@ -783,37 +980,52 @@ export default function App() {
     setError("");
 
     try {
-      const response = await fetch(
-        `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
-      );
+      const response =
+        await fetch(
+          `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
+          {
+            cache:
+              "no-store",
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${response.status}`
+          `HTTP ${
+            response.status
+          }`
         );
       }
 
       const data =
         await response.json();
 
-      if (!Array.isArray(data.response)) {
+      if (
+        !Array.isArray(
+          data.response
+        )
+      ) {
         throw new Error(
           "Formato de datos NBA no válido"
         );
       }
 
-      setGames(data.response);
-
-      setGameDate(
-        data.parameters?.date || ""
+      setGames(
+        data.response
       );
 
-      setLastUpdate(new Date());
+      setGameDate(
+        data.parameters
+          ?.date || ""
+      );
+
+      setLastUpdate(
+        new Date()
+      );
     } catch (loadError) {
-      console.error(loadError);
+      console.error(
+        loadError
+      );
 
       setError(
         "No ha sido posible cargar los resultados NBA."
@@ -827,53 +1039,71 @@ export default function App() {
     showLoader = true
   ) {
     if (showLoader) {
-      setSpanishLoading(true);
+      setSpanishLoading(
+        true
+      );
     }
 
     setSpanishError("");
 
     try {
-      const response = await fetch(
-        `${PLAYER_STATS_URL}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
-      );
+      const response =
+        await fetch(
+          `${PLAYER_STATS_URL}?t=${Date.now()}`,
+          {
+            cache:
+              "no-store",
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${response.status}`
+          `HTTP ${
+            response.status
+          }`
         );
       }
 
       const data =
         await response.json();
 
-      const gameData =
+      const gamesData =
         data.games || {};
 
       const stats =
-        Object.values(gameData).flatMap(
+        Object.values(
+          gamesData
+        ).flatMap(
           (game) =>
-            Array.isArray(game?.response)
+            Array.isArray(
+              game?.response
+            )
               ? game.response
               : []
         );
 
-      setAllPlayerStats(stats);
-    } catch (loadError) {
+      setAllPlayerStats(
+        stats
+      );
+    } catch (
+      loadError
+    ) {
       console.error(
         "Error cargando actuaciones españolas:",
         loadError
       );
 
-      setAllPlayerStats([]);
+      setAllPlayerStats(
+        []
+      );
 
       setSpanishError(
         "No ha sido posible cargar las actuaciones de los jugadores españoles."
       );
     } finally {
-      setSpanishLoading(false);
+      setSpanishLoading(
+        false
+      );
     }
   }
 
@@ -882,10 +1112,16 @@ export default function App() {
     loadAllPlayerStats();
 
     const refreshInterval =
-      window.setInterval(() => {
-        loadGames(false);
-        loadAllPlayerStats(false);
-      }, 60000);
+      window.setInterval(
+        () => {
+          loadGames(false);
+
+          loadAllPlayerStats(
+            false
+          );
+        },
+        60000
+      );
 
     return () => {
       window.clearInterval(
@@ -905,27 +1141,47 @@ export default function App() {
         )
         .sort((a, b) => {
           const pointsDifference =
-            Number(b.points || 0) -
-            Number(a.points || 0);
+            Number(
+              b.points ||
+                0
+            ) -
+            Number(
+              a.points ||
+                0
+            );
 
           if (
-            pointsDifference !== 0
+            pointsDifference !==
+            0
           ) {
             return pointsDifference;
           }
 
           return (
-            Number(b.min || 0) -
-            Number(a.min || 0)
+            Number(
+              b.min || 0
+            ) -
+            Number(
+              a.min || 0
+            )
           );
         });
     }, [allPlayerStats]);
 
-  async function openGame(game) {
-    setSelectedGame(game);
+  async function openGame(
+    game
+  ) {
+    setSelectedGame(
+      game
+    );
+
     setPlayerStats([]);
+
     setStatsError("");
-    setStatsLoading(true);
+
+    setStatsLoading(
+      true
+    );
 
     window.scrollTo({
       top: 0,
@@ -933,16 +1189,20 @@ export default function App() {
     });
 
     try {
-      const response = await fetch(
-        `${PLAYER_STATS_URL}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
-      );
+      const response =
+        await fetch(
+          `${PLAYER_STATS_URL}?t=${Date.now()}`,
+          {
+            cache:
+              "no-store",
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${response.status}`
+          `HTTP ${
+            response.status
+          }`
         );
       }
 
@@ -950,16 +1210,21 @@ export default function App() {
         await response.json();
 
       const gameStatistics =
-        data.games?.[String(game.id)];
+        data.games?.[
+          String(game.id)
+        ];
 
       setPlayerStats(
         Array.isArray(
-          gameStatistics?.response
+          gameStatistics
+            ?.response
         )
           ? gameStatistics.response
           : []
       );
-    } catch (statsLoadError) {
+    } catch (
+      statsLoadError
+    ) {
       console.error(
         "Error cargando estadísticas:",
         statsLoadError
@@ -971,15 +1236,22 @@ export default function App() {
         "No ha sido posible cargar las estadísticas del partido."
       );
     } finally {
-      setStatsLoading(false);
+      setStatsLoading(
+        false
+      );
     }
   }
 
   function closeGame() {
     setSelectedGame(null);
+
     setPlayerStats([]);
+
     setStatsError("");
-    setStatsLoading(false);
+
+    setStatsLoading(
+      false
+    );
 
     window.scrollTo({
       top: 0,
@@ -987,10 +1259,15 @@ export default function App() {
     });
   }
 
-  function changeTab(newTab) {
+  function changeTab(
+    newTab
+  ) {
     setSelectedGame(null);
+
     setPlayerStats([]);
+
     setStatsError("");
+
     setTab(newTab);
 
     window.scrollTo({
@@ -1000,7 +1277,9 @@ export default function App() {
   }
 
   function refreshCurrentSection() {
-    if (tab === "Spanish") {
+    if (
+      tab === "Spanish"
+    ) {
       loadAllPlayerStats();
     } else {
       loadGames();
@@ -1013,7 +1292,9 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <button
             onClick={() =>
-              changeTab("Scores")
+              changeTab(
+                "Scores"
+              )
             }
             className="flex items-center gap-3"
           >
@@ -1033,25 +1314,40 @@ export default function App() {
           </button>
 
           <nav className="hidden gap-2 md:flex">
-            {nav.map(([label, Icon]) => (
-              <button
-                key={label}
-                onClick={() =>
-                  changeTab(label)
-                }
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm ${
-                  tab === label
-                    ? "bg-slate-950 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Icon size={16} />
+            {nav.map(
+              ([
+                label,
+                Icon,
+              ]) => (
+                <button
+                  key={
+                    label
+                  }
+                  onClick={() =>
+                    changeTab(
+                      label
+                    )
+                  }
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm ${
+                    tab ===
+                    label
+                      ? "bg-slate-950 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Icon
+                    size={
+                      16
+                    }
+                  />
 
-                {label === "Scores"
-                  ? "Partidos"
-                  : "Españoles"}
-              </button>
-            ))}
+                  {label ===
+                  "Scores"
+                    ? "Partidos"
+                    : "Españoles"}
+                </button>
+              )
+            )}
           </nav>
         </div>
       </header>
@@ -1059,17 +1355,29 @@ export default function App() {
       <main className="mx-auto max-w-7xl px-5 py-8">
         {selectedGame ? (
           <GameDetail
-            game={selectedGame}
-            onBack={closeGame}
-            playerStats={playerStats}
-            statsLoading={statsLoading}
-            statsError={statsError}
+            game={
+              selectedGame
+            }
+            onBack={
+              closeGame
+            }
+            playerStats={
+              playerStats
+            }
+            statsLoading={
+              statsLoading
+            }
+            statsError={
+              statsError
+            }
           />
         ) : (
           <>
             <section className="mb-8 rounded-[2rem] bg-gradient-to-br from-orange-500 via-orange-500 to-red-500 p-7 text-white shadow-lg md:p-10">
               <div className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-100">
-                <CalendarDays size={16} />
+                <CalendarDays
+                  size={16}
+                />
                 ÑBA
               </div>
 
@@ -1082,7 +1390,8 @@ export default function App() {
               </p>
             </section>
 
-            {tab === "Scores" && (
+            {tab ===
+              "Scores" && (
               <section>
                 <div className="mb-5 flex items-end justify-between gap-4">
                   <div>
@@ -1096,7 +1405,9 @@ export default function App() {
 
                     {gameDate && (
                       <p className="mt-1 text-sm text-slate-500">
-                        {gameDate}
+                        {
+                          gameDate
+                        }
                       </p>
                     )}
 
@@ -1107,7 +1418,8 @@ export default function App() {
                           "es-ES",
                           {
                             hour: "2-digit",
-                            minute: "2-digit",
+                            minute:
+                              "2-digit",
                           }
                         )}
                       </p>
@@ -1118,11 +1430,15 @@ export default function App() {
                     onClick={
                       refreshCurrentSection
                     }
-                    disabled={loading}
+                    disabled={
+                      loading
+                    }
                     className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     <RefreshCw
-                      size={16}
+                      size={
+                        16
+                      }
                       className={
                         loading
                           ? "animate-spin"
@@ -1140,16 +1456,24 @@ export default function App() {
                   </div>
                 )}
 
-                {!loading && error && (
-                  <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
-                    <AlertCircle size={20} />
-                    {error}
-                  </div>
-                )}
+                {!loading &&
+                  error && (
+                    <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
+                      <AlertCircle
+                        size={
+                          20
+                        }
+                      />
+                      {
+                        error
+                      }
+                    </div>
+                  )}
 
                 {!loading &&
                   !error &&
-                  games.length === 0 && (
+                  games.length ===
+                    0 && (
                     <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
                       No hay partidos NBA disponibles para esta fecha.
                     </div>
@@ -1157,116 +1481,160 @@ export default function App() {
 
                 {!loading &&
                   !error &&
-                  games.length > 0 && (
+                  games.length >
+                    0 && (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {games.map((game) => {
-                        const visitorsPoints =
-                          game.scores?.visitors?.points;
+                      {games.map(
+                        (
+                          game
+                        ) => {
+                          const visitorsPoints =
+                            game
+                              .scores
+                              ?.visitors
+                              ?.points;
 
-                        const homePoints =
-                          game.scores?.home?.points;
+                          const homePoints =
+                            game
+                              .scores
+                              ?.home
+                              ?.points;
 
-                        const finished =
-                          game.status?.short === 3;
+                          const finished =
+                            game
+                              .status
+                              ?.short ===
+                            3;
 
-                        const visitorsWinner =
-                          finished &&
-                          visitorsPoints >
-                            homePoints;
+                          const visitorsWinner =
+                            finished &&
+                            visitorsPoints >
+                              homePoints;
 
-                        const homeWinner =
-                          finished &&
-                          homePoints >
-                            visitorsPoints;
+                          const homeWinner =
+                            finished &&
+                            homePoints >
+                              visitorsPoints;
 
-                        return (
-                          <button
-                            key={game.id}
-                            onClick={() =>
-                              openGame(game)
-                            }
-                            className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-orange-300 hover:shadow-md"
-                          >
-                            <div className="mb-5 flex items-start justify-between gap-4">
-                              <div>
-                                <div
-                                  className={`text-xs font-bold ${
-                                    game.status?.short === 2
-                                      ? "text-emerald-600"
-                                      : "text-slate-500"
-                                  }`}
-                                >
-                                  {formatGameStatus(
-                                    game
-                                  )}
-                                </div>
-
-                                {game.status?.short !== 3 && (
-                                  <div className="mt-1 text-xs text-slate-400">
-                                    {formatGameTime(
+                          return (
+                            <button
+                              key={
+                                game.id
+                              }
+                              onClick={() =>
+                                openGame(
+                                  game
+                                )
+                              }
+                              className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-orange-300 hover:shadow-md"
+                            >
+                              <div className="mb-5 flex items-start justify-between gap-4">
+                                <div>
+                                  <div
+                                    className={`text-xs font-bold ${
+                                      game
+                                        .status
+                                        ?.short ===
+                                      2
+                                        ? "text-emerald-600"
+                                        : "text-slate-500"
+                                    }`}
+                                  >
+                                    {formatGameStatus(
                                       game
                                     )}
                                   </div>
+
+                                  {game
+                                    .status
+                                    ?.short !==
+                                    3 && (
+                                    <div className="mt-1 text-xs text-slate-400">
+                                      {formatGameTime(
+                                        game
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {game
+                                  .status
+                                  ?.short ===
+                                  2 && (
+                                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-600">
+                                    ● LIVE
+                                  </span>
                                 )}
                               </div>
 
-                              {game.status?.short === 2 && (
-                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-600">
-                                  ● LIVE
-                                </span>
-                              )}
-                            </div>
+                              <div className="space-y-4">
+                                <TeamRow
+                                  team={
+                                    game
+                                      .teams
+                                      ?.visitors
+                                  }
+                                  score={
+                                    game
+                                      .scores
+                                      ?.visitors
+                                  }
+                                  winner={
+                                    visitorsWinner
+                                  }
+                                />
 
-                            <div className="space-y-4">
-                              <TeamRow
-                                team={
-                                  game.teams?.visitors
-                                }
-                                score={
-                                  game.scores?.visitors
-                                }
-                                winner={
-                                  visitorsWinner
-                                }
-                              />
-
-                              <TeamRow
-                                team={
-                                  game.teams?.home
-                                }
-                                score={
-                                  game.scores?.home
-                                }
-                                winner={
-                                  homeWinner
-                                }
-                              />
-                            </div>
-
-                            {game.arena?.name && (
-                              <div className="mt-5 border-t border-slate-200 pt-4">
-                                <p className="truncate text-xs text-slate-400">
-                                  {game.arena.name}
-
-                                  {game.arena.city
-                                    ? ` · ${game.arena.city}`
-                                    : ""}
-                                </p>
+                                <TeamRow
+                                  team={
+                                    game
+                                      .teams
+                                      ?.home
+                                  }
+                                  score={
+                                    game
+                                      .scores
+                                      ?.home
+                                  }
+                                  winner={
+                                    homeWinner
+                                  }
+                                />
                               </div>
-                            )}
 
-                            <div className="mt-4 text-right text-xs font-bold text-orange-600">
-                              Ver partido →
-                            </div>
-                          </button>
-                        );
-                      })}
+                              {game
+                                .arena
+                                ?.name && (
+                                <div className="mt-5 border-t border-slate-200 pt-4">
+                                  <p className="truncate text-xs text-slate-400">
+                                    {
+                                      game
+                                        .arena
+                                        .name
+                                    }
+
+                                    {game
+                                      .arena
+                                      .city
+                                      ? ` · ${game.arena.city}`
+                                      : ""}
+                                  </p>
+                                </div>
+                              )}
+
+                              <div className="mt-4 text-right text-xs font-bold text-orange-600">
+                                Ver partido →
+                              </div>
+                            </button>
+                          );
+                        }
+                      )}
                     </div>
                   )}
               </section>
             )}
 
-            {tab === "Spanish" && (
+            {tab ===
+              "Spanish" && (
               <section>
                 <div className="mb-6 flex items-end justify-between gap-4">
                   <div>
@@ -1293,7 +1661,9 @@ export default function App() {
                     className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     <RefreshCw
-                      size={16}
+                      size={
+                        16
+                      }
                       className={
                         spanishLoading
                           ? "animate-spin"
@@ -1314,8 +1684,15 @@ export default function App() {
                 {!spanishLoading &&
                   spanishError && (
                     <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
-                      <AlertCircle size={20} />
-                      {spanishError}
+                      <AlertCircle
+                        size={
+                          20
+                        }
+                      />
+
+                      {
+                        spanishError
+                      }
                     </div>
                   )}
 
@@ -1325,7 +1702,9 @@ export default function App() {
                     0 && (
                     <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
                       <Flag
-                        size={32}
+                        size={
+                          32
+                        }
                         className="mx-auto mb-3 text-orange-500"
                       />
 
@@ -1345,10 +1724,14 @@ export default function App() {
                     0 && (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {spanishPerformances.map(
-                        (stat) => (
+                        (
+                          stat
+                        ) => (
                           <SpanishPerformanceCard
                             key={`${stat.game?.id}-${stat.player?.id}`}
-                            stat={stat}
+                            stat={
+                              stat
+                            }
                           />
                         )
                       )}
@@ -1362,25 +1745,40 @@ export default function App() {
 
       {!selectedGame && (
         <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden">
-          {nav.map(([label, Icon]) => (
-            <button
-              key={label}
-              onClick={() =>
-                changeTab(label)
-              }
-              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
-                tab === label
-                  ? "bg-slate-950 text-white"
-                  : "text-slate-500"
-              }`}
-            >
-              <Icon size={19} />
+          {nav.map(
+            ([
+              label,
+              Icon,
+            ]) => (
+              <button
+                key={
+                  label
+                }
+                onClick={() =>
+                  changeTab(
+                    label
+                  )
+                }
+                className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
+                  tab ===
+                  label
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-500"
+                }`}
+              >
+                <Icon
+                  size={
+                    19
+                  }
+                />
 
-              {label === "Scores"
-                ? "Partidos"
-                : "Españoles"}
-            </button>
-          ))}
+                {label ===
+                "Scores"
+                  ? "Partidos"
+                  : "Españoles"}
+              </button>
+            )
+          )}
         </nav>
       )}
 
