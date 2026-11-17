@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Trophy,
   Activity,
+  Flag,
   CalendarDays,
   RefreshCw,
   AlertCircle,
@@ -18,8 +18,50 @@ const PLAYER_STATS_URL =
 
 const nav = [
   ["Scores", Activity],
-  ["Standings", Trophy],
+  ["Spanish", Flag],
 ];
+
+const SPANISH_PLAYERS = [
+  {
+    firstname: "Santi",
+    lastname: "Aldama",
+  },
+  {
+    firstname: "Sergio",
+    lastname: "De Larrea",
+  },
+  {
+    firstname: "Hugo",
+    lastname: "Gonzalez",
+  },
+  {
+    firstname: "Aday",
+    lastname: "Mara",
+  },
+  {
+    firstname: "Baba",
+    lastname: "Miller",
+  },
+];
+
+function normalizeText(value = "") {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function isSpanishPlayer(player) {
+  const firstname = normalizeText(player?.firstname);
+  const lastname = normalizeText(player?.lastname);
+
+  return SPANISH_PLAYERS.some(
+    (spanishPlayer) =>
+      normalizeText(spanishPlayer.firstname) === firstname &&
+      normalizeText(spanishPlayer.lastname) === lastname
+  );
+}
 
 function formatGameStatus(game) {
   if (game.status?.short === 3) {
@@ -291,6 +333,113 @@ function PlayerStatsTable({
         </table>
       </div>
     </div>
+  );
+}
+
+function SpanishPerformanceCard({ stat }) {
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-5 flex items-center gap-3">
+        <TeamLogo team={stat.team} />
+
+        <div className="min-w-0">
+          <h3 className="truncate text-lg font-black text-slate-950">
+            {stat.player?.firstname}{" "}
+            {stat.player?.lastname}
+          </h3>
+
+          <p className="text-sm text-slate-500">
+            {stat.team?.name}
+            {stat.pos ? ` · ${stat.pos}` : ""}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          ["MIN", stat.min ?? "-"],
+          ["PTS", stat.points ?? 0],
+          ["REB", stat.totReb ?? 0],
+          ["AST", stat.assists ?? 0],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-2xl bg-slate-100 p-3 text-center"
+          >
+            <div className="text-xl font-black text-slate-950">
+              {value}
+            </div>
+
+            <div className="mt-1 text-[10px] font-bold text-slate-400">
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
+        <div className="rounded-xl border border-slate-200 p-2">
+          <strong className="text-slate-950">
+            {stat.fgm ?? 0}/{stat.fga ?? 0}
+          </strong>
+
+          <div className="text-xs text-slate-400">
+            TC
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 p-2">
+          <strong className="text-slate-950">
+            {stat.tpm ?? 0}/{stat.tpa ?? 0}
+          </strong>
+
+          <div className="text-xs text-slate-400">
+            3PT
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 p-2">
+          <strong
+            className={
+              String(
+                stat.plusMinus || ""
+              ).startsWith("+")
+                ? "text-emerald-600"
+                : String(
+                    stat.plusMinus || ""
+                  ).startsWith("-")
+                ? "text-red-600"
+                : "text-slate-950"
+            }
+          >
+            {stat.plusMinus ?? "-"}
+          </strong>
+
+          <div className="text-xs text-slate-400">
+            +/-
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 gap-2 border-t border-slate-200 pt-4 text-center">
+        {[
+          ["ROB", stat.steals ?? 0],
+          ["TAP", stat.blocks ?? 0],
+          ["PERD", stat.turnovers ?? 0],
+          ["FALT", stat.pFouls ?? 0],
+        ].map(([label, value]) => (
+          <div key={label}>
+            <div className="font-black text-slate-950">
+              {value}
+            </div>
+
+            <div className="text-[10px] font-bold text-slate-400">
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
   );
 }
 
@@ -615,6 +764,15 @@ export default function App() {
   const [statsError, setStatsError] =
     useState("");
 
+  const [allPlayerStats, setAllPlayerStats] =
+    useState([]);
+
+  const [spanishLoading, setSpanishLoading] =
+    useState(true);
+
+  const [spanishError, setSpanishError] =
+    useState("");
+
   async function loadGames(
     showLoader = true
   ) {
@@ -665,12 +823,68 @@ export default function App() {
     }
   }
 
+  async function loadAllPlayerStats(
+    showLoader = true
+  ) {
+    if (showLoader) {
+      setSpanishLoading(true);
+    }
+
+    setSpanishError("");
+
+    try {
+      const response = await fetch(
+        `${PLAYER_STATS_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
+        );
+      }
+
+      const data =
+        await response.json();
+
+      const gameData =
+        data.games || {};
+
+      const stats =
+        Object.values(gameData).flatMap(
+          (game) =>
+            Array.isArray(game?.response)
+              ? game.response
+              : []
+        );
+
+      setAllPlayerStats(stats);
+    } catch (loadError) {
+      console.error(
+        "Error cargando actuaciones españolas:",
+        loadError
+      );
+
+      setAllPlayerStats([]);
+
+      setSpanishError(
+        "No ha sido posible cargar las actuaciones de los jugadores españoles."
+      );
+    } finally {
+      setSpanishLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadGames();
+    loadAllPlayerStats();
 
     const refreshInterval =
       window.setInterval(() => {
         loadGames(false);
+        loadAllPlayerStats(false);
       }, 60000);
 
     return () => {
@@ -679,6 +893,33 @@ export default function App() {
       );
     };
   }, []);
+
+  const spanishPerformances =
+    useMemo(() => {
+      return allPlayerStats
+        .filter(
+          (stat) =>
+            isSpanishPlayer(
+              stat.player
+            )
+        )
+        .sort((a, b) => {
+          const pointsDifference =
+            Number(b.points || 0) -
+            Number(a.points || 0);
+
+          if (
+            pointsDifference !== 0
+          ) {
+            return pointsDifference;
+          }
+
+          return (
+            Number(b.min || 0) -
+            Number(a.min || 0)
+          );
+        });
+    }, [allPlayerStats]);
 
   async function openGame(game) {
     setSelectedGame(game);
@@ -758,6 +999,14 @@ export default function App() {
     });
   }
 
+  function refreshCurrentSection() {
+    if (tab === "Spanish") {
+      loadAllPlayerStats();
+    } else {
+      loadGames();
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white text-slate-950">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -769,16 +1018,16 @@ export default function App() {
             className="flex items-center gap-3"
           >
             <div className="grid h-10 w-10 place-items-center rounded-2xl bg-orange-500 font-black text-white">
-              NBA
+              ÑBA
             </div>
 
             <div className="text-left">
               <div className="text-lg font-black tracking-tight text-slate-950">
-                COURTSIDE
+                ÑBA
               </div>
 
               <div className="text-xs text-slate-500">
-                Scores & Stats
+                Resultados y españoles
               </div>
             </div>
           </button>
@@ -797,7 +1046,10 @@ export default function App() {
                 }`}
               >
                 <Icon size={16} />
-                {label}
+
+                {label === "Scores"
+                  ? "Partidos"
+                  : "Españoles"}
               </button>
             ))}
           </nav>
@@ -818,15 +1070,15 @@ export default function App() {
             <section className="mb-8 rounded-[2rem] bg-gradient-to-br from-orange-500 via-orange-500 to-red-500 p-7 text-white shadow-lg md:p-10">
               <div className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-100">
                 <CalendarDays size={16} />
-                NBA Dashboard
+                ÑBA
               </div>
 
               <h1 className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
-                Resultados NBA.
+                Baloncesto con Ñ.
               </h1>
 
               <p className="mt-4 max-w-2xl text-orange-50">
-                Partidos, resultados y estadísticas en COURTSIDE.
+                Partidos NBA y actuaciones de los jugadores españoles.
               </p>
             </section>
 
@@ -863,8 +1115,8 @@ export default function App() {
                   </div>
 
                   <button
-                    onClick={() =>
-                      loadGames()
+                    onClick={
+                      refreshCurrentSection
                     }
                     disabled={loading}
                     className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
@@ -1014,27 +1266,94 @@ export default function App() {
               </section>
             )}
 
-            {tab === "Standings" && (
-              <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-                <div className="flex items-start gap-4">
-                  <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-600">
-                    <Trophy size={24} />
-                  </div>
-
+            {tab === "Spanish" && (
+              <section>
+                <div className="mb-6 flex items-end justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-orange-600">
-                      STANDINGS
+                      ÑBA
                     </p>
 
-                    <h2 className="mt-1 text-2xl font-bold text-slate-950">
-                      Clasificación
+                    <h2 className="text-2xl font-black text-slate-950">
+                      Españoles en la NBA
                     </h2>
 
-                    <p className="mt-3 text-slate-500">
-                      Próximamente: clasificación de las conferencias Este y Oeste.
+                    <p className="mt-2 text-sm text-slate-500">
+                      Actuaciones registradas en los box scores disponibles del día.
                     </p>
                   </div>
+
+                  <button
+                    onClick={
+                      refreshCurrentSection
+                    }
+                    disabled={
+                      spanishLoading
+                    }
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    <RefreshCw
+                      size={16}
+                      className={
+                        spanishLoading
+                          ? "animate-spin"
+                          : ""
+                      }
+                    />
+
+                    Actualizar
+                  </button>
                 </div>
+
+                {spanishLoading && (
+                  <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
+                    Cargando actuaciones...
+                  </div>
+                )}
+
+                {!spanishLoading &&
+                  spanishError && (
+                    <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
+                      <AlertCircle size={20} />
+                      {spanishError}
+                    </div>
+                  )}
+
+                {!spanishLoading &&
+                  !spanishError &&
+                  spanishPerformances.length ===
+                    0 && (
+                    <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                      <Flag
+                        size={32}
+                        className="mx-auto mb-3 text-orange-500"
+                      />
+
+                      <h3 className="font-black text-slate-950">
+                        Sin actuaciones españolas
+                      </h3>
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        Ningún jugador español aparece en los box scores disponibles del día.
+                      </p>
+                    </div>
+                  )}
+
+                {!spanishLoading &&
+                  !spanishError &&
+                  spanishPerformances.length >
+                    0 && (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {spanishPerformances.map(
+                        (stat) => (
+                          <SpanishPerformanceCard
+                            key={`${stat.game?.id}-${stat.player?.id}`}
+                            stat={stat}
+                          />
+                        )
+                      )}
+                    </div>
+                  )}
               </section>
             )}
           </>
@@ -1056,14 +1375,17 @@ export default function App() {
               }`}
             >
               <Icon size={19} />
-              {label}
+
+              {label === "Scores"
+                ? "Partidos"
+                : "Españoles"}
             </button>
           ))}
         </nav>
       )}
 
       <footer className="mx-auto max-w-7xl px-5 pb-24 pt-10 text-xs text-slate-400 md:pb-10">
-        COURTSIDE · NBA Scores & Stats
+        ÑBA · Resultados y jugadores españoles
       </footer>
     </div>
   );
