@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 const NBA_SCOREBOARD_URL =
-  "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
+  `${import.meta.env.BASE_URL}data/scoreboard.json`;
 
 const players = [
   { name: "Nikola Jokic", team: "DEN", ppg: 29.4, rpg: 12.8, apg: 10.2 },
