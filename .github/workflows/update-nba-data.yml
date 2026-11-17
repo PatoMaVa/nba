@@ -3,10 +3,15 @@ name: Update NBA data
 on:
   schedule:
     - cron: "7 * * * *"
+
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: update-nba-data
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -16,38 +21,222 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get current date
-        run: |
-          TODAY=$(TZ=Europe/Madrid date +%Y-%m-%d)
-          echo "TODAY=$TODAY" >> $GITHUB_ENV
-          echo "NBA date: $TODAY"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Get NBA games
-        run: |
-          curl --fail --location \
-            --request GET \
-            --url "https://v2.nba.api-sports.io/games?date=${TODAY}" \
-            --header "x-apisports-key: ${{ secrets.API_NBA_KEY }}" \
-            --header "Accept: application/json" \
-            --output public/data/scoreboard.json
+      - name: Create data folder
+        run: mkdir -p public/data
 
-      - name: Verify API response
+      - name: Download NBA games and completed player statistics
+        env:
+          API_NBA_KEY: ${{ secrets.API_NBA_KEY }}
+        run: |
+          python <<'PYTHON'
+          import json
+          import os
+          import time
+          import urllib.parse
+          import urllib.request
+          from datetime import datetime
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+
+          API_BASE = "https://v2.nba.api-sports.io"
+          API_KEY = os.environ["API_NBA_KEY"]
+
+          DATA_FOLDER = Path("public/data")
+          SCOREBOARD_FILE = DATA_FOLDER / "scoreboard.json"
+          PLAYER_STATS_FILE = DATA_FOLDER / "player-stats.json"
+
+          DATA_FOLDER.mkdir(parents=True, exist_ok=True)
+
+          today = datetime.now(
+              ZoneInfo("Europe/Madrid")
+          ).strftime("%Y-%m-%d")
+
+          print(f"NBA date: {today}")
+
+          def api_request(endpoint, parameters):
+              query = urllib.parse.urlencode(parameters)
+              url = f"{API_BASE}/{endpoint}?{query}"
+
+              print(f"Requesting: {endpoint}?{query}")
+
+              request = urllib.request.Request(
+                  url,
+                  headers={
+                      "x-apisports-key": API_KEY,
+                      "Accept": "application/json",
+                      "User-Agent": "COURTSIDE-GitHub-Action/1.0",
+                  },
+              )
+
+              with urllib.request.urlopen(
+                  request,
+                  timeout=45,
+              ) as response:
+                  body = response.read().decode("utf-8")
+
+              data = json.loads(body)
+
+              errors = data.get("errors")
+
+              if errors:
+                  if isinstance(errors, dict) and len(errors) > 0:
+                      raise RuntimeError(
+                          f"API-Sports error: {errors}"
+                      )
+
+                  if isinstance(errors, list) and len(errors) > 0:
+                      raise RuntimeError(
+                          f"API-Sports error: {errors}"
+                      )
+
+              return data
+
+          scoreboard = api_request(
+              "games",
+              {
+                  "date": today,
+              },
+          )
+
+          games = scoreboard.get("response", [])
+
+          with SCOREBOARD_FILE.open(
+              "w",
+              encoding="utf-8",
+          ) as file:
+              json.dump(
+                  scoreboard,
+                  file,
+                  ensure_ascii=False,
+                  separators=(",", ":"),
+              )
+
+          print(
+              f"Downloaded {len(games)} games"
+          )
+
+          existing_data = {
+              "date": today,
+              "games": {},
+          }
+
+          if PLAYER_STATS_FILE.exists():
+              try:
+                  with PLAYER_STATS_FILE.open(
+                      "r",
+                      encoding="utf-8",
+                  ) as file:
+                      saved_data = json.load(file)
+
+                  if saved_data.get("date") == today:
+                      existing_data = saved_data
+                  else:
+                      print(
+                          "Player statistics belong to another date. "
+                          "Starting a new file."
+                      )
+
+              except Exception as error:
+                  print(
+                      "Existing player statistics file could not "
+                      f"be read: {error}"
+                  )
+
+          existing_data.setdefault("games", {})
+
+          downloaded = 0
+          skipped = 0
+          pending = 0
+
+          for game in games:
+              game_id = game.get("id")
+              game_status = game.get("status", {}).get("short")
+
+              if game_id is None:
+                  continue
+
+              game_key = str(game_id)
+
+              if game_key in existing_data["games"]:
+                  print(
+                      f"Game {game_key}: statistics already saved"
+                  )
+                  skipped += 1
+                  continue
+
+              if game_status != 3:
+                  print(
+                      f"Game {game_key}: not finished yet"
+                  )
+                  pending += 1
+                  continue
+
+              try:
+                  stats = api_request(
+                      "players/statistics",
+                      {
+                          "game": game_id,
+                      },
+                  )
+
+                  existing_data["games"][game_key] = {
+                      "gameId": game_id,
+                      "updatedAt": datetime.now(
+                          ZoneInfo("Europe/Madrid")
+                      ).isoformat(),
+                      "results": stats.get("results", 0),
+                      "response": stats.get("response", []),
+                  }
+
+                  downloaded += 1
+
+                  print(
+                      f"Game {game_key}: "
+                      f"{stats.get('results', 0)} player records"
+                  )
+
+                  time.sleep(1)
+
+              except Exception as error:
+                  print(
+                      f"Game {game_key}: statistics failed: {error}"
+                  )
+
+          existing_data["date"] = today
+          existing_data["updatedAt"] = datetime.now(
+              ZoneInfo("Europe/Madrid")
+          ).isoformat()
+
+          with PLAYER_STATS_FILE.open(
+              "w",
+              encoding="utf-8",
+          ) as file:
+              json.dump(
+                  existing_data,
+                  file,
+                  ensure_ascii=False,
+                  separators=(",", ":"),
+              )
+
+          print("")
+          print("NBA update completed")
+          print(f"Games: {len(games)}")
+          print(f"New statistics: {downloaded}")
+          print(f"Previously saved: {skipped}")
+          print(f"Pending games: {pending}")
+          PYTHON
+
+      - name: Verify generated JSON files
         run: |
           python -m json.tool public/data/scoreboard.json > /dev/null
-          echo "Valid JSON received"
-          echo "File size:"
-          ls -lh public/data/scoreboard.json
+          python -m json.tool public/data/player-stats.json > /dev/null
 
-      - name: Commit NBA data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add public/data/scoreboard.json
-
-          if git diff --cached --quiet; then
-            echo "No changes"
-          else
-            git commit -m "Update NBA scoreboard"
-            git push
-          fi
+          echo "Both JSON files are valid"
+          echo ""
+          echo "Scoreboard:"
+          ls -lh public/data/scoreboard
