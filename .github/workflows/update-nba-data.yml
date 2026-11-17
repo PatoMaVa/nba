@@ -14,43 +14,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download NBA scoreboard
+      - name: Get NBA games
         run: |
-          curl \
-            --location \
-            --retry 3 \
-            --connect-timeout 15 \
-            --max-time 30 \
-            --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36" \
-            --header "Accept: application/json,text/plain,*/*" \
-            --header "Accept-Language: en-US,en;q=0.9" \
-            --header "Referer: https://www.nba.com/" \
-            --header "Origin: https://www.nba.com" \
-            --write-out "\nHTTP_STATUS:%{http_code}\n" \
-            "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json" \
+          curl --fail --location \
+            --request GET \
+            --url "https://v2.nba.api-sports.io/games?date=2026-11-17" \
+            --header "x-apisports-key: ${{ secrets.API_NBA_KEY }}" \
+            --header "Accept: application/json" \
             --output public/data/scoreboard.json
 
-      - name: Show NBA response status
-        run: |
-          echo "Downloaded file:"
-          ls -lh public/data/scoreboard.json
-          echo "First 500 characters:"
-          head -c 500 public/data/scoreboard.json
-          echo ""
-
-      - name: Verify downloaded JSON
+      - name: Verify API response
         run: |
           python -m json.tool public/data/scoreboard.json > /dev/null
-          echo "NBA scoreboard JSON is valid"
+          echo "Valid JSON received"
+          echo "File size:"
+          ls -lh public/data/scoreboard.json
 
       - name: Commit NBA data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add public/data/scoreboard.json
 
           if git diff --cached --quiet; then
-            echo "No NBA data changes"
+            echo "No changes"
           else
             git commit -m "Update NBA scoreboard"
             git push
