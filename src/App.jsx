@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   Trophy,
   Activity,
-  Users,
   CalendarDays,
   RefreshCw,
   AlertCircle,
@@ -19,7 +18,6 @@ const PLAYER_STATS_URL =
 
 const nav = [
   ["Scores", Activity],
-  ["Players", Users],
   ["Standings", Trophy],
 ];
 
@@ -1016,43 +1014,27 @@ export default function App() {
               </section>
             )}
 
-            {tab === "Players" && (
+            {tab === "Standings" && (
               <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
                 <div className="flex items-start gap-4">
                   <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl bg-orange-50 text-orange-600">
-                    <Users size={24} />
+                    <Trophy size={24} />
                   </div>
 
                   <div>
                     <p className="text-sm font-semibold text-orange-600">
-                      PLAYERS
+                      STANDINGS
                     </p>
 
                     <h2 className="mt-1 text-2xl font-bold text-slate-950">
-                      Jugadores
+                      Clasificación
                     </h2>
 
-                    <p className="mt-3 max-w-2xl text-slate-500">
-                      Las estadísticas individuales están disponibles dentro del detalle de cada partido.
+                    <p className="mt-3 text-slate-500">
+                      Próximamente: clasificación de las conferencias Este y Oeste.
                     </p>
                   </div>
                 </div>
-              </section>
-            )}
-
-            {tab === "Standings" && (
-              <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-                <p className="text-sm font-semibold text-orange-600">
-                  STANDINGS
-                </p>
-
-                <h2 className="mt-1 text-2xl font-bold text-slate-950">
-                  Clasificación
-                </h2>
-
-                <p className="mt-3 text-slate-500">
-                  Próximamente: clasificación de las conferencias Este y Oeste.
-                </p>
               </section>
             )}
           </>
@@ -1060,7 +1042,7 @@ export default function App() {
       </main>
 
       {!selectedGame && (
-        <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden">
           {nav.map(([label, Icon]) => (
             <button
               key={label}
