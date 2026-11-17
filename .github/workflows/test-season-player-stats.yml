@@ -1,0 +1,47 @@
+name: Test NBA season player stats
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create data folder
+        run: mkdir -p public/data
+
+      - name: Get season player statistics
+        run: |
+          curl --fail --location \
+            --request GET \
+            --url "https://v2.nba.api-sports.io/players/statistics?season=2026&id=279" \
+            --header "x-apisports-key: ${{ secrets.API_NBA_KEY }}" \
+            --header "Accept: application/json" \
+            --output public/data/test-season-player-stats.json
+
+      - name: Verify response
+        run: |
+          python -m json.tool public/data/test-season-player-stats.json > /dev/null
+          echo "Valid JSON received"
+          ls -lh public/data/test-season-player-stats.json
+
+      - name: Commit test data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/test-season-player-stats.json
+
+          if git diff --cached --quiet; then
+            echo "No changes"
+          else
+            git commit -m "Test NBA season player stats"
+            git push
+          fi
