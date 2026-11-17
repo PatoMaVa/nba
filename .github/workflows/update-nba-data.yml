@@ -14,11 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Get current date
+        run: |
+          TODAY=$(TZ=Europe/Madrid date +%Y-%m-%d)
+          echo "TODAY=$TODAY" >> $GITHUB_ENV
+          echo "NBA date: $TODAY"
+
       - name: Get NBA games
         run: |
           curl --fail --location \
             --request GET \
-            --url "https://v2.nba.api-sports.io/games?date=2026-11-17" \
+            --url "https://v2.nba.api-sports.io/games?date=${TODAY}" \
             --header "x-apisports-key: ${{ secrets.API_NBA_KEY }}" \
             --header "Accept: application/json" \
             --output public/data/scoreboard.json
