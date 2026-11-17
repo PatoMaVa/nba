@@ -14,6 +14,9 @@ import {
 const NBA_SCOREBOARD_URL =
   `${import.meta.env.BASE_URL}data/scoreboard.json`;
 
+const PLAYER_STATS_URL =
+  `${import.meta.env.BASE_URL}data/test-player-stats.json`;
+
 const nav = [
   ["Scores", Activity],
   ["Players", Users],
@@ -21,7 +24,9 @@ const nav = [
 ];
 
 function formatGameStatus(game) {
-  if (game.status?.short === 3) return "FINAL";
+  if (game.status?.short === 3) {
+    return "FINAL";
+  }
 
   if (game.status?.short === 2) {
     const period = game.periods?.current;
@@ -35,15 +40,14 @@ function formatGameStatus(game) {
 }
 
 function formatGameTime(game) {
-  if (!game.date?.start) return "";
+  if (!game.date?.start) {
+    return "";
+  }
 
-  return new Date(game.date.start).toLocaleTimeString(
-    "es-ES",
-    {
-      hour: "2-digit",
-      minute: "2-digit",
-    }
-  );
+  return new Date(game.date.start).toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function TeamLogo({ team, size = "small" }) {
@@ -110,7 +114,165 @@ function TeamRow({ team, score, winner }) {
   );
 }
 
-function GameDetail({ game, onBack }) {
+function PlayerStatsTable({ team, playerStats }) {
+  const teamPlayers = playerStats
+    .filter((stat) => stat.team?.id === team?.id)
+    .sort((a, b) => {
+      const minutesA = Number(a.min || 0);
+      const minutesB = Number(b.min || 0);
+
+      return minutesB - minutesA;
+    });
+
+  if (teamPlayers.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-3">
+        <TeamLogo team={team} />
+
+        <div>
+          <div className="font-black">
+            {team?.name}
+          </div>
+
+          <div className="text-xs text-slate-500">
+            {teamPlayers.length} jugadores
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <table className="w-full min-w-[760px] text-right text-sm">
+          <thead className="bg-slate-950 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="p-3 text-left">
+                Jugador
+              </th>
+
+              <th className="p-3">
+                MIN
+              </th>
+
+              <th className="p-3 text-orange-400">
+                PTS
+              </th>
+
+              <th className="p-3">
+                REB
+              </th>
+
+              <th className="p-3">
+                AST
+              </th>
+
+              <th className="p-3">
+                ROB
+              </th>
+
+              <th className="p-3">
+                TAP
+              </th>
+
+              <th className="p-3">
+                TC
+              </th>
+
+              <th className="p-3">
+                3PT
+              </th>
+
+              <th className="p-3">
+                TL
+              </th>
+
+              <th className="p-3">
+                +/-
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {teamPlayers.map((stat) => (
+              <tr
+                key={stat.player?.id}
+                className="border-t border-white/10"
+              >
+                <td className="whitespace-nowrap p-3 text-left">
+                  <div className="font-bold">
+                    {stat.player?.firstname}{" "}
+                    {stat.player?.lastname}
+                  </div>
+
+                  <div className="text-xs text-slate-500">
+                    {stat.pos || "-"}
+                  </div>
+                </td>
+
+                <td className="p-3">
+                  {stat.min ?? "-"}
+                </td>
+
+                <td className="p-3 font-black text-orange-400">
+                  {stat.points ?? 0}
+                </td>
+
+                <td className="p-3">
+                  {stat.totReb ?? 0}
+                </td>
+
+                <td className="p-3">
+                  {stat.assists ?? 0}
+                </td>
+
+                <td className="p-3">
+                  {stat.steals ?? 0}
+                </td>
+
+                <td className="p-3">
+                  {stat.blocks ?? 0}
+                </td>
+
+                <td className="whitespace-nowrap p-3">
+                  {stat.fgm ?? 0}/{stat.fga ?? 0}
+                </td>
+
+                <td className="whitespace-nowrap p-3">
+                  {stat.tpm ?? 0}/{stat.tpa ?? 0}
+                </td>
+
+                <td className="whitespace-nowrap p-3">
+                  {stat.ftm ?? 0}/{stat.fta ?? 0}
+                </td>
+
+                <td
+                  className={`p-3 font-semibold ${
+                    String(stat.plusMinus || "").startsWith("+")
+                      ? "text-emerald-400"
+                      : String(stat.plusMinus || "").startsWith("-")
+                      ? "text-red-400"
+                      : "text-slate-300"
+                  }`}
+                >
+                  {stat.plusMinus ?? "-"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GameDetail({
+  game,
+  onBack,
+  playerStats,
+  statsLoading,
+}) {
   const visitors = game.teams?.visitors;
   const home = game.teams?.home;
 
@@ -296,6 +458,7 @@ function GameDetail({ game, onBack }) {
 
                   <div className="text-sm text-slate-500">
                     {game.arena.city}
+
                     {game.arena.state
                       ? `, ${game.arena.state}`
                       : ""}
@@ -332,6 +495,46 @@ function GameDetail({ game, onBack }) {
             )}
           </div>
         </div>
+
+        <div className="border-t border-white/10 p-5">
+          <div className="mb-5">
+            <p className="text-sm font-semibold text-orange-400">
+              BOX SCORE
+            </p>
+
+            <h3 className="text-xl font-black">
+              Estadísticas de jugadores
+            </h3>
+          </div>
+
+          {statsLoading && (
+            <div className="rounded-2xl bg-slate-950 p-6 text-center text-sm text-slate-400">
+              Cargando estadísticas...
+            </div>
+          )}
+
+          {!statsLoading &&
+            playerStats.length === 0 && (
+              <div className="rounded-2xl bg-slate-950 p-6 text-center text-sm text-slate-400">
+                Estadísticas individuales todavía no disponibles para este partido.
+              </div>
+            )}
+
+          {!statsLoading &&
+            playerStats.length > 0 && (
+              <div className="space-y-8">
+                <PlayerStatsTable
+                  team={visitors}
+                  playerStats={playerStats}
+                />
+
+                <PlayerStatsTable
+                  team={home}
+                  playerStats={playerStats}
+                />
+              </div>
+            )}
+        </div>
       </div>
     </section>
   );
@@ -358,6 +561,12 @@ export default function App() {
 
   const [lastUpdate, setLastUpdate] =
     useState(null);
+
+  const [playerStats, setPlayerStats] =
+    useState([]);
+
+  const [statsLoading, setStatsLoading] =
+    useState(false);
 
   async function loadGames(showLoader = true) {
     if (showLoader) {
@@ -420,20 +629,73 @@ export default function App() {
       );
   }, []);
 
-  function openGame(game) {
+  async function openGame(game) {
     setSelectedGame(game);
+    setPlayerStats([]);
+    setStatsLoading(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    try {
+      /*
+       * Durante esta prueba únicamente tenemos
+       * estadísticas descargadas para el partido
+       * Phoenix Suns - Denver Nuggets (17145).
+       *
+       * Después sustituiremos esto por estadísticas
+       * automáticas para todos los partidos.
+       */
+      if (game.id === 17145) {
+        const response = await fetch(
+          `${PLAYER_STATS_URL}?t=${Date.now()}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `HTTP ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        setPlayerStats(
+          Array.isArray(data.response)
+            ? data.response
+            : []
+        );
+      }
+    } catch (statsError) {
+      console.error(
+        "Error cargando estadísticas:",
+        statsError
+      );
+
+      setPlayerStats([]);
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  function closeGame() {
+    setSelectedGame(null);
+    setPlayerStats([]);
+    setStatsLoading(false);
+
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
   }
 
-  function closeGame() {
-    setSelectedGame(null);
-  }
-
   function changeTab(newTab) {
     setSelectedGame(null);
+    setPlayerStats([]);
     setTab(newTab);
 
     window.scrollTo({
@@ -493,6 +755,8 @@ export default function App() {
           <GameDetail
             game={selectedGame}
             onBack={closeGame}
+            playerStats={playerStats}
+            statsLoading={statsLoading}
           />
         ) : (
           <>
@@ -507,8 +771,7 @@ export default function App() {
               </h1>
 
               <p className="mt-4 max-w-2xl text-orange-50">
-                Partidos, resultados y
-                estadísticas en COURTSIDE.
+                Partidos, resultados y estadísticas en COURTSIDE.
               </p>
             </section>
 
@@ -581,8 +844,7 @@ export default function App() {
                   !error &&
                   games.length === 0 && (
                     <div className="rounded-3xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
-                      No hay partidos NBA
-                      disponibles para esta fecha.
+                      No hay partidos NBA disponibles para esta fecha.
                     </div>
                   )}
 
@@ -592,12 +854,10 @@ export default function App() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {games.map((game) => {
                         const visitorsPoints =
-                          game.scores?.visitors
-                            ?.points;
+                          game.scores?.visitors?.points;
 
                         const homePoints =
-                          game.scores?.home
-                            ?.points;
+                          game.scores?.home?.points;
 
                         const finished =
                           game.status?.short === 3;
@@ -624,9 +884,7 @@ export default function App() {
                               <div>
                                 <div
                                   className={`text-xs font-bold ${
-                                    game.status
-                                      ?.short ===
-                                    2
+                                    game.status?.short === 2
                                       ? "text-emerald-400"
                                       : "text-slate-400"
                                   }`}
@@ -636,9 +894,7 @@ export default function App() {
                                   )}
                                 </div>
 
-                                {game.status
-                                  ?.short !==
-                                  3 && (
+                                {game.status?.short !== 3 && (
                                   <div className="mt-1 text-xs text-slate-500">
                                     {formatGameTime(
                                       game
@@ -647,9 +903,7 @@ export default function App() {
                                 )}
                               </div>
 
-                              {game.status
-                                ?.short ===
-                                2 && (
+                              {game.status?.short === 2 && (
                                 <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">
                                   ● LIVE
                                 </span>
@@ -659,12 +913,10 @@ export default function App() {
                             <div className="space-y-4">
                               <TeamRow
                                 team={
-                                  game.teams
-                                    ?.visitors
+                                  game.teams?.visitors
                                 }
                                 score={
-                                  game.scores
-                                    ?.visitors
+                                  game.scores?.visitors
                                 }
                                 winner={
                                   visitorsWinner
@@ -673,12 +925,10 @@ export default function App() {
 
                               <TeamRow
                                 team={
-                                  game.teams
-                                    ?.home
+                                  game.teams?.home
                                 }
                                 score={
-                                  game.scores
-                                    ?.home
+                                  game.scores?.home
                                 }
                                 winner={
                                   homeWinner
@@ -689,12 +939,8 @@ export default function App() {
                             {game.arena?.name && (
                               <div className="mt-5 border-t border-white/10 pt-4">
                                 <p className="truncate text-xs text-slate-500">
-                                  {
-                                    game.arena
-                                      .name
-                                  }
-                                  {game.arena
-                                    .city
+                                  {game.arena.name}
+                                  {game.arena.city
                                     ? ` · ${game.arena.city}`
                                     : ""}
                                 </p>
@@ -723,8 +969,7 @@ export default function App() {
                 </h2>
 
                 <p className="mt-3 text-slate-400">
-                  Próximamente: estadísticas
-                  reales de jugadores.
+                  Próximamente: estadísticas de jugadores y líderes NBA.
                 </p>
               </section>
             )}
@@ -740,9 +985,7 @@ export default function App() {
                 </h2>
 
                 <p className="mt-3 text-slate-400">
-                  Próximamente: clasificación
-                  real de las conferencias Este
-                  y Oeste.
+                  Próximamente: clasificación de las conferencias Este y Oeste.
                 </p>
               </section>
             )}
