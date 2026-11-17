@@ -50,6 +50,17 @@ function formatGameTime(game) {
   });
 }
 
+function getPlayerName(player) {
+  if (
+    player?.firstname === "Victor" &&
+    player?.lastname === "Wembanyama"
+  ) {
+    return "Nico Marín";
+  }
+
+  return `${player?.firstname ?? ""} ${player?.lastname ?? ""}`.trim();
+}
+
 function TeamLogo({ team, size = "small" }) {
   const containerSize =
     size === "large"
@@ -63,7 +74,7 @@ function TeamLogo({ team, size = "small" }) {
 
   return (
     <div
-      className={`grid ${containerSize} flex-shrink-0 place-items-center rounded-2xl bg-white p-2`}
+      className={`grid ${containerSize} flex-shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-sm`}
     >
       {team?.logo ? (
         <img
@@ -89,14 +100,14 @@ function TeamRow({ team, score, winner }) {
         <div
           className={`truncate ${
             winner
-              ? "font-black text-white"
-              : "font-semibold text-slate-300"
+              ? "font-black text-slate-950"
+              : "font-semibold text-slate-700"
           }`}
         >
           {team?.name}
         </div>
 
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-slate-400">
           {team?.code}
         </div>
       </div>
@@ -104,8 +115,8 @@ function TeamRow({ team, score, winner }) {
       <span
         className={`text-2xl ${
           winner
-            ? "font-black text-white"
-            : "font-bold text-slate-400"
+            ? "font-black text-slate-950"
+            : "font-bold text-slate-500"
         }`}
       >
         {score?.points ?? "-"}
@@ -124,11 +135,8 @@ function PlayerStatsTable({
         stat.team?.id === team?.id
     )
     .sort((a, b) => {
-      const minutesA =
-        Number(a.min || 0);
-
-      const minutesB =
-        Number(b.min || 0);
+      const minutesA = Number(a.min || 0);
+      const minutesB = Number(b.min || 0);
 
       return minutesB - minutesA;
     });
@@ -143,87 +151,55 @@ function PlayerStatsTable({
         <TeamLogo team={team} />
 
         <div>
-          <div className="font-black">
+          <div className="font-black text-slate-950">
             {team?.name}
           </div>
 
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-slate-400">
             {teamPlayers.length} jugadores
           </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
         <table className="w-full min-w-[800px] text-right text-sm">
-          <thead className="bg-slate-950 text-xs uppercase text-slate-500">
+          <thead className="bg-slate-100 text-xs uppercase text-slate-500">
             <tr>
               <th className="p-3 text-left">
                 Jugador
               </th>
 
-              <th className="p-3">
-                MIN
-              </th>
+              <th className="p-3">MIN</th>
 
-              <th className="p-3 text-orange-400">
+              <th className="p-3 text-orange-600">
                 PTS
               </th>
 
-              <th className="p-3">
-                REB
-              </th>
-
-              <th className="p-3">
-                AST
-              </th>
-
-              <th className="p-3">
-                ROB
-              </th>
-
-              <th className="p-3">
-                TAP
-              </th>
-
-              <th className="p-3">
-                TC
-              </th>
-
-              <th className="p-3">
-                3PT
-              </th>
-
-              <th className="p-3">
-                TL
-              </th>
-
-              <th className="p-3">
-                PER
-              </th>
-
-              <th className="p-3">
-                FP
-              </th>
-
-              <th className="p-3">
-                +/-
-              </th>
+              <th className="p-3">REB</th>
+              <th className="p-3">AST</th>
+              <th className="p-3">ROB</th>
+              <th className="p-3">TAP</th>
+              <th className="p-3">TC</th>
+              <th className="p-3">3PT</th>
+              <th className="p-3">TL</th>
+              <th className="p-3">PERD</th>
+              <th className="p-3">FALT</th>
+              <th className="p-3">+/-</th>
             </tr>
           </thead>
 
-          <tbody>
+          <tbody className="text-slate-700">
             {teamPlayers.map((stat) => (
               <tr
                 key={stat.player?.id}
-                className="border-t border-white/10"
+                className="border-t border-slate-200"
               >
                 <td className="whitespace-nowrap p-3 text-left">
-                  <div className="font-bold">
-                    {stat.player?.firstname}{" "}
-                    {stat.player?.lastname}
+                  <div className="font-bold text-slate-950">
+                    {getPlayerName(stat.player)}
                   </div>
 
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-slate-400">
                     {stat.pos || "-"}
                   </div>
                 </td>
@@ -232,7 +208,7 @@ function PlayerStatsTable({
                   {stat.min ?? "-"}
                 </td>
 
-                <td className="p-3 font-black text-orange-400">
+                <td className="p-3 font-black text-orange-600">
                   {stat.points ?? 0}
                 </td>
 
@@ -277,12 +253,12 @@ function PlayerStatsTable({
                     String(
                       stat.plusMinus || ""
                     ).startsWith("+")
-                      ? "text-emerald-400"
+                      ? "text-emerald-600"
                       : String(
                           stat.plusMinus || ""
                         ).startsWith("-")
-                      ? "text-red-400"
-                      : "text-slate-300"
+                      ? "text-red-600"
+                      : "text-slate-500"
                   }`}
                 >
                   {stat.plusMinus ?? "-"}
@@ -303,17 +279,11 @@ function GameDetail({
   statsLoading,
   statsError,
 }) {
-  const visitors =
-    game.teams?.visitors;
+  const visitors = game.teams?.visitors;
+  const home = game.teams?.home;
 
-  const home =
-    game.teams?.home;
-
-  const visitorsScore =
-    game.scores?.visitors;
-
-  const homeScore =
-    game.scores?.home;
+  const visitorsScore = game.scores?.visitors;
+  const homeScore = game.scores?.home;
 
   const visitorsLines =
     visitorsScore?.linescore || [];
@@ -336,15 +306,15 @@ function GameDetail({
     <section>
       <button
         onClick={onBack}
-        className="mb-6 flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-slate-200 hover:bg-white/15"
+        className="mb-6 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
       >
         <ArrowLeft size={18} />
         Partidos
       </button>
 
-      <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900 shadow-2xl">
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg">
         <div className="bg-gradient-to-br from-orange-500 to-red-600 px-5 py-6 text-center">
-          <div className="text-sm font-black tracking-widest text-orange-100">
+          <div className="text-sm font-black tracking-widest text-white">
             {formatGameStatus(game)}
           </div>
 
@@ -362,25 +332,25 @@ function GameDetail({
               size="large"
             />
 
-            <div className="mt-3 min-h-12 font-bold">
+            <div className="mt-3 min-h-12 font-bold text-slate-950">
               {visitors?.name}
             </div>
 
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs text-slate-400">
               VISITANTE
             </div>
           </div>
 
           <div className="flex items-center gap-3 px-1">
-            <span className="text-4xl font-black sm:text-5xl">
+            <span className="text-4xl font-black text-slate-950 sm:text-5xl">
               {visitorsScore?.points ?? "-"}
             </span>
 
-            <span className="text-xl text-slate-600">
+            <span className="text-xl text-slate-300">
               -
             </span>
 
-            <span className="text-4xl font-black sm:text-5xl">
+            <span className="text-4xl font-black text-slate-950 sm:text-5xl">
               {homeScore?.points ?? "-"}
             </span>
           </div>
@@ -391,25 +361,25 @@ function GameDetail({
               size="large"
             />
 
-            <div className="mt-3 min-h-12 font-bold">
+            <div className="mt-3 min-h-12 font-bold text-slate-950">
               {home?.name}
             </div>
 
-            <div className="mt-1 text-xs text-slate-500">
+            <div className="mt-1 text-xs text-slate-400">
               LOCAL
             </div>
           </div>
         </div>
 
-        <div className="border-t border-white/10 p-5">
-          <h3 className="mb-4 text-lg font-black">
+        <div className="border-t border-slate-200 p-5">
+          <h3 className="mb-4 text-lg font-black text-slate-950">
             Marcador por cuartos
           </h3>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] text-center">
+            <table className="w-full min-w-[420px] text-center text-slate-700">
               <thead>
-                <tr className="text-xs text-slate-500">
+                <tr className="text-xs text-slate-400">
                   <th className="pb-3 text-left">
                     EQUIPO
                   </th>
@@ -425,15 +395,15 @@ function GameDetail({
                     </th>
                   ))}
 
-                  <th className="pb-3 text-orange-400">
+                  <th className="pb-3 text-orange-600">
                     TOTAL
                   </th>
                 </tr>
               </thead>
 
               <tbody>
-                <tr className="border-t border-white/10">
-                  <td className="py-4 text-left font-black">
+                <tr className="border-t border-slate-200">
+                  <td className="py-4 text-left font-black text-slate-950">
                     {visitors?.code}
                   </td>
 
@@ -446,13 +416,13 @@ function GameDetail({
                     </td>
                   ))}
 
-                  <td className="py-4 font-black">
+                  <td className="py-4 font-black text-slate-950">
                     {visitorsScore?.points ?? "-"}
                   </td>
                 </tr>
 
-                <tr className="border-t border-white/10">
-                  <td className="py-4 text-left font-black">
+                <tr className="border-t border-slate-200">
+                  <td className="py-4 text-left font-black text-slate-950">
                     {home?.code}
                   </td>
 
@@ -465,7 +435,7 @@ function GameDetail({
                     </td>
                   ))}
 
-                  <td className="py-4 font-black">
+                  <td className="py-4 font-black text-slate-950">
                     {homeScore?.points ?? "-"}
                   </td>
                 </tr>
@@ -474,8 +444,8 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-white/10 p-5">
-          <h3 className="mb-4 text-lg font-black">
+        <div className="border-t border-slate-200 p-5">
+          <h3 className="mb-4 text-lg font-black text-slate-950">
             Información
           </h3>
 
@@ -484,11 +454,11 @@ function GameDetail({
               <div className="flex items-start gap-3">
                 <MapPin
                   size={20}
-                  className="mt-0.5 text-orange-400"
+                  className="mt-0.5 text-orange-500"
                 />
 
                 <div>
-                  <div className="font-semibold">
+                  <div className="font-semibold text-slate-950">
                     {game.arena.name}
                   </div>
 
@@ -507,11 +477,11 @@ function GameDetail({
               <div className="flex items-start gap-3">
                 <Clock
                   size={20}
-                  className="mt-0.5 text-orange-400"
+                  className="mt-0.5 text-orange-500"
                 />
 
                 <div>
-                  <div className="font-semibold">
+                  <div className="font-semibold text-slate-950">
                     Fecha y hora
                   </div>
 
@@ -532,35 +502,34 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-white/10 p-5">
+        <div className="border-t border-slate-200 p-5">
           <div className="mb-5">
-            <p className="text-sm font-semibold text-orange-400">
+            <p className="text-sm font-semibold text-orange-600">
               BOX SCORE
             </p>
 
-            <h3 className="text-xl font-black">
+            <h3 className="text-xl font-black text-slate-950">
               Estadísticas de jugadores
             </h3>
           </div>
 
           {statsLoading && (
-            <div className="rounded-2xl bg-slate-950 p-6 text-center text-sm text-slate-400">
+            <div className="rounded-2xl bg-slate-100 p-6 text-center text-sm text-slate-500">
               Cargando estadísticas...
             </div>
           )}
 
-          {!statsLoading &&
-            statsError && (
-              <div className="flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-200">
-                <AlertCircle size={19} />
-                {statsError}
-              </div>
-            )}
+          {!statsLoading && statsError && (
+            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+              <AlertCircle size={19} />
+              {statsError}
+            </div>
+          )}
 
           {!statsLoading &&
             !statsError &&
             playerStats.length === 0 && (
-              <div className="rounded-2xl bg-slate-950 p-6 text-center text-sm text-slate-400">
+              <div className="rounded-2xl bg-slate-100 p-6 text-center text-sm text-slate-500">
                 Estadísticas individuales todavía no disponibles para este partido.
               </div>
             )}
@@ -761,8 +730,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/90 backdrop-blur">
+    <div className="min-h-screen bg-white text-slate-950">
+      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           <button
             onClick={() =>
@@ -770,16 +739,16 @@ export default function App() {
             }
             className="flex items-center gap-3"
           >
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-orange-500 font-black text-slate-950">
+            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-orange-500 font-black text-white">
               NBA
             </div>
 
             <div className="text-left">
-              <div className="text-lg font-black tracking-tight">
+              <div className="text-lg font-black tracking-tight text-slate-950">
                 COURTSIDE
               </div>
 
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-500">
                 Scores & Stats
               </div>
             </div>
@@ -794,8 +763,8 @@ export default function App() {
                 }
                 className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm ${
                   tab === label
-                    ? "bg-white text-slate-950"
-                    : "text-slate-300 hover:bg-white/10"
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 <Icon size={16} />
@@ -817,7 +786,7 @@ export default function App() {
           />
         ) : (
           <>
-            <section className="mb-8 rounded-[2rem] bg-gradient-to-br from-orange-500 via-orange-500 to-red-600 p-7 shadow-2xl md:p-10">
+            <section className="mb-8 rounded-[2rem] bg-gradient-to-br from-orange-500 via-orange-500 to-red-500 p-7 text-white shadow-lg md:p-10">
               <div className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-100">
                 <CalendarDays size={16} />
                 NBA Dashboard
@@ -836,22 +805,22 @@ export default function App() {
               <section>
                 <div className="mb-5 flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-sm font-semibold text-orange-400">
+                    <p className="text-sm font-semibold text-orange-600">
                       SCOREBOARD
                     </p>
 
-                    <h2 className="text-2xl font-bold">
+                    <h2 className="text-2xl font-bold text-slate-950">
                       Partidos
                     </h2>
 
                     {gameDate && (
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-slate-500">
                         {gameDate}
                       </p>
                     )}
 
                     {lastUpdate && (
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-slate-400">
                         Cargado a las{" "}
                         {lastUpdate.toLocaleTimeString(
                           "es-ES",
@@ -869,7 +838,7 @@ export default function App() {
                       loadGames()
                     }
                     disabled={loading}
-                    className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm hover:bg-white/15 disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
                   >
                     <RefreshCw
                       size={16}
@@ -885,13 +854,13 @@ export default function App() {
                 </div>
 
                 {loading && (
-                  <div className="rounded-3xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
+                  <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
                     Cargando partidos NBA...
                   </div>
                 )}
 
                 {!loading && error && (
-                  <div className="flex items-center gap-3 rounded-3xl border border-red-500/30 bg-red-500/10 p-5 text-red-200">
+                  <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
                     <AlertCircle size={20} />
                     {error}
                   </div>
@@ -900,7 +869,7 @@ export default function App() {
                 {!loading &&
                   !error &&
                   games.length === 0 && (
-                    <div className="rounded-3xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
                       No hay partidos NBA disponibles para esta fecha.
                     </div>
                   )}
@@ -935,15 +904,15 @@ export default function App() {
                             onClick={() =>
                               openGame(game)
                             }
-                            className="rounded-3xl border border-white/10 bg-slate-900 p-5 text-left shadow-xl transition hover:border-orange-500/50 hover:bg-slate-800"
+                            className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-orange-300 hover:shadow-md"
                           >
                             <div className="mb-5 flex items-start justify-between gap-4">
                               <div>
                                 <div
                                   className={`text-xs font-bold ${
                                     game.status?.short === 2
-                                      ? "text-emerald-400"
-                                      : "text-slate-400"
+                                      ? "text-emerald-600"
+                                      : "text-slate-500"
                                   }`}
                                 >
                                   {formatGameStatus(
@@ -952,7 +921,7 @@ export default function App() {
                                 </div>
 
                                 {game.status?.short !== 3 && (
-                                  <div className="mt-1 text-xs text-slate-500">
+                                  <div className="mt-1 text-xs text-slate-400">
                                     {formatGameTime(
                                       game
                                     )}
@@ -961,7 +930,7 @@ export default function App() {
                               </div>
 
                               {game.status?.short === 2 && (
-                                <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">
+                                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-600">
                                   ● LIVE
                                 </span>
                               )}
@@ -994,8 +963,8 @@ export default function App() {
                             </div>
 
                             {game.arena?.name && (
-                              <div className="mt-5 border-t border-white/10 pt-4">
-                                <p className="truncate text-xs text-slate-500">
+                              <div className="mt-5 border-t border-slate-200 pt-4">
+                                <p className="truncate text-xs text-slate-400">
                                   {game.arena.name}
 
                                   {game.arena.city
@@ -1005,7 +974,7 @@ export default function App() {
                               </div>
                             )}
 
-                            <div className="mt-4 text-right text-xs font-bold text-orange-400">
+                            <div className="mt-4 text-right text-xs font-bold text-orange-600">
                               Ver partido →
                             </div>
                           </button>
@@ -1017,32 +986,32 @@ export default function App() {
             )}
 
             {tab === "Players" && (
-              <section className="rounded-3xl border border-white/10 bg-slate-900 p-8">
-                <p className="text-sm font-semibold text-orange-400">
+              <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <p className="text-sm font-semibold text-orange-600">
                   PLAYERS
                 </p>
 
-                <h2 className="mt-1 text-2xl font-bold">
+                <h2 className="mt-1 text-2xl font-bold text-slate-950">
                   Jugadores
                 </h2>
 
-                <p className="mt-3 text-slate-400">
+                <p className="mt-3 text-slate-500">
                   Próximamente: estadísticas de jugadores y líderes NBA.
                 </p>
               </section>
             )}
 
             {tab === "Standings" && (
-              <section className="rounded-3xl border border-white/10 bg-slate-900 p-8">
-                <p className="text-sm font-semibold text-orange-400">
+              <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+                <p className="text-sm font-semibold text-orange-600">
                   STANDINGS
                 </p>
 
-                <h2 className="mt-1 text-2xl font-bold">
+                <h2 className="mt-1 text-2xl font-bold text-slate-950">
                   Clasificación
                 </h2>
 
-                <p className="mt-3 text-slate-400">
+                <p className="mt-3 text-slate-500">
                   Próximamente: clasificación de las conferencias Este y Oeste.
                 </p>
               </section>
@@ -1052,7 +1021,7 @@ export default function App() {
       </main>
 
       {!selectedGame && (
-        <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-3 border-t border-white/10 bg-slate-950/95 p-2 backdrop-blur md:hidden">
+        <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden">
           {nav.map(([label, Icon]) => (
             <button
               key={label}
@@ -1061,8 +1030,8 @@ export default function App() {
               }
               className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
                 tab === label
-                  ? "bg-white text-slate-950"
-                  : "text-slate-400"
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-500"
               }`}
             >
               <Icon size={19} />
@@ -1072,7 +1041,7 @@ export default function App() {
         </nav>
       )}
 
-      <footer className="mx-auto max-w-7xl px-5 pb-24 pt-10 text-xs text-slate-500 md:pb-10">
+      <footer className="mx-auto max-w-7xl px-5 pb-24 pt-10 text-xs text-slate-400 md:pb-10">
         COURTSIDE · NBA Scores & Stats
       </footer>
     </div>
