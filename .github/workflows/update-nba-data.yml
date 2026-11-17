@@ -16,16 +16,32 @@ jobs:
 
       - name: Download NBA scoreboard
         run: |
-          curl --fail --location \
+          curl \
+            --location \
             --retry 3 \
-            --user-agent "Mozilla/5.0" \
+            --connect-timeout 15 \
+            --max-time 30 \
+            --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141.0 Safari/537.36" \
+            --header "Accept: application/json,text/plain,*/*" \
+            --header "Accept-Language: en-US,en;q=0.9" \
+            --header "Referer: https://www.nba.com/" \
+            --header "Origin: https://www.nba.com" \
+            --write-out "\nHTTP_STATUS:%{http_code}\n" \
             "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json" \
             --output public/data/scoreboard.json
+
+      - name: Show NBA response status
+        run: |
+          echo "Downloaded file:"
+          ls -lh public/data/scoreboard.json
+          echo "First 500 characters:"
+          head -c 500 public/data/scoreboard.json
+          echo ""
 
       - name: Verify downloaded JSON
         run: |
           python -m json.tool public/data/scoreboard.json > /dev/null
-          echo "NBA scoreboard downloaded successfully"
+          echo "NBA scoreboard JSON is valid"
 
       - name: Commit NBA data
         run: |
