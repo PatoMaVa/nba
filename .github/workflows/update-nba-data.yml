@@ -3,7 +3,6 @@ name: Update NBA data
 on:
   schedule:
     - cron: "7 * * * *"
-
   workflow_dispatch:
 
 permissions:
@@ -83,16 +82,15 @@ jobs:
 
               errors = data.get("errors")
 
-              if errors:
-                  if isinstance(errors, dict) and len(errors) > 0:
-                      raise RuntimeError(
-                          f"API-Sports error: {errors}"
-                      )
+              if isinstance(errors, dict) and len(errors) > 0:
+                  raise RuntimeError(
+                      f"API-Sports error: {errors}"
+                  )
 
-                  if isinstance(errors, list) and len(errors) > 0:
-                      raise RuntimeError(
-                          f"API-Sports error: {errors}"
-                      )
+              if isinstance(errors, list) and len(errors) > 0:
+                  raise RuntimeError(
+                      f"API-Sports error: {errors}"
+                  )
 
               return data
 
@@ -120,8 +118,9 @@ jobs:
               f"Downloaded {len(games)} games"
           )
 
-          existing_data = {
+          player_stats_data = {
               "date": today,
+              "updatedAt": None,
               "games": {},
           }
 
@@ -134,45 +133,61 @@ jobs:
                       saved_data = json.load(file)
 
                   if saved_data.get("date") == today:
-                      existing_data = saved_data
+                      player_stats_data = saved_data
+
+                      print(
+                          "Existing player statistics loaded"
+                      )
                   else:
                       print(
-                          "Player statistics belong to another date. "
-                          "Starting a new file."
+                          "Existing player statistics belong "
+                          "to another date"
                       )
 
               except Exception as error:
                   print(
-                      "Existing player statistics file could not "
-                      f"be read: {error}"
+                      "Could not read existing player "
+                      f"statistics: {error}"
                   )
 
-          existing_data.setdefault("games", {})
+          player_stats_data.setdefault(
+              "games",
+              {},
+          )
 
           downloaded = 0
           skipped = 0
           pending = 0
+          failed = 0
 
           for game in games:
               game_id = game.get("id")
-              game_status = game.get("status", {}).get("short")
+
+              game_status = (
+                  game.get("status", {})
+                  .get("short")
+              )
 
               if game_id is None:
                   continue
 
               game_key = str(game_id)
 
-              if game_key in existing_data["games"]:
+              if game_key in player_stats_data["games"]:
                   print(
-                      f"Game {game_key}: statistics already saved"
+                      f"Game {game_key}: "
+                      "statistics already saved"
                   )
+
                   skipped += 1
                   continue
 
               if game_status != 3:
                   print(
-                      f"Game {game_key}: not finished yet"
+                      f"Game {game_key}: "
+                      "not finished yet"
                   )
+
                   pending += 1
                   continue
 
@@ -184,40 +199,53 @@ jobs:
                       },
                   )
 
-                  existing_data["games"][game_key] = {
+                  player_stats_data["games"][game_key] = {
                       "gameId": game_id,
                       "updatedAt": datetime.now(
                           ZoneInfo("Europe/Madrid")
                       ).isoformat(),
-                      "results": stats.get("results", 0),
-                      "response": stats.get("response", []),
+                      "results": stats.get(
+                          "results",
+                          0,
+                      ),
+                      "response": stats.get(
+                          "response",
+                          [],
+                      ),
                   }
 
                   downloaded += 1
 
                   print(
                       f"Game {game_key}: "
-                      f"{stats.get('results', 0)} player records"
+                      f"{stats.get('results', 0)} "
+                      "player records"
                   )
 
                   time.sleep(1)
 
               except Exception as error:
+                  failed += 1
+
                   print(
-                      f"Game {game_key}: statistics failed: {error}"
+                      f"Game {game_key}: "
+                      f"statistics failed: {error}"
                   )
 
-          existing_data["date"] = today
-          existing_data["updatedAt"] = datetime.now(
-              ZoneInfo("Europe/Madrid")
-          ).isoformat()
+          player_stats_data["date"] = today
+
+          player_stats_data["updatedAt"] = (
+              datetime.now(
+                  ZoneInfo("Europe/Madrid")
+              ).isoformat()
+          )
 
           with PLAYER_STATS_FILE.open(
               "w",
               encoding="utf-8",
           ) as file:
               json.dump(
-                  existing_data,
+                  player_stats_data,
                   file,
                   ensure_ascii=False,
                   separators=(",", ":"),
@@ -225,10 +253,11 @@ jobs:
 
           print("")
           print("NBA update completed")
-          print(f"Games: {len(games)}")
+          print(f"Games today: {len(games)}")
           print(f"New statistics: {downloaded}")
           print(f"Previously saved: {skipped}")
           print(f"Pending games: {pending}")
+          print(f"Failed statistics: {failed}")
           PYTHON
 
       - name: Verify generated JSON files
@@ -237,6 +266,26 @@ jobs:
           python -m json.tool public/data/player-stats.json > /dev/null
 
           echo "Both JSON files are valid"
+
           echo ""
           echo "Scoreboard:"
-          ls -lh public/data/scoreboard
+          ls -lh public/data/scoreboard.json
+
+          echo ""
+          echo "Player statistics:"
+          ls -lh public/data/player-stats.json
+
+      - name: Commit NBA data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/scoreboard.json
+          git add public/data/player-stats.json
+
+          if git diff --cached --quiet; then
+            echo "No NBA data changes"
+          else
+            git commit -m "Update NBA games and player statistics"
+            git push
+          fi
