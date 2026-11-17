@@ -13,8 +13,20 @@ const NBA_SCOREBOARD_URL =
   `${import.meta.env.BASE_URL}data/scoreboard.json`;
 
 const players = [
-  { name: "Nikola Jokic", team: "DEN", ppg: 29.4, rpg: 12.8, apg: 10.2 },
-  { name: "Luka Doncic", team: "LAL", ppg: 31.1, rpg: 8.5, apg: 9.2 },
+  {
+    name: "Nikola Jokic",
+    team: "DEN",
+    ppg: 29.4,
+    rpg: 12.8,
+    apg: 10.2,
+  },
+  {
+    name: "Luka Doncic",
+    team: "LAL",
+    ppg: 31.1,
+    rpg: 8.5,
+    apg: 9.2,
+  },
   {
     name: "Shai Gilgeous-Alexander",
     team: "OKC",
@@ -38,45 +50,73 @@ const nav = [
 ];
 
 function formatGameStatus(game) {
-  if (game.gameStatus === 3) {
+  if (game.status?.short === 3) {
     return "FINAL";
   }
 
-  if (game.gameStatus === 2) {
-    const clock = game.gameClock
-      ?.replace("PT", "")
-      .replace("M", ":")
-      .replace("S", "");
+  if (game.status?.short === 2) {
+    const period = game.periods?.current;
 
-    return `Q${game.period}${clock ? ` · ${clock}` : ""}`;
+    return `${period ? `Q${period}` : "EN JUEGO"}${
+      game.status?.clock ? ` · ${game.status.clock}` : ""
+    }`;
   }
 
-  if (game.gameStatus === 1) {
-    return game.gameStatusText || "PROGRAMADO";
+  if (game.status?.long) {
+    return game.status.long.toUpperCase();
   }
 
-  return game.gameStatusText || "SIN ESTADO";
+  return "PROGRAMADO";
 }
 
-function TeamRow({ team }) {
+function formatGameTime(game) {
+  if (!game.date?.start) {
+    return "";
+  }
+
+  return new Date(game.date.start).toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function TeamRow({ team, score, winner }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-800 text-xs font-black">
-        {team.teamTricode}
+      <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-2xl bg-white p-1">
+        {team?.logo ? (
+          <img
+            src={team.logo}
+            alt={team.name}
+            className="h-10 w-10 object-contain"
+          />
+        ) : (
+          <span className="text-xs font-black text-slate-900">
+            {team?.code}
+          </span>
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="truncate font-semibold">
-          {team.teamCity} {team.teamName}
+        <div
+          className={`truncate ${
+            winner ? "font-black text-white" : "font-semibold text-slate-300"
+          }`}
+        >
+          {team?.name}
         </div>
 
         <div className="text-xs text-slate-500">
-          {team.wins}-{team.losses}
+          {team?.code}
         </div>
       </div>
 
-      <span className="text-2xl font-black">
-        {team.score ?? "-"}
+      <span
+        className={`text-2xl ${
+          winner ? "font-black text-white" : "font-bold text-slate-400"
+        }`}
+      >
+        {score?.points ?? "-"}
       </span>
     </div>
   );
@@ -85,8 +125,10 @@ function TeamRow({ team }) {
 export default function App() {
   const [tab, setTab] = useState("Scores");
   const [query, setQuery] = useState("");
+
   const [games, setGames] = useState([]);
   const [gameDate, setGameDate] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [lastUpdate, setLastUpdate] = useState(null);
@@ -99,9 +141,12 @@ export default function App() {
     setError("");
 
     try {
-      const response = await fetch(NBA_SCOREBOARD_URL, {
-        cache: "no-store",
-      });
+      const response = await fetch(
+        `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -109,14 +154,24 @@ export default function App() {
 
       const data = await response.json();
 
-      setGames(data.scoreboard?.games || []);
-      setGameDate(data.scoreboard?.gameDate || "");
+      if (!Array.isArray(data.response)) {
+        throw new Error("Formato de datos NBA no válido");
+      }
+
+      setGames(data.response);
+
+      if (data.parameters?.date) {
+        setGameDate(data.parameters.date);
+      } else {
+        setGameDate("");
+      }
+
       setLastUpdate(new Date());
     } catch (loadError) {
       console.error(loadError);
 
       setError(
-        "No ha sido posible obtener los resultados de NBA.com."
+        "No ha sido posible cargar los resultados NBA."
       );
     } finally {
       setLoading(false);
@@ -130,7 +185,9 @@ export default function App() {
       loadGames(false);
     }, 60000);
 
-    return () => window.clearInterval(refreshInterval);
+    return () => {
+      window.clearInterval(refreshInterval);
+    };
   }, []);
 
   const filteredPlayers = useMemo(
@@ -159,6 +216,7 @@ export default function App() {
               <div className="text-lg font-black tracking-tight">
                 COURTSIDE
               </div>
+
               <div className="text-xs text-slate-400">
                 Scores & Stats
               </div>
@@ -192,29 +250,35 @@ export default function App() {
           </div>
 
           <h1 className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
-            Resultados NBA en directo.
+            Resultados NBA.
           </h1>
 
           <p className="mt-4 max-w-2xl text-orange-50">
-            Marcadores obtenidos automáticamente desde NBA.com.
+            Partidos, resultados y estadísticas en COURTSIDE.
           </p>
         </section>
 
         {tab === "Scores" && (
           <section>
-            <div className="mb-4 flex items-end justify-between gap-4">
+            <div className="mb-5 flex items-end justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-orange-400">
                   SCOREBOARD
                 </p>
 
                 <h2 className="text-2xl font-bold">
-                  Partidos {gameDate && `· ${gameDate}`}
+                  Partidos
                 </h2>
+
+                {gameDate && (
+                  <p className="mt-1 text-sm text-slate-400">
+                    {gameDate}
+                  </p>
+                )}
 
                 {lastUpdate && (
                   <p className="mt-1 text-xs text-slate-500">
-                    Actualizado a las{" "}
+                    Cargado a las{" "}
                     {lastUpdate.toLocaleTimeString("es-ES", {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -226,19 +290,20 @@ export default function App() {
               <button
                 onClick={() => loadGames()}
                 disabled={loading}
-                className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm hover:bg-white/15 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm transition hover:bg-white/15 disabled:opacity-50"
               >
                 <RefreshCw
                   size={16}
                   className={loading ? "animate-spin" : ""}
                 />
+
                 Actualizar
               </button>
             </div>
 
             {loading && (
               <div className="rounded-3xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
-                Cargando partidos reales…
+                Cargando partidos NBA...
               </div>
             )}
 
@@ -249,45 +314,96 @@ export default function App() {
               </div>
             )}
 
-            {!loading && !error && games.length === 0 && (
-              <div className="rounded-3xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
-                No hay partidos NBA programados para hoy.
-              </div>
-            )}
+            {!loading &&
+              !error &&
+              games.length === 0 && (
+                <div className="rounded-3xl border border-white/10 bg-slate-900 p-8 text-center text-slate-400">
+                  No hay partidos NBA disponibles para esta fecha.
+                </div>
+              )}
 
-            {!loading && !error && games.length > 0 && (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {games.map((game) => (
-                  <article
-                    key={game.gameId}
-                    className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl"
-                  >
-                    <div className="mb-5 flex items-center justify-between">
-                      <span
-                        className={`text-xs font-bold ${
-                          game.gameStatus === 2
-                            ? "text-emerald-400"
-                            : "text-slate-400"
-                        }`}
+            {!loading &&
+              !error &&
+              games.length > 0 && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {games.map((game) => {
+                    const visitorsPoints =
+                      game.scores?.visitors?.points;
+
+                    const homePoints =
+                      game.scores?.home?.points;
+
+                    const finished =
+                      game.status?.short === 3;
+
+                    const visitorsWinner =
+                      finished &&
+                      visitorsPoints > homePoints;
+
+                    const homeWinner =
+                      finished &&
+                      homePoints > visitorsPoints;
+
+                    return (
+                      <article
+                        key={game.id}
+                        className="rounded-3xl border border-white/10 bg-slate-900 p-5 shadow-xl transition hover:border-white/20"
                       >
-                        {formatGameStatus(game)}
-                      </span>
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                          <div>
+                            <div
+                              className={`text-xs font-bold ${
+                                game.status?.short === 2
+                                  ? "text-emerald-400"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              {formatGameStatus(game)}
+                            </div>
 
-                      {game.gameStatus === 2 && (
-                        <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">
-                          ● LIVE
-                        </span>
-                      )}
-                    </div>
+                            {game.status?.short !== 3 && (
+                              <div className="mt-1 text-xs text-slate-500">
+                                {formatGameTime(game)}
+                              </div>
+                            )}
+                          </div>
 
-                    <div className="space-y-4">
-                      <TeamRow team={game.awayTeam} />
-                      <TeamRow team={game.homeTeam} />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
+                          {game.status?.short === 2 && (
+                            <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">
+                              ● LIVE
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-4">
+                          <TeamRow
+                            team={game.teams?.visitors}
+                            score={game.scores?.visitors}
+                            winner={visitorsWinner}
+                          />
+
+                          <TeamRow
+                            team={game.teams?.home}
+                            score={game.scores?.home}
+                            winner={homeWinner}
+                          />
+                        </div>
+
+                        {game.arena?.name && (
+                          <div className="mt-5 border-t border-white/10 pt-4">
+                            <p className="truncate text-xs text-slate-500">
+                              {game.arena.name}
+                              {game.arena.city
+                                ? ` · ${game.arena.city}`
+                                : ""}
+                            </p>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
           </section>
         )}
 
@@ -298,19 +414,25 @@ export default function App() {
                 <p className="text-sm font-semibold text-orange-400">
                   PLAYER STATS
                 </p>
+
                 <h2 className="text-2xl font-bold">
                   Líderes
                 </h2>
               </div>
 
               <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900 px-4 py-3">
-                <Search size={18} className="text-slate-400" />
+                <Search
+                  size={18}
+                  className="text-slate-400"
+                />
 
                 <input
                   className="w-64 bg-transparent outline-none"
                   placeholder="Buscar jugador o equipo"
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) =>
+                    setQuery(event.target.value)
+                  }
                 />
               </div>
             </div>
@@ -319,7 +441,9 @@ export default function App() {
               <table className="w-full text-left">
                 <thead className="bg-slate-900 text-xs uppercase text-slate-400">
                   <tr>
-                    <th className="p-4">Jugador</th>
+                    <th className="p-4">
+                      Jugador
+                    </th>
                     <th>PTS</th>
                     <th>REB</th>
                     <th>AST</th>
@@ -336,13 +460,23 @@ export default function App() {
                         <div className="font-bold">
                           {player.name}
                         </div>
+
                         <div className="text-xs text-slate-500">
                           {player.team}
                         </div>
                       </td>
-                      <td className="font-bold">{player.ppg}</td>
-                      <td>{player.rpg}</td>
-                      <td>{player.apg}</td>
+
+                      <td className="font-bold">
+                        {player.ppg}
+                      </td>
+
+                      <td>
+                        {player.rpg}
+                      </td>
+
+                      <td>
+                        {player.apg}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -350,7 +484,7 @@ export default function App() {
             </div>
 
             <p className="mt-3 text-xs text-amber-400">
-              Los datos de jugadores siguen siendo provisionales.
+              Los datos de jugadores todavía son provisionales.
             </p>
           </section>
         )}
@@ -390,7 +524,7 @@ export default function App() {
       </nav>
 
       <footer className="mx-auto max-w-7xl px-5 pb-24 pt-10 text-xs text-slate-500 md:pb-10">
-        NBA Scores & Stats
+        COURTSIDE · NBA Scores & Stats
       </footer>
     </div>
   );
