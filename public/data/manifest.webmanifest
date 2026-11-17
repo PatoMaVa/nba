@@ -1,7 +1,7 @@
 {
-  "name": "COURTSIDE - NBA Scores & Stats",
-  "short_name": "COURTSIDE",
-  "description": "Resultados y estadísticas NBA",
+"name": "ÑBA - Resultados y jugadores españoles",
+"short_name": "ÑBA",
+"description": "Resultados NBA y actuaciones de los jugadores españoles"
   "start_url": "/nba-stats-app/",
   "scope": "/nba-stats-app/",
   "display": "standalone",
