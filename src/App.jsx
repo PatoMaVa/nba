@@ -15,7 +15,7 @@ const NBA_SCOREBOARD_URL =
   `${import.meta.env.BASE_URL}data/scoreboard.json`;
 
 const PLAYER_STATS_URL =
-  `${import.meta.env.BASE_URL}data/test-player-stats.json`;
+  `${import.meta.env.BASE_URL}data/player-stats.json`;
 
 const nav = [
   ["Scores", Activity],
@@ -51,25 +51,25 @@ function formatGameTime(game) {
 }
 
 function TeamLogo({ team, size = "small" }) {
-  const sizeClasses =
+  const containerSize =
     size === "large"
       ? "h-20 w-20"
       : "h-12 w-12";
 
-  const imageClasses =
+  const imageSize =
     size === "large"
       ? "h-16 w-16"
       : "h-10 w-10";
 
   return (
     <div
-      className={`grid ${sizeClasses} flex-shrink-0 place-items-center rounded-2xl bg-white p-2`}
+      className={`grid ${containerSize} flex-shrink-0 place-items-center rounded-2xl bg-white p-2`}
     >
       {team?.logo ? (
         <img
           src={team.logo}
           alt={team.name}
-          className={`${imageClasses} object-contain`}
+          className={`${imageSize} object-contain`}
         />
       ) : (
         <span className="font-black text-slate-900">
@@ -114,12 +114,21 @@ function TeamRow({ team, score, winner }) {
   );
 }
 
-function PlayerStatsTable({ team, playerStats }) {
+function PlayerStatsTable({
+  team,
+  playerStats,
+}) {
   const teamPlayers = playerStats
-    .filter((stat) => stat.team?.id === team?.id)
+    .filter(
+      (stat) =>
+        stat.team?.id === team?.id
+    )
     .sort((a, b) => {
-      const minutesA = Number(a.min || 0);
-      const minutesB = Number(b.min || 0);
+      const minutesA =
+        Number(a.min || 0);
+
+      const minutesB =
+        Number(b.min || 0);
 
       return minutesB - minutesA;
     });
@@ -145,7 +154,7 @@ function PlayerStatsTable({ team, playerStats }) {
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full min-w-[760px] text-right text-sm">
+        <table className="w-full min-w-[800px] text-right text-sm">
           <thead className="bg-slate-950 text-xs uppercase text-slate-500">
             <tr>
               <th className="p-3 text-left">
@@ -186,6 +195,14 @@ function PlayerStatsTable({ team, playerStats }) {
 
               <th className="p-3">
                 TL
+              </th>
+
+              <th className="p-3">
+                PER
+              </th>
+
+              <th className="p-3">
+                FP
               </th>
 
               <th className="p-3">
@@ -247,11 +264,23 @@ function PlayerStatsTable({ team, playerStats }) {
                   {stat.ftm ?? 0}/{stat.fta ?? 0}
                 </td>
 
+                <td className="p-3">
+                  {stat.turnovers ?? 0}
+                </td>
+
+                <td className="p-3">
+                  {stat.pFouls ?? 0}
+                </td>
+
                 <td
                   className={`p-3 font-semibold ${
-                    String(stat.plusMinus || "").startsWith("+")
+                    String(
+                      stat.plusMinus || ""
+                    ).startsWith("+")
                       ? "text-emerald-400"
-                      : String(stat.plusMinus || "").startsWith("-")
+                      : String(
+                          stat.plusMinus || ""
+                        ).startsWith("-")
                       ? "text-red-400"
                       : "text-slate-300"
                   }`}
@@ -272,12 +301,19 @@ function GameDetail({
   onBack,
   playerStats,
   statsLoading,
+  statsError,
 }) {
-  const visitors = game.teams?.visitors;
-  const home = game.teams?.home;
+  const visitors =
+    game.teams?.visitors;
 
-  const visitorsScore = game.scores?.visitors;
-  const homeScore = game.scores?.home;
+  const home =
+    game.teams?.home;
+
+  const visitorsScore =
+    game.scores?.visitors;
+
+  const homeScore =
+    game.scores?.home;
 
   const visitorsLines =
     visitorsScore?.linescore || [];
@@ -514,6 +550,15 @@ function GameDetail({
           )}
 
           {!statsLoading &&
+            statsError && (
+              <div className="flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-200">
+                <AlertCircle size={19} />
+                {statsError}
+              </div>
+            )}
+
+          {!statsLoading &&
+            !statsError &&
             playerStats.length === 0 && (
               <div className="rounded-2xl bg-slate-950 p-6 text-center text-sm text-slate-400">
                 Estadísticas individuales todavía no disponibles para este partido.
@@ -521,6 +566,7 @@ function GameDetail({
             )}
 
           {!statsLoading &&
+            !statsError &&
             playerStats.length > 0 && (
               <div className="space-y-8">
                 <PlayerStatsTable
@@ -568,7 +614,12 @@ export default function App() {
   const [statsLoading, setStatsLoading] =
     useState(false);
 
-  async function loadGames(showLoader = true) {
+  const [statsError, setStatsError] =
+    useState("");
+
+  async function loadGames(
+    showLoader = true
+  ) {
     if (showLoader) {
       setLoading(true);
     }
@@ -589,7 +640,8 @@ export default function App() {
         );
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!Array.isArray(data.response)) {
         throw new Error(
@@ -623,15 +675,17 @@ export default function App() {
         loadGames(false);
       }, 60000);
 
-    return () =>
+    return () => {
       window.clearInterval(
         refreshInterval
       );
+    };
   }, []);
 
   async function openGame(game) {
     setSelectedGame(game);
     setPlayerStats([]);
+    setStatsError("");
     setStatsLoading(true);
 
     window.scrollTo({
@@ -640,43 +694,43 @@ export default function App() {
     });
 
     try {
-      /*
-       * Durante esta prueba únicamente tenemos
-       * estadísticas descargadas para el partido
-       * Phoenix Suns - Denver Nuggets (17145).
-       *
-       * Después sustituiremos esto por estadísticas
-       * automáticas para todos los partidos.
-       */
-      if (game.id === 17145) {
-        const response = await fetch(
-          `${PLAYER_STATS_URL}?t=${Date.now()}`,
-          {
-            cache: "no-store",
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `HTTP ${response.status}`
-          );
+      const response = await fetch(
+        `${PLAYER_STATS_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
         }
+      );
 
-        const data = await response.json();
-
-        setPlayerStats(
-          Array.isArray(data.response)
-            ? data.response
-            : []
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
         );
       }
-    } catch (statsError) {
+
+      const data =
+        await response.json();
+
+      const gameStatistics =
+        data.games?.[String(game.id)];
+
+      setPlayerStats(
+        Array.isArray(
+          gameStatistics?.response
+        )
+          ? gameStatistics.response
+          : []
+      );
+    } catch (statsLoadError) {
       console.error(
         "Error cargando estadísticas:",
-        statsError
+        statsLoadError
       );
 
       setPlayerStats([]);
+
+      setStatsError(
+        "No ha sido posible cargar las estadísticas de jugadores."
+      );
     } finally {
       setStatsLoading(false);
     }
@@ -685,6 +739,7 @@ export default function App() {
   function closeGame() {
     setSelectedGame(null);
     setPlayerStats([]);
+    setStatsError("");
     setStatsLoading(false);
 
     window.scrollTo({
@@ -696,6 +751,7 @@ export default function App() {
   function changeTab(newTab) {
     setSelectedGame(null);
     setPlayerStats([]);
+    setStatsError("");
     setTab(newTab);
 
     window.scrollTo({
@@ -757,6 +813,7 @@ export default function App() {
             onBack={closeGame}
             playerStats={playerStats}
             statsLoading={statsLoading}
+            statsError={statsError}
           />
         ) : (
           <>
@@ -940,6 +997,7 @@ export default function App() {
                               <div className="mt-5 border-t border-white/10 pt-4">
                                 <p className="truncate text-xs text-slate-500">
                                   {game.arena.name}
+
                                   {game.arena.city
                                     ? ` · ${game.arena.city}`
                                     : ""}
