@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  Trophy,
   Flag,
   CalendarDays,
   RefreshCw,
@@ -16,6 +17,12 @@ const NBA_SCOREBOARD_URL =
 
 const PLAYER_STATS_URL =
   `${import.meta.env.BASE_URL}data/player-stats.json`;
+
+const STANDINGS_URL =
+  `${import.meta.env.BASE_URL}data/standings.json`;
+
+const SEASON_PLAYER_STATS_URL =
+  `${import.meta.env.BASE_URL}data/season-player-stats.json`;
 
 const NBA_TEAM_IDS = {
   ATL: 1610612737,
@@ -50,17 +57,51 @@ const NBA_TEAM_IDS = {
   WAS: 1610612764,
 };
 
+const EAST_TEAMS = new Set([
+  "ATL",
+  "BOS",
+  "BKN",
+  "CHA",
+  "CHI",
+  "CLE",
+  "DET",
+  "IND",
+  "MIA",
+  "MIL",
+  "NYK",
+  "ORL",
+  "PHI",
+  "TOR",
+  "WAS",
+]);
+
 const nav = [
   ["Scores", Activity],
+  ["Standings", Trophy],
   ["Spanish", Flag],
 ];
 
 const SPANISH_PLAYERS = [
-  { firstname: "Santi", lastname: "Aldama" },
-  { firstname: "Sergio", lastname: "De Larrea" },
-  { firstname: "Hugo", lastname: "Gonzalez" },
-  { firstname: "Aday", lastname: "Mara" },
-  { firstname: "Baba", lastname: "Miller" },
+  {
+    firstname: "Santi",
+    lastname: "Aldama",
+  },
+  {
+    firstname: "Sergio",
+    lastname: "De Larrea",
+  },
+  {
+    firstname: "Hugo",
+    lastname: "Gonzalez",
+  },
+  {
+    firstname: "Aday",
+    lastname: "Mara",
+  },
+  {
+    firstname: "Baba",
+    lastname: "Miller",
+  },
 ];
 
 function normalizeText(value = "") {
@@ -68,38 +109,41 @@ function normalizeText(value = "") {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
 function findSpanishPlayer(player) {
-  const firstname =
-    normalizeText(player?.firstname);
+  const firstname = normalizeText(
+    player?.firstname
+  );
 
-  const lastname =
-    normalizeText(player?.lastname);
+  const lastname = normalizeText(
+    player?.lastname
+  );
 
   return SPANISH_PLAYERS.find(
     (spanishPlayer) => {
-      const spanishFirstname =
+      const expectedFirstname =
         normalizeText(
           spanishPlayer.firstname
         );
 
-      const spanishLastname =
+      const expectedLastname =
         normalizeText(
           spanishPlayer.lastname
         );
 
-      return (
-        (
-          firstname === spanishFirstname &&
-          lastname === spanishLastname
-        ) ||
-        (
-          firstname === spanishLastname &&
-          lastname === spanishFirstname
-        )
-      );
+      const normalOrder =
+        firstname === expectedFirstname &&
+        lastname === expectedLastname;
+
+      const reversedOrder =
+        firstname === expectedLastname &&
+        lastname === expectedFirstname;
+
+      return normalOrder || reversedOrder;
     }
   );
 }
@@ -107,6 +151,30 @@ function findSpanishPlayer(player) {
 function isSpanishPlayer(player) {
   return Boolean(
     findSpanishPlayer(player)
+  );
+}
+
+function isSpanishSeasonPlayer(player) {
+  const normalizedName =
+    normalizeText(player?.player_name);
+
+  return SPANISH_PLAYERS.some(
+    (spanishPlayer) => {
+      const expectedName =
+        normalizeText(
+          `${spanishPlayer.firstname} ${spanishPlayer.lastname}`
+        );
+
+      const reversedName =
+        normalizeText(
+          `${spanishPlayer.lastname} ${spanishPlayer.firstname}`
+        );
+
+      return (
+        normalizedName === expectedName ||
+        normalizedName === reversedName
+      );
+    }
   );
 }
 
@@ -135,6 +203,17 @@ function getTeamLogo(team) {
 
   if (!teamId) {
     return team?.logo || "";
+  }
+
+  return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
+}
+
+function getStandingsTeamLogo(teamCode) {
+  const teamId =
+    NBA_TEAM_IDS[teamCode];
+
+  if (!teamId) {
+    return "";
   }
 
   return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
@@ -191,6 +270,142 @@ function formatGameDate(game) {
   });
 }
 
+function formatDecimal(value, decimals = 1) {
+  if (
+    value === null ||
+    value === undefined ||
+    Number.isNaN(Number(value))
+  ) {
+    return "-";
+  }
+
+  return Number(value).toLocaleString(
+    "es-ES",
+    {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }
+  );
+}
+
+function formatPercentage(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    Number.isNaN(Number(value))
+  ) {
+    return "-";
+  }
+
+  return `${formatDecimal(
+    Number(value) * 100,
+    1
+  )}%`;
+}
+
+function formatRecordPercentage(value) {
+  if (
+    value === null ||
+    value === undefined ||
+    Number.isNaN(Number(value))
+  ) {
+    return "-";
+  }
+
+  return Number(value).toFixed(3).replace(
+    /^0/,
+    ""
+  );
+}
+
+function getMinutesPerGame(player) {
+  const games =
+    Number(player?.games_played || 0);
+
+  const minutes =
+    Number(player?.minutes || 0);
+
+  if (!games) {
+    return 0;
+  }
+
+  return minutes / games;
+}
+
+function getPerGame(total, games) {
+  const gamesPlayed =
+    Number(games || 0);
+
+  if (!gamesPlayed) {
+    return 0;
+  }
+
+  return Number(total || 0) / gamesPlayed;
+}
+
+function findSeasonPlayer(
+  stat,
+  seasonPlayerStats
+) {
+  const playerName =
+    normalizeText(
+      getPlayerDisplayName(
+        stat?.player
+      )
+    );
+
+  const reversedPlayerName =
+    normalizeText(
+      `${stat?.player?.lastname || ""} ${
+        stat?.player?.firstname || ""
+      }`
+    );
+
+  const teamCode =
+    stat?.team?.code;
+
+  const sameTeamMatches =
+    seasonPlayerStats.filter(
+      (seasonPlayer) =>
+        seasonPlayer?.team === teamCode
+    );
+
+  const matchedPlayer =
+    sameTeamMatches.find(
+      (seasonPlayer) => {
+        const seasonName =
+          normalizeText(
+            seasonPlayer?.player_name
+          );
+
+        return (
+          seasonName === playerName ||
+          seasonName ===
+            reversedPlayerName
+        );
+      }
+    );
+
+  if (matchedPlayer) {
+    return matchedPlayer;
+  }
+
+  return seasonPlayerStats.find(
+    (seasonPlayer) => {
+      const seasonName =
+        normalizeText(
+          seasonPlayer?.player_name
+        );
+
+      return (
+        seasonName === playerName ||
+        seasonName ===
+          reversedPlayerName
+      );
+    }
+  );
+}
+
 function TeamLogo({
   team,
   size = "small",
@@ -222,7 +437,11 @@ function TeamLogo({
       {logoUrl && !logoError ? (
         <img
           src={logoUrl}
-          alt={team?.name || team?.code || "NBA"}
+          alt={
+            team?.name ||
+            team?.code ||
+            "NBA"
+          }
           className={`${imageSize} object-contain`}
           loading="lazy"
           onError={() =>
@@ -318,12 +537,11 @@ function PlayerStatsTable({
         (stat) =>
           stat.team?.id === team?.id
       )
-      .sort((a, b) => {
-        return (
+      .sort(
+        (a, b) =>
           Number(b.min || 0) -
           Number(a.min || 0)
-        );
-      });
+      );
 
   if (teamPlayers.length === 0) {
     return null;
@@ -348,10 +566,18 @@ function PlayerStatsTable({
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="grid grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px]">
           <div>Jugador</div>
-          <div className="text-center">MIN</div>
-          <div className="text-center text-orange-600">PTS</div>
-          <div className="text-center">REB</div>
-          <div className="text-center">AST</div>
+          <div className="text-center">
+            MIN
+          </div>
+          <div className="text-center text-orange-600">
+            PTS
+          </div>
+          <div className="text-center">
+            REB
+          </div>
+          <div className="text-center">
+            AST
+          </div>
         </div>
 
         {teamPlayers.map(
@@ -399,9 +625,196 @@ function PlayerStatsTable({
   );
 }
 
+function SeasonStatsSection({
+  seasonPlayer,
+}) {
+  if (!seasonPlayer) {
+    return (
+      <div className="border-t border-slate-200 p-5">
+        <p className="text-xs font-bold uppercase text-orange-600">
+          Temporada 2026-27
+        </p>
+
+        <p className="mt-3 text-sm text-slate-500">
+          No se han encontrado estadísticas globales de temporada para este jugador.
+        </p>
+      </div>
+    );
+  }
+
+  const games =
+    Number(
+      seasonPlayer.games_played || 0
+    );
+
+  const stealsPerGame =
+    getPerGame(
+      seasonPlayer.steals,
+      games
+    );
+
+  const blocksPerGame =
+    getPerGame(
+      seasonPlayer.blocks,
+      games
+    );
+
+  const turnoversPerGame =
+    getPerGame(
+      seasonPlayer.turnovers,
+      games
+    );
+
+  const netRating =
+    Number(
+      seasonPlayer.net_rating || 0
+    );
+
+  return (
+    <div className="border-t border-slate-200 p-5">
+      <div className="mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-orange-600">
+          Temporada 2026-27
+        </p>
+
+        <p className="mt-1 text-xs text-slate-500">
+          Promedios y datos acumulados
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <StatBox
+          label="Partidos"
+          value={games}
+        />
+
+        <StatBox
+          label="Minutos"
+          value={formatDecimal(
+            getMinutesPerGame(
+              seasonPlayer
+            )
+          )}
+        />
+
+        <StatBox
+          label="Puntos"
+          value={formatDecimal(
+            seasonPlayer.points_pg
+          )}
+          featured
+        />
+
+        <StatBox
+          label="Rebotes"
+          value={formatDecimal(
+            seasonPlayer.rebounds_pg
+          )}
+        />
+
+        <StatBox
+          label="Asistencias"
+          value={formatDecimal(
+            seasonPlayer.assists_pg
+          )}
+        />
+
+        <StatBox
+          label="Robos"
+          value={formatDecimal(
+            stealsPerGame
+          )}
+        />
+
+        <StatBox
+          label="Tapones"
+          value={formatDecimal(
+            blocksPerGame
+          )}
+        />
+
+        <StatBox
+          label="Pérdidas"
+          value={formatDecimal(
+            turnoversPerGame
+          )}
+        />
+      </div>
+
+      <div className="mt-5">
+        <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
+          Porcentajes y métricas
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <StatBox
+            label="TC"
+            value={formatPercentage(
+              seasonPlayer.field_goal_pct
+            )}
+          />
+
+          <StatBox
+            label="3PT"
+            value={formatPercentage(
+              seasonPlayer.three_point_pct
+            )}
+          />
+
+          <StatBox
+            label="TL"
+            value={formatPercentage(
+              seasonPlayer.free_throw_pct
+            )}
+          />
+
+          <StatBox
+            label="True shooting"
+            value={formatPercentage(
+              seasonPlayer.ts_pct
+            )}
+          />
+
+          <StatBox
+            label="Uso"
+            value={formatPercentage(
+              seasonPlayer.usage_rate
+            )}
+          />
+
+          <StatBox
+            label="Rating neto"
+            value={
+              netRating > 0
+                ? `+${formatDecimal(
+                    netRating
+                  )}`
+                : formatDecimal(
+                    netRating
+                  )
+            }
+            valueClassName={
+              netRating > 0
+                ? "text-emerald-600"
+                : netRating < 0
+                ? "text-red-600"
+                : ""
+            }
+          />
+        </div>
+      </div>
+
+      <p className="mt-5 text-[10px] text-slate-400">
+        Datos de temporada: BoxScore Lab · CC BY 4.0
+      </p>
+    </div>
+  );
+}
+
 function PlayerDetail({
   stat,
   game,
+  seasonPlayer,
   onBack,
 }) {
   const playerName =
@@ -412,18 +825,11 @@ function PlayerDetail({
   const plusMinus =
     stat.plusMinus ?? "-";
 
-  const plusMinusClass =
-    String(plusMinus).startsWith("+")
-      ? "text-emerald-600"
-      : String(plusMinus).startsWith("-")
-      ? "text-red-600"
-      : "text-slate-950";
-
   return (
     <section>
       <button
         onClick={onBack}
-        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm active:bg-slate-100"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
       >
         <ArrowLeft size={18} />
         Volver al partido
@@ -473,7 +879,7 @@ function PlayerDetail({
 
         <div className="p-5">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
-            Estadísticas principales
+            Este partido
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -502,7 +908,7 @@ function PlayerDetail({
 
         <div className="border-t border-slate-200 p-5">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
-            Tiro
+            Tiro del partido
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -540,20 +946,10 @@ function PlayerDetail({
 
         <div className="border-t border-slate-200 p-5">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
-            Otros datos
+            Otros datos del partido
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            <StatBox
-              label="Rebotes ofensivos"
-              value={stat.offReb ?? 0}
-            />
-
-            <StatBox
-              label="Rebotes defensivos"
-              value={stat.defReb ?? 0}
-            />
-
             <StatBox
               label="Robos"
               value={stat.steals ?? 0}
@@ -577,22 +973,276 @@ function PlayerDetail({
             <StatBox
               label="+/-"
               value={plusMinus}
-              valueClassName={plusMinusClass}
+              valueClassName={
+                String(
+                  plusMinus
+                ).startsWith("+")
+                  ? "text-emerald-600"
+                  : String(
+                      plusMinus
+                    ).startsWith("-")
+                  ? "text-red-600"
+                  : ""
+              }
             />
           </div>
         </div>
+
+        <SeasonStatsSection
+          seasonPlayer={seasonPlayer}
+        />
       </article>
+    </section>
+  );
+}
+
+function StandingsTable({
+  title,
+  teams,
+}) {
+  return (
+    <div>
+      <h3 className="mb-3 text-lg font-black text-slate-950">
+        {title}
+      </h3>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="grid grid-cols-[26px_minmax(0,1fr)_30px_30px_48px] items-center gap-1 bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500">
+          <div>#</div>
+          <div>Equipo</div>
+          <div className="text-center">
+            V
+          </div>
+          <div className="text-center">
+            D
+          </div>
+          <div className="text-right">
+            %
+          </div>
+        </div>
+
+        {teams.map(
+          (team, index) => {
+            const rank =
+              index + 1;
+
+            const zoneClass =
+              rank <= 6
+                ? "border-l-4 border-l-emerald-500"
+                : rank <= 10
+                ? "border-l-4 border-l-orange-400"
+                : "border-l-4 border-l-slate-200";
+
+            return (
+              <div
+                key={team.team}
+                className={`grid grid-cols-[26px_minmax(0,1fr)_30px_30px_48px] items-center gap-1 border-t border-slate-200 px-2 py-3 ${zoneClass}`}
+              >
+                <div className="text-xs font-black text-slate-500">
+                  {rank}
+                </div>
+
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-white p-1">
+                    <img
+                      src={getStandingsTeamLogo(
+                        team.team
+                      )}
+                      alt={team.team_name}
+                      className="h-7 w-7 object-contain"
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-bold text-slate-950">
+                      {team.team_name}
+                    </div>
+
+                    <div className="text-[9px] text-slate-400">
+                      {team.team}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-center text-xs font-bold">
+                  {team.wins}
+                </div>
+
+                <div className="text-center text-xs text-slate-600">
+                  {team.losses}
+                </div>
+
+                <div className="text-right text-xs font-bold">
+                  {formatRecordPercentage(
+                    team.win_pct
+                  )}
+                </div>
+              </div>
+            );
+          }
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StandingsView({
+  standings,
+  loading,
+  error,
+  onRefresh,
+}) {
+  const [conference, setConference] =
+    useState("East");
+
+  const eastTeams =
+    standings
+      .filter(
+        (team) =>
+          EAST_TEAMS.has(
+            team.team
+          )
+      )
+      .sort(
+        (a, b) =>
+          Number(b.win_pct || 0) -
+            Number(a.win_pct || 0) ||
+          Number(b.wins || 0) -
+            Number(a.wins || 0)
+      );
+
+  const westTeams =
+    standings
+      .filter(
+        (team) =>
+          !EAST_TEAMS.has(
+            team.team
+          )
+      )
+      .sort(
+        (a, b) =>
+          Number(b.win_pct || 0) -
+            Number(a.win_pct || 0) ||
+          Number(b.wins || 0) -
+            Number(a.wins || 0)
+      );
+
+  return (
+    <section>
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-orange-600">
+            TEMPORADA 2026-27
+          </p>
+
+          <h2 className="text-xl font-black">
+            Clasificación
+          </h2>
+        </div>
+
+        <button
+          onClick={onRefresh}
+          disabled={loading}
+          className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+        >
+          <RefreshCw
+            size={15}
+            className={
+              loading
+                ? "animate-spin"
+                : ""
+            }
+          />
+          Actualizar
+        </button>
+      </div>
+
+      <div className="mb-4 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
+        <button
+          onClick={() =>
+            setConference("East")
+          }
+          className={`rounded-xl py-2 text-sm font-bold ${
+            conference === "East"
+              ? "bg-white text-slate-950 shadow-sm"
+              : "text-slate-500"
+          }`}
+        >
+          Este
+        </button>
+
+        <button
+          onClick={() =>
+            setConference("West")
+          }
+          className={`rounded-xl py-2 text-sm font-bold ${
+            conference === "West"
+              ? "bg-white text-slate-950 shadow-sm"
+              : "text-slate-500"
+          }`}
+        >
+          Oeste
+        </button>
+      </div>
+
+      {loading && (
+        <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
+          Cargando clasificación...
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {!loading &&
+        !error &&
+        standings.length > 0 && (
+          <StandingsTable
+            title={
+              conference === "East"
+                ? "Conferencia Este"
+                : "Conferencia Oeste"
+            }
+            teams={
+              conference === "East"
+                ? eastTeams
+                : westTeams
+            }
+          />
+        )}
+
+      <div className="mt-4 flex flex-wrap gap-3 text-[10px] text-slate-500">
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          Playoffs 1-6
+        </span>
+
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-2 rounded-full bg-orange-400" />
+          Play-In 7-10
+        </span>
+      </div>
+
+      <p className="mt-4 text-[10px] text-slate-400">
+        Datos de temporada: BoxScore Lab · CC BY 4.0
+      </p>
     </section>
   );
 }
 
 function SpanishPerformanceCard({
   stat,
+  seasonPlayer,
 }) {
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center gap-3">
-        <TeamLogo team={stat.team} />
+      <div className="mb-4 flex items-center gap-3">
+        <TeamLogo
+          team={stat.team}
+        />
 
         <div>
           <h3 className="text-lg font-black">
@@ -607,12 +1257,84 @@ function SpanishPerformanceCard({
         </div>
       </div>
 
+      <p className="mb-2 text-[10px] font-bold uppercase text-orange-600">
+        Último partido disponible
+      </p>
+
       <div className="grid grid-cols-4 gap-2">
-        <StatBox label="MIN" value={stat.min ?? "-"} />
-        <StatBox label="PTS" value={stat.points ?? 0} featured />
-        <StatBox label="REB" value={stat.totReb ?? 0} />
-        <StatBox label="AST" value={stat.assists ?? 0} />
+        <StatBox
+          label="MIN"
+          value={stat.min ?? "-"}
+        />
+
+        <StatBox
+          label="PTS"
+          value={stat.points ?? 0}
+          featured
+        />
+
+        <StatBox
+          label="REB"
+          value={stat.totReb ?? 0}
+        />
+
+        <StatBox
+          label="AST"
+          value={stat.assists ?? 0}
+        />
       </div>
+
+      {seasonPlayer && (
+        <div className="mt-4 border-t border-slate-200 pt-4">
+          <p className="mb-2 text-[10px] font-bold uppercase text-orange-600">
+            Temporada 2026-27
+          </p>
+
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <div>
+              <div className="font-black">
+                {seasonPlayer.games_played}
+              </div>
+              <div className="text-[9px] text-slate-400">
+                PJ
+              </div>
+            </div>
+
+            <div>
+              <div className="font-black">
+                {formatDecimal(
+                  seasonPlayer.points_pg
+                )}
+              </div>
+              <div className="text-[9px] text-slate-400">
+                PTS
+              </div>
+            </div>
+
+            <div>
+              <div className="font-black">
+                {formatDecimal(
+                  seasonPlayer.rebounds_pg
+                )}
+              </div>
+              <div className="text-[9px] text-slate-400">
+                REB
+              </div>
+            </div>
+
+            <div>
+              <div className="font-black">
+                {formatDecimal(
+                  seasonPlayer.assists_pg
+                )}
+              </div>
+              <div className="text-[9px] text-slate-400">
+                AST
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 }
@@ -669,6 +1391,12 @@ function GameDetail({
           <div className="text-sm font-black tracking-widest text-white">
             {formatGameStatus(game)}
           </div>
+
+          {game.status?.short !== 3 && (
+            <div className="mt-1 text-xs text-orange-100">
+              {formatGameTime(game)}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-6">
@@ -688,7 +1416,9 @@ function GameDetail({
               {visitorsScore?.points ?? "-"}
             </span>
 
-            <span className="text-slate-300">-</span>
+            <span className="text-slate-300">
+              -
+            </span>
 
             <span className="text-3xl font-black">
               {homeScore?.points ?? "-"}
@@ -712,63 +1442,81 @@ function GameDetail({
             Marcador por cuartos
           </h3>
 
-          <table className="w-full text-center text-sm">
-            <thead>
-              <tr className="text-[10px] text-slate-400">
-                <th className="text-left">EQ.</th>
-
-                {periods.map((period) => (
-                  <th key={period}>
-                    {period < 4
-                      ? `Q${period + 1}`
-                      : `OT${period - 3}`}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[340px] text-center text-sm">
+              <thead>
+                <tr className="text-[10px] text-slate-400">
+                  <th className="text-left">
+                    EQ.
                   </th>
-                ))}
 
-                <th>TOT</th>
-              </tr>
-            </thead>
+                  {periods.map(
+                    (period) => (
+                      <th key={period}>
+                        {period < 4
+                          ? `Q${period + 1}`
+                          : `OT${period - 3}`}
+                      </th>
+                    )
+                  )}
 
-            <tbody>
-              <tr>
-                <td className="py-3 text-left font-black">
-                  {visitors?.code}
-                </td>
+                  <th>TOT</th>
+                </tr>
+              </thead>
 
-                {periods.map((period) => (
-                  <td key={period}>
-                    {visitorsLines[period] ?? "-"}
+              <tbody>
+                <tr>
+                  <td className="py-3 text-left font-black">
+                    {visitors?.code}
                   </td>
-                ))}
 
-                <td className="font-black">
-                  {visitorsScore?.points ?? "-"}
-                </td>
-              </tr>
+                  {periods.map(
+                    (period) => (
+                      <td key={period}>
+                        {visitorsLines[
+                          period
+                        ] ?? "-"}
+                      </td>
+                    )
+                  )}
 
-              <tr className="border-t">
-                <td className="py-3 text-left font-black">
-                  {home?.code}
-                </td>
-
-                {periods.map((period) => (
-                  <td key={period}>
-                    {homeLines[period] ?? "-"}
+                  <td className="font-black">
+                    {visitorsScore?.points ?? "-"}
                   </td>
-                ))}
+                </tr>
 
-                <td className="font-black">
-                  {homeScore?.points ?? "-"}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                <tr className="border-t">
+                  <td className="py-3 text-left font-black">
+                    {home?.code}
+                  </td>
+
+                  {periods.map(
+                    (period) => (
+                      <td key={period}>
+                        {homeLines[
+                          period
+                        ] ?? "-"}
+                      </td>
+                    )
+                  )}
+
+                  <td className="font-black">
+                    {homeScore?.points ?? "-"}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="border-t border-slate-200 p-4">
           <h3 className="mb-4 text-lg font-black">
             Estadísticas del partido
           </h3>
+
+          <p className="mb-4 text-xs text-slate-500">
+            Pulsa en un jugador para ver el detalle del partido y de la temporada.
+          </p>
 
           {statsLoading && (
             <div className="p-5 text-center text-sm text-slate-500">
@@ -777,7 +1525,7 @@ function GameDetail({
           )}
 
           {statsError && (
-            <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-xl bg-red-50 p-4 text-red-700">
               {statsError}
             </div>
           )}
@@ -845,14 +1593,34 @@ export default function App() {
   const [spanishError, setSpanishError] =
     useState("");
 
+  const [standings, setStandings] =
+    useState([]);
+
+  const [standingsLoading, setStandingsLoading] =
+    useState(true);
+
+  const [standingsError, setStandingsError] =
+    useState("");
+
+  const [seasonPlayerStats, setSeasonPlayerStats] =
+    useState([]);
+
   async function loadGames() {
     setLoading(true);
 
     try {
       const response = await fetch(
         `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+        }
       );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
+        );
+      }
 
       const data =
         await response.json();
@@ -879,14 +1647,22 @@ export default function App() {
     }
   }
 
-  async function loadAllPlayerStats() {
+  async function loadBoxScores() {
     setSpanishLoading(true);
 
     try {
       const response = await fetch(
         `${PLAYER_STATS_URL}?t=${Date.now()}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+        }
       );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
+        );
+      }
 
       const data =
         await response.json();
@@ -914,21 +1690,101 @@ export default function App() {
     }
   }
 
+  async function loadStandings() {
+    setStandingsLoading(true);
+
+    try {
+      const response = await fetch(
+        `${STANDINGS_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
+        );
+      }
+
+      const data =
+        await response.json();
+
+      setStandings(
+        Array.isArray(data.response)
+          ? data.response
+          : []
+      );
+
+      setStandingsError("");
+    } catch (loadError) {
+      console.error(loadError);
+
+      setStandingsError(
+        "No ha sido posible cargar la clasificación."
+      );
+    } finally {
+      setStandingsLoading(false);
+    }
+  }
+
+  async function loadSeasonPlayerStats() {
+    try {
+      const response = await fetch(
+        `${SEASON_PLAYER_STATS_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
+        );
+      }
+
+      const data =
+        await response.json();
+
+      setSeasonPlayerStats(
+        Array.isArray(data.response)
+          ? data.response
+          : []
+      );
+    } catch (loadError) {
+      console.error(
+        "No ha sido posible cargar las estadísticas de temporada.",
+        loadError
+      );
+
+      setSeasonPlayerStats([]);
+    }
+  }
+
   useEffect(() => {
     loadGames();
-    loadAllPlayerStats();
+    loadBoxScores();
+    loadStandings();
+    loadSeasonPlayerStats();
   }, []);
 
   useEffect(() => {
-    if (selectedPlayer) {
-      window.requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
-
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      });
+    if (
+      selectedPlayer ||
+      selectedGame
+    ) {
+      window.requestAnimationFrame(
+        () => {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }
+      );
     }
-  }, [selectedPlayer]);
+  }, [
+    selectedPlayer,
+    selectedGame,
+  ]);
 
   const spanishPerformances =
     useMemo(
@@ -942,6 +1798,33 @@ export default function App() {
       [allPlayerStats]
     );
 
+  const spanishSeasonPlayers =
+    useMemo(
+      () =>
+        seasonPlayerStats.filter(
+          (player) =>
+            isSpanishSeasonPlayer(
+              player
+            )
+        ),
+      [seasonPlayerStats]
+    );
+
+  const selectedSeasonPlayer =
+    useMemo(() => {
+      if (!selectedPlayer) {
+        return null;
+      }
+
+      return findSeasonPlayer(
+        selectedPlayer,
+        seasonPlayerStats
+      );
+    }, [
+      selectedPlayer,
+      seasonPlayerStats,
+    ]);
+
   async function openGame(game) {
     setSelectedGame(game);
     setSelectedPlayer(null);
@@ -951,14 +1834,24 @@ export default function App() {
     try {
       const response = await fetch(
         `${PLAYER_STATS_URL}?t=${Date.now()}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+        }
       );
+
+      if (!response.ok) {
+        throw new Error(
+          `HTTP ${response.status}`
+        );
+      }
 
       const data =
         await response.json();
 
       const gameStatistics =
-        data.games?.[String(game.id)];
+        data.games?.[
+          String(game.id)
+        ];
 
       setPlayerStats(
         Array.isArray(
@@ -976,8 +1869,6 @@ export default function App() {
     } finally {
       setStatsLoading(false);
     }
-
-    window.scrollTo(0, 0);
   }
 
   function openPlayer(stat) {
@@ -992,17 +1883,80 @@ export default function App() {
     setSelectedGame(null);
     setSelectedPlayer(null);
     setPlayerStats([]);
-
-    window.scrollTo(0, 0);
   }
 
   function changeTab(newTab) {
     setSelectedGame(null);
     setSelectedPlayer(null);
+    setPlayerStats([]);
     setTab(newTab);
 
     window.scrollTo(0, 0);
   }
+
+  function getSpanishSeasonPlayer(
+    stat
+  ) {
+    const matchedSpanishPlayer =
+      findSpanishPlayer(
+        stat.player
+      );
+
+    if (!matchedSpanishPlayer) {
+      return null;
+    }
+
+    const expectedName =
+      normalizeText(
+        `${matchedSpanishPlayer.firstname} ${matchedSpanishPlayer.lastname}`
+      );
+
+    const reversedName =
+      normalizeText(
+        `${matchedSpanishPlayer.lastname} ${matchedSpanishPlayer.firstname}`
+      );
+
+    return (
+      spanishSeasonPlayers.find(
+        (player) => {
+          const playerName =
+            normalizeText(
+              player.player_name
+            );
+
+          return (
+            (
+              playerName ===
+                expectedName ||
+              playerName ===
+                reversedName
+            ) &&
+            player.team ===
+              stat.team?.code
+          );
+        }
+      ) ||
+      spanishSeasonPlayers.find(
+        (player) => {
+          const playerName =
+            normalizeText(
+              player.player_name
+            );
+
+          return (
+            playerName ===
+              expectedName ||
+            playerName ===
+              reversedName
+          );
+        }
+      )
+    );
+  }
+
+  const showBottomNav =
+    !selectedGame &&
+    !selectedPlayer;
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
@@ -1030,7 +1984,7 @@ export default function App() {
               </div>
 
               <div className="text-[10px] text-slate-500">
-                Resultados y españoles
+                Resultados, clasificación y españoles
               </div>
             </div>
           </button>
@@ -1043,6 +1997,9 @@ export default function App() {
           <PlayerDetail
             stat={selectedPlayer}
             game={selectedGame}
+            seasonPlayer={
+              selectedSeasonPlayer
+            }
             onBack={closePlayer}
           />
         ) : selectedGame ? (
@@ -1067,7 +2024,7 @@ export default function App() {
               </h1>
 
               <p className="mt-1 text-xs text-orange-50">
-                Partidos NBA y actuaciones españolas.
+                Partidos, clasificación y actuaciones españolas.
               </p>
             </section>
 
@@ -1086,8 +2043,17 @@ export default function App() {
 
                   <button
                     onClick={loadGames}
-                    className="rounded-xl border px-3 py-2 text-xs"
+                    disabled={loading}
+                    className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs"
                   >
+                    <RefreshCw
+                      size={14}
+                      className={
+                        loading
+                          ? "animate-spin"
+                          : ""
+                      }
+                    />
                     Actualizar
                   </button>
                 </div>
@@ -1105,39 +2071,110 @@ export default function App() {
                 )}
 
                 {!loading &&
-                  games.map((game) => (
-                    <button
-                      key={game.id}
-                      onClick={() =>
-                        openGame(game)
-                      }
-                      className="mb-4 w-full rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
-                    >
-                      <div className="mb-4 text-xs font-bold text-slate-500">
-                        {formatGameStatus(game)}
-                      </div>
+                  games.map(
+                    (game) => {
+                      const visitorsPoints =
+                        game.scores
+                          ?.visitors
+                          ?.points;
 
-                      <div className="space-y-4">
-                        <TeamRow
-                          team={game.teams?.visitors}
-                          score={game.scores?.visitors}
-                        />
+                      const homePoints =
+                        game.scores
+                          ?.home
+                          ?.points;
 
-                        <TeamRow
-                          team={game.teams?.home}
-                          score={game.scores?.home}
-                        />
-                      </div>
-                    </button>
-                  ))}
+                      const finished =
+                        game.status
+                          ?.short === 3;
+
+                      return (
+                        <button
+                          key={game.id}
+                          onClick={() =>
+                            openGame(game)
+                          }
+                          className="mb-4 w-full rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
+                        >
+                          <div className="mb-4 text-xs font-bold text-slate-500">
+                            {formatGameStatus(
+                              game
+                            )}
+                          </div>
+
+                          <div className="space-y-4">
+                            <TeamRow
+                              team={
+                                game.teams
+                                  ?.visitors
+                              }
+                              score={
+                                game.scores
+                                  ?.visitors
+                              }
+                              winner={
+                                finished &&
+                                visitorsPoints >
+                                  homePoints
+                              }
+                            />
+
+                            <TeamRow
+                              team={
+                                game.teams
+                                  ?.home
+                              }
+                              score={
+                                game.scores
+                                  ?.home
+                              }
+                              winner={
+                                finished &&
+                                homePoints >
+                                  visitorsPoints
+                              }
+                            />
+                          </div>
+
+                          <div className="mt-4 text-right text-xs font-bold text-orange-600">
+                            Ver partido →
+                          </div>
+                        </button>
+                      );
+                    }
+                  )}
               </section>
+            )}
+
+            {tab === "Standings" && (
+              <StandingsView
+                standings={standings}
+                loading={
+                  standingsLoading
+                }
+                error={
+                  standingsError
+                }
+                onRefresh={
+                  loadStandings
+                }
+              />
             )}
 
             {tab === "Spanish" && (
               <section>
-                <h2 className="mb-4 text-xl font-black">
-                  Españoles en la NBA
-                </h2>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-orange-600">
+                    ÑBA
+                  </p>
+
+                  <h2 className="text-xl font-black">
+                    Españoles en la NBA
+                  </h2>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Actuación disponible y promedios de temporada.
+                  </p>
+                </div>
 
                 {spanishLoading && (
                   <div className="p-8 text-center">
@@ -1151,12 +2188,23 @@ export default function App() {
                   </div>
                 )}
 
+                {!spanishLoading &&
+                  !spanishError &&
+                  spanishPerformances.length === 0 && (
+                    <div className="rounded-3xl bg-slate-100 p-8 text-center">
+                      No hay actuaciones españolas disponibles.
+                    </div>
+                  )}
+
                 <div className="space-y-4">
                   {spanishPerformances.map(
                     (stat) => (
                       <SpanishPerformanceCard
                         key={`${stat.game?.id}-${stat.player?.id}`}
                         stat={stat}
+                        seasonPlayer={getSpanishSeasonPlayer(
+                          stat
+                        )}
                       />
                     )
                   )}
@@ -1167,41 +2215,48 @@ export default function App() {
         )}
       </main>
 
-      {!selectedGame &&
-        !selectedPlayer && (
-          <nav
-            className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 px-2 pt-2 md:hidden"
-            style={{
-              paddingBottom:
-                "calc(0.5rem + env(safe-area-inset-bottom))",
-            }}
-          >
-            {nav.map(
-              ([label, Icon]) => (
+      {showBottomNav && (
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white/95 px-2 pt-2 md:hidden"
+          style={{
+            paddingBottom:
+              "calc(0.5rem + env(safe-area-inset-bottom))",
+          }}
+        >
+          {nav.map(
+            ([label, Icon]) => {
+              const visibleLabel =
+                label === "Scores"
+                  ? "Partidos"
+                  : label ===
+                    "Standings"
+                  ? "Clasificación"
+                  : "Españoles";
+
+              return (
                 <button
                   key={label}
                   onClick={() =>
                     changeTab(label)
                   }
-                  className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
+                  className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[10px] ${
                     tab === label
                       ? "bg-slate-950 text-white"
                       : "text-slate-500"
                   }`}
                 >
-                  <Icon size={19} />
+                  <Icon size={18} />
 
-                  {label === "Scores"
-                    ? "Partidos"
-                    : "Españoles"}
+                  {visibleLabel}
                 </button>
-              )
-            )}
-          </nav>
-        )}
+              );
+            }
+          )}
+        </nav>
+      )}
 
       <footer className="px-5 pb-24 pt-8 text-xs text-slate-400">
-        ÑBA · Resultados y jugadores españoles
+        ÑBA · Datos de temporada: BoxScore Lab · CC BY 4.0
       </footer>
     </div>
   );
