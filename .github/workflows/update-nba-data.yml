@@ -3,6 +3,7 @@ name: Update NBA data
 on:
   schedule:
     - cron: "7 * * * *"
+
   workflow_dispatch:
 
 permissions:
@@ -19,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -46,10 +49,19 @@ jobs:
           API_KEY = os.environ["API_NBA_KEY"]
 
           DATA_FOLDER = Path("public/data")
-          SCOREBOARD_FILE = DATA_FOLDER / "scoreboard.json"
-          PLAYER_STATS_FILE = DATA_FOLDER / "player-stats.json"
 
-          DATA_FOLDER.mkdir(parents=True, exist_ok=True)
+          SCOREBOARD_FILE = (
+              DATA_FOLDER / "scoreboard.json"
+          )
+
+          PLAYER_STATS_FILE = (
+              DATA_FOLDER / "player-stats.json"
+          )
+
+          DATA_FOLDER.mkdir(
+              parents=True,
+              exist_ok=True,
+          )
 
           today = datetime.now(
               ZoneInfo("Europe/Madrid")
@@ -57,18 +69,33 @@ jobs:
 
           print(f"NBA date: {today}")
 
-          def api_request(endpoint, parameters):
-              query = urllib.parse.urlencode(parameters)
-              url = f"{API_BASE}/{endpoint}?{query}"
+          def api_request(
+              endpoint,
+              parameters,
+          ):
+              query = urllib.parse.urlencode(
+                  parameters
+              )
 
-              print(f"Requesting: {endpoint}?{query}")
+              url = (
+                  f"{API_BASE}/"
+                  f"{endpoint}?{query}"
+              )
+
+              print(
+                  f"Requesting: "
+                  f"{endpoint}?{query}"
+              )
 
               request = urllib.request.Request(
                   url,
                   headers={
                       "x-apisports-key": API_KEY,
                       "Accept": "application/json",
-                      "User-Agent": "COURTSIDE-GitHub-Action/1.0",
+                      "User-Agent": (
+                          "NBAStatsApp-"
+                          "GitHub-Action/1.0"
+                      ),
                   },
               )
 
@@ -76,20 +103,32 @@ jobs:
                   request,
                   timeout=45,
               ) as response:
-                  body = response.read().decode("utf-8")
+                  body = (
+                      response
+                      .read()
+                      .decode("utf-8")
+                  )
 
               data = json.loads(body)
 
               errors = data.get("errors")
 
-              if isinstance(errors, dict) and len(errors) > 0:
+              if (
+                  isinstance(errors, dict)
+                  and len(errors) > 0
+              ):
                   raise RuntimeError(
-                      f"API-Sports error: {errors}"
+                      f"API-Sports error: "
+                      f"{errors}"
                   )
 
-              if isinstance(errors, list) and len(errors) > 0:
+              if (
+                  isinstance(errors, list)
+                  and len(errors) > 0
+              ):
                   raise RuntimeError(
-                      f"API-Sports error: {errors}"
+                      f"API-Sports error: "
+                      f"{errors}"
                   )
 
               return data
@@ -101,7 +140,10 @@ jobs:
               },
           )
 
-          games = scoreboard.get("response", [])
+          games = scoreboard.get(
+              "response",
+              [],
+          )
 
           with SCOREBOARD_FILE.open(
               "w",
@@ -115,7 +157,8 @@ jobs:
               )
 
           print(
-              f"Downloaded {len(games)} games"
+              f"Downloaded "
+              f"{len(games)} games"
           )
 
           player_stats_data = {
@@ -130,24 +173,35 @@ jobs:
                       "r",
                       encoding="utf-8",
                   ) as file:
-                      saved_data = json.load(file)
+                      saved_data = (
+                          json.load(file)
+                      )
 
-                  if saved_data.get("date") == today:
-                      player_stats_data = saved_data
+                  if (
+                      saved_data.get("date")
+                      == today
+                  ):
+                      player_stats_data = (
+                          saved_data
+                      )
 
                       print(
-                          "Existing player statistics loaded"
+                          "Existing player "
+                          "statistics loaded"
                       )
+
                   else:
                       print(
-                          "Existing player statistics belong "
+                          "Existing player "
+                          "statistics belong "
                           "to another date"
                       )
 
               except Exception as error:
                   print(
-                      "Could not read existing player "
-                      f"statistics: {error}"
+                      "Could not read existing "
+                      "player statistics: "
+                      f"{error}"
                   )
 
           player_stats_data.setdefault(
@@ -164,7 +218,8 @@ jobs:
               game_id = game.get("id")
 
               game_status = (
-                  game.get("status", {})
+                  game
+                  .get("status", {})
                   .get("short")
               )
 
@@ -173,7 +228,12 @@ jobs:
 
               game_key = str(game_id)
 
-              if game_key in player_stats_data["games"]:
+              if (
+                  game_key
+                  in player_stats_data[
+                      "games"
+                  ]
+              ):
                   print(
                       f"Game {game_key}: "
                       "statistics already saved"
@@ -199,18 +259,28 @@ jobs:
                       },
                   )
 
-                  player_stats_data["games"][game_key] = {
+                  player_stats_data[
+                      "games"
+                  ][game_key] = {
                       "gameId": game_id,
-                      "updatedAt": datetime.now(
-                          ZoneInfo("Europe/Madrid")
-                      ).isoformat(),
-                      "results": stats.get(
-                          "results",
-                          0,
+                      "updatedAt": (
+                          datetime.now(
+                              ZoneInfo(
+                                  "Europe/Madrid"
+                              )
+                          ).isoformat()
                       ),
-                      "response": stats.get(
-                          "response",
-                          [],
+                      "results": (
+                          stats.get(
+                              "results",
+                              0,
+                          )
+                      ),
+                      "response": (
+                          stats.get(
+                              "response",
+                              [],
+                          )
                       ),
                   }
 
@@ -229,14 +299,21 @@ jobs:
 
                   print(
                       f"Game {game_key}: "
-                      f"statistics failed: {error}"
+                      "statistics failed: "
+                      f"{error}"
                   )
 
-          player_stats_data["date"] = today
+          player_stats_data["date"] = (
+              today
+          )
 
-          player_stats_data["updatedAt"] = (
+          player_stats_data[
+              "updatedAt"
+          ] = (
               datetime.now(
-                  ZoneInfo("Europe/Madrid")
+                  ZoneInfo(
+                      "Europe/Madrid"
+                  )
               ).isoformat()
           )
 
@@ -253,11 +330,26 @@ jobs:
 
           print("")
           print("NBA update completed")
-          print(f"Games today: {len(games)}")
-          print(f"New statistics: {downloaded}")
-          print(f"Previously saved: {skipped}")
-          print(f"Pending games: {pending}")
-          print(f"Failed statistics: {failed}")
+          print(
+              f"Games today: "
+              f"{len(games)}"
+          )
+          print(
+              f"New statistics: "
+              f"{downloaded}"
+          )
+          print(
+              f"Previously saved: "
+              f"{skipped}"
+          )
+          print(
+              f"Pending games: "
+              f"{pending}"
+          )
+          print(
+              f"Failed statistics: "
+              f"{failed}"
+          )
           PYTHON
 
       - name: Verify generated JSON files
@@ -285,7 +377,15 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No NBA data changes"
-          else
-            git commit -m "Update NBA games and player statistics"
-            git push
+            exit 0
           fi
+
+          git commit -m "Update NBA games and player statistics"
+
+          echo "Synchronizing with latest main..."
+
+          git pull --rebase origin main
+
+          echo "Pushing NBA data..."
+
+          git push origin main
