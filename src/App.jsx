@@ -319,13 +319,10 @@ function PlayerStatsTable({
           stat.team?.id === team?.id
       )
       .sort((a, b) => {
-        const minutesA =
-          Number(a.min || 0);
-
-        const minutesB =
-          Number(b.min || 0);
-
-        return minutesB - minutesA;
+        return (
+          Number(b.min || 0) -
+          Number(a.min || 0)
+        );
       });
 
   if (teamPlayers.length === 0) {
@@ -349,70 +346,54 @@ function PlayerStatsTable({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="grid grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px] sm:px-3 sm:text-[10px]">
-          <div>
-            Jugador
-          </div>
-
-          <div className="text-center">
-            MIN
-          </div>
-
-          <div className="text-center text-orange-600">
-            PTS
-          </div>
-
-          <div className="text-center">
-            REB
-          </div>
-
-          <div className="text-center">
-            AST
-          </div>
+        <div className="grid grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px]">
+          <div>Jugador</div>
+          <div className="text-center">MIN</div>
+          <div className="text-center text-orange-600">PTS</div>
+          <div className="text-center">REB</div>
+          <div className="text-center">AST</div>
         </div>
 
-        <div>
-          {teamPlayers.map(
-            (stat) => (
-              <button
-                key={stat.player?.id}
-                type="button"
-                onClick={() =>
-                  onSelectPlayer(stat)
-                }
-                className="grid w-full grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 border-t border-slate-200 px-2 py-3 text-left transition active:bg-orange-50 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px] sm:px-3 sm:hover:bg-slate-50"
-              >
-                <div className="min-w-0 pr-1 sm:pr-3">
-                  <div className="whitespace-normal break-words text-[13px] font-bold leading-[1.15rem] text-slate-950 sm:text-sm">
-                    {getPlayerDisplayName(
-                      stat.player
-                    )}
-                  </div>
-
-                  <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px]">
-                    {stat.pos || "-"}
-                  </div>
+        {teamPlayers.map(
+          (stat) => (
+            <button
+              key={stat.player?.id}
+              type="button"
+              onClick={() =>
+                onSelectPlayer(stat)
+              }
+              className="grid w-full grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 border-t border-slate-200 px-2 py-3 text-left transition active:bg-orange-50 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px]"
+            >
+              <div className="min-w-0 pr-1">
+                <div className="whitespace-normal break-words text-[13px] font-bold leading-[1.15rem] text-slate-950">
+                  {getPlayerDisplayName(
+                    stat.player
+                  )}
                 </div>
 
-                <div className="text-center text-xs text-slate-600 sm:text-sm">
-                  {stat.min ?? "-"}
+                <div className="mt-1 text-[9px] text-slate-400">
+                  {stat.pos || "-"}
                 </div>
+              </div>
 
-                <div className="text-center text-xs font-black text-orange-600 sm:text-sm">
-                  {stat.points ?? 0}
-                </div>
+              <div className="text-center text-xs text-slate-600">
+                {stat.min ?? "-"}
+              </div>
 
-                <div className="text-center text-xs text-slate-700 sm:text-sm">
-                  {stat.totReb ?? 0}
-                </div>
+              <div className="text-center text-xs font-black text-orange-600">
+                {stat.points ?? 0}
+              </div>
 
-                <div className="text-center text-xs text-slate-700 sm:text-sm">
-                  {stat.assists ?? 0}
-                </div>
-              </button>
-            )
-          )}
-        </div>
+              <div className="text-center text-xs text-slate-700">
+                {stat.totReb ?? 0}
+              </div>
+
+              <div className="text-center text-xs text-slate-700">
+                {stat.assists ?? 0}
+              </div>
+            </button>
+          )
+        )}
       </div>
     </div>
   );
@@ -495,7 +476,7 @@ function PlayerDetail({
             Estadísticas principales
           </p>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3">
             <StatBox
               label="Minutos"
               value={stat.min ?? "-"}
@@ -524,7 +505,7 @@ function PlayerDetail({
             Tiro
           </p>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3">
             <StatBox
               label="Tiros de campo"
               value={`${stat.fgm ?? 0}/${stat.fga ?? 0}`}
@@ -562,7 +543,7 @@ function PlayerDetail({
             Otros datos
           </p>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3">
             <StatBox
               label="Rebotes ofensivos"
               value={stat.offReb ?? 0}
@@ -608,51 +589,29 @@ function PlayerDetail({
 function SpanishPerformanceCard({
   stat,
 }) {
-  const playerName =
-    getSpanishPlayerDisplayName(
-      stat.player
-    );
-
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-5 flex items-center gap-3">
         <TeamLogo team={stat.team} />
 
-        <div className="min-w-0">
-          <h3 className="text-lg font-black text-slate-950">
-            {playerName}
+        <div>
+          <h3 className="text-lg font-black">
+            {getSpanishPlayerDisplayName(
+              stat.player
+            )}
           </h3>
 
           <p className="text-sm text-slate-500">
             {stat.team?.name}
-            {stat.pos
-              ? ` · ${stat.pos}`
-              : ""}
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        <StatBox
-          label="MIN"
-          value={stat.min ?? "-"}
-        />
-
-        <StatBox
-          label="PTS"
-          value={stat.points ?? 0}
-          featured
-        />
-
-        <StatBox
-          label="REB"
-          value={stat.totReb ?? 0}
-        />
-
-        <StatBox
-          label="AST"
-          value={stat.assists ?? 0}
-        />
+        <StatBox label="MIN" value={stat.min ?? "-"} />
+        <StatBox label="PTS" value={stat.points ?? 0} featured />
+        <StatBox label="REB" value={stat.totReb ?? 0} />
+        <StatBox label="AST" value={stat.assists ?? 0} />
       </div>
     </article>
   );
@@ -699,7 +658,7 @@ function GameDetail({
     <section>
       <button
         onClick={onBack}
-        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm active:bg-slate-100"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
       >
         <ArrowLeft size={18} />
         Partidos
@@ -710,200 +669,115 @@ function GameDetail({
           <div className="text-sm font-black tracking-widest text-white">
             {formatGameStatus(game)}
           </div>
-
-          {game.status?.short !== 3 && (
-            <div className="mt-1 text-xs text-orange-100">
-              {formatGameTime(game)}
-            </div>
-          )}
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-6 sm:gap-4 sm:px-8">
-          <div className="flex min-w-0 flex-col items-center text-center">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-6">
+          <div className="flex flex-col items-center text-center">
             <TeamLogo
               team={visitors}
               size="large"
             />
 
-            <div className="mt-2 min-h-10 text-sm font-bold text-slate-950">
+            <div className="mt-2 text-sm font-bold">
               {visitors?.name}
-            </div>
-
-            <div className="mt-1 text-[10px] text-slate-400">
-              VISITANTE
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-3xl font-black text-slate-950">
+            <span className="text-3xl font-black">
               {visitorsScore?.points ?? "-"}
             </span>
 
-            <span className="text-lg text-slate-300">
-              -
-            </span>
+            <span className="text-slate-300">-</span>
 
-            <span className="text-3xl font-black text-slate-950">
+            <span className="text-3xl font-black">
               {homeScore?.points ?? "-"}
             </span>
           </div>
 
-          <div className="flex min-w-0 flex-col items-center text-center">
+          <div className="flex flex-col items-center text-center">
             <TeamLogo
               team={home}
               size="large"
             />
 
-            <div className="mt-2 min-h-10 text-sm font-bold text-slate-950">
+            <div className="mt-2 text-sm font-bold">
               {home?.name}
-            </div>
-
-            <div className="mt-1 text-[10px] text-slate-400">
-              LOCAL
             </div>
           </div>
         </div>
 
         <div className="border-t border-slate-200 p-4">
-          <h3 className="mb-3 text-base font-black text-slate-950">
+          <h3 className="mb-3 font-black">
             Marcador por cuartos
           </h3>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[360px] text-center text-sm text-slate-700">
-              <thead>
-                <tr className="text-[10px] text-slate-400">
-                  <th className="pb-2 text-left">
-                    EQUIPO
+          <table className="w-full text-center text-sm">
+            <thead>
+              <tr className="text-[10px] text-slate-400">
+                <th className="text-left">EQ.</th>
+
+                {periods.map((period) => (
+                  <th key={period}>
+                    {period < 4
+                      ? `Q${period + 1}`
+                      : `OT${period - 3}`}
                   </th>
+                ))}
 
-                  {periods.map((period) => (
-                    <th
-                      key={period}
-                      className="pb-2"
-                    >
-                      {period < 4
-                        ? `Q${period + 1}`
-                        : `OT${period - 3}`}
-                    </th>
-                  ))}
+                <th>TOT</th>
+              </tr>
+            </thead>
 
-                  <th className="pb-2 text-orange-600">
-                    TOTAL
-                  </th>
-                </tr>
-              </thead>
+            <tbody>
+              <tr>
+                <td className="py-3 text-left font-black">
+                  {visitors?.code}
+                </td>
 
-              <tbody>
-                <tr className="border-t border-slate-200">
-                  <td className="py-3 text-left font-black">
-                    {visitors?.code}
+                {periods.map((period) => (
+                  <td key={period}>
+                    {visitorsLines[period] ?? "-"}
                   </td>
+                ))}
 
-                  {periods.map((period) => (
-                    <td key={period}>
-                      {visitorsLines[period] ?? "-"}
-                    </td>
-                  ))}
+                <td className="font-black">
+                  {visitorsScore?.points ?? "-"}
+                </td>
+              </tr>
 
-                  <td className="font-black">
-                    {visitorsScore?.points ?? "-"}
+              <tr className="border-t">
+                <td className="py-3 text-left font-black">
+                  {home?.code}
+                </td>
+
+                {periods.map((period) => (
+                  <td key={period}>
+                    {homeLines[period] ?? "-"}
                   </td>
-                </tr>
+                ))}
 
-                <tr className="border-t border-slate-200">
-                  <td className="py-3 text-left font-black">
-                    {home?.code}
-                  </td>
-
-                  {periods.map((period) => (
-                    <td key={period}>
-                      {homeLines[period] ?? "-"}
-                    </td>
-                  ))}
-
-                  <td className="font-black">
-                    {homeScore?.points ?? "-"}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                <td className="font-black">
+                  {homeScore?.points ?? "-"}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div className="border-t border-slate-200 p-4">
-          <h3 className="mb-3 text-base font-black text-slate-950">
-            Información
+          <h3 className="mb-4 text-lg font-black">
+            Estadísticas del partido
           </h3>
 
-          <div className="space-y-3">
-            {game.arena?.name && (
-              <div className="flex items-start gap-3">
-                <MapPin
-                  size={19}
-                  className="mt-0.5 text-orange-500"
-                />
-
-                <div>
-                  <div className="text-sm font-semibold">
-                    {game.arena.name}
-                  </div>
-
-                  <div className="text-xs text-slate-500">
-                    {game.arena.city}
-                    {game.arena.state
-                      ? `, ${game.arena.state}`
-                      : ""}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {game.date?.start && (
-              <div className="flex items-start gap-3">
-                <Clock
-                  size={19}
-                  className="mt-0.5 text-orange-500"
-                />
-
-                <div>
-                  <div className="text-sm font-semibold">
-                    Fecha y hora
-                  </div>
-
-                  <div className="text-xs text-slate-500">
-                    {formatGameDate(game)}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200 p-4">
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-orange-600">
-              BOX SCORE
-            </p>
-
-            <h3 className="text-lg font-black text-slate-950">
-              Estadísticas del partido
-            </h3>
-
-            <p className="mt-1 text-xs text-slate-500">
-              Pulsa sobre un jugador para ver sus estadísticas completas.
-            </p>
-          </div>
-
           {statsLoading && (
-            <div className="rounded-2xl bg-slate-100 p-6 text-center text-sm text-slate-500">
+            <div className="p-5 text-center text-sm text-slate-500">
               Cargando estadísticas...
             </div>
           )}
 
-          {!statsLoading && statsError && (
-            <div className="flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm text-red-700">
-              <AlertCircle size={19} />
+          {statsError && (
+            <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
               {statsError}
             </div>
           )}
@@ -971,28 +845,14 @@ export default function App() {
   const [spanishError, setSpanishError] =
     useState("");
 
-  async function loadGames(
-    showLoader = true
-  ) {
-    if (showLoader) {
-      setLoading(true);
-    }
-
-    setError("");
+  async function loadGames() {
+    setLoading(true);
 
     try {
       const response = await fetch(
         `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
+        { cache: "no-store" }
       );
-
-      if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}`
-        );
-      }
 
       const data =
         await response.json();
@@ -1006,39 +866,27 @@ export default function App() {
       setGameDate(
         data.parameters?.date || ""
       );
+
+      setError("");
     } catch (loadError) {
       console.error(loadError);
 
       setError(
-        "No ha sido posible cargar los resultados NBA."
+        "No ha sido posible cargar los partidos."
       );
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadAllPlayerStats(
-    showLoader = true
-  ) {
-    if (showLoader) {
-      setSpanishLoading(true);
-    }
-
-    setSpanishError("");
+  async function loadAllPlayerStats() {
+    setSpanishLoading(true);
 
     try {
       const response = await fetch(
         `${PLAYER_STATS_URL}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
+        { cache: "no-store" }
       );
-
-      if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}`
-        );
-      }
 
       const data =
         await response.json();
@@ -1054,6 +902,7 @@ export default function App() {
         );
 
       setAllPlayerStats(stats);
+      setSpanishError("");
     } catch (loadError) {
       console.error(loadError);
 
@@ -1068,18 +917,18 @@ export default function App() {
   useEffect(() => {
     loadGames();
     loadAllPlayerStats();
-
-    const refreshInterval =
-      window.setInterval(() => {
-        loadGames(false);
-        loadAllPlayerStats(false);
-      }, 60000);
-
-    return () =>
-      window.clearInterval(
-        refreshInterval
-      );
   }, []);
+
+  useEffect(() => {
+    if (selectedPlayer) {
+      window.requestAnimationFrame(() => {
+        window.scrollTo(0, 0);
+
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
+    }
+  }, [selectedPlayer]);
 
   const spanishPerformances =
     useMemo(
@@ -1099,17 +948,10 @@ export default function App() {
     setStatsLoading(true);
     setStatsError("");
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-
     try {
       const response = await fetch(
         `${PLAYER_STATS_URL}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
+        { cache: "no-store" }
       );
 
       const data =
@@ -1134,24 +976,16 @@ export default function App() {
     } finally {
       setStatsLoading(false);
     }
+
+    window.scrollTo(0, 0);
   }
 
   function openPlayer(stat) {
     setSelectedPlayer(stat);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
   }
 
   function closePlayer() {
     setSelectedPlayer(null);
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
   }
 
   function closeGame() {
@@ -1159,10 +993,7 @@ export default function App() {
     setSelectedPlayer(null);
     setPlayerStats([]);
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo(0, 0);
   }
 
   function changeTab(newTab) {
@@ -1170,10 +1001,7 @@ export default function App() {
     setSelectedPlayer(null);
     setTab(newTab);
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo(0, 0);
   }
 
   return (
@@ -1185,7 +1013,7 @@ export default function App() {
             "env(safe-area-inset-top)",
         }}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+        <div className="flex items-center px-4 py-3">
           <button
             onClick={() =>
               changeTab("Scores")
@@ -1197,7 +1025,7 @@ export default function App() {
             </div>
 
             <div className="text-left">
-              <div className="text-base font-black">
+              <div className="font-black">
                 ÑBA
               </div>
 
@@ -1209,7 +1037,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-5">
+      <main className="mx-auto max-w-7xl px-4 py-5">
         {selectedPlayer &&
         selectedGame ? (
           <PlayerDetail
@@ -1228,13 +1056,13 @@ export default function App() {
           />
         ) : (
           <>
-            <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white shadow-md">
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-orange-100">
+            <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase">
                 <CalendarDays size={14} />
                 ÑBA
               </div>
 
-              <h1 className="text-2xl font-black tracking-tight">
+              <h1 className="text-2xl font-black">
                 Baloncesto con Ñ.
               </h1>
 
@@ -1245,13 +1073,9 @@ export default function App() {
 
             {tab === "Scores" && (
               <section>
-                <div className="mb-4 flex items-end justify-between gap-3">
+                <div className="mb-4 flex items-end justify-between">
                   <div>
-                    <p className="text-xs font-semibold text-orange-600">
-                      SCOREBOARD
-                    </p>
-
-                    <h2 className="text-xl font-bold">
+                    <h2 className="text-xl font-black">
                       Partidos
                     </h2>
 
@@ -1261,53 +1085,51 @@ export default function App() {
                   </div>
 
                   <button
-                    onClick={() =>
-                      loadGames()
-                    }
-                    className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs"
+                    onClick={loadGames}
+                    className="rounded-xl border px-3 py-2 text-xs"
                   >
-                    <RefreshCw size={15} />
                     Actualizar
                   </button>
                 </div>
 
-                {loading ? (
-                  <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
-                    Cargando partidos...
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {games.map((game) => (
-                      <button
-                        key={game.id}
-                        onClick={() =>
-                          openGame(game)
-                        }
-                        className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm"
-                      >
-                        <div className="mb-4 text-xs font-bold text-slate-500">
-                          {formatGameStatus(game)}
-                        </div>
-
-                        <div className="space-y-4">
-                          <TeamRow
-                            team={game.teams?.visitors}
-                            score={game.scores?.visitors}
-                          />
-
-                          <TeamRow
-                            team={game.teams?.home}
-                            score={game.scores?.home}
-                          />
-                        </div>
-
-                        <div className="mt-4 text-right text-xs font-bold text-orange-600">
-                          Ver partido →
-                        </div>
-                      </button>
-                    ))}
+                {loading && (
+                  <div className="p-8 text-center">
+                    Cargando...
                   </div>
                 )}
+
+                {error && (
+                  <div className="rounded-xl bg-red-50 p-4 text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                {!loading &&
+                  games.map((game) => (
+                    <button
+                      key={game.id}
+                      onClick={() =>
+                        openGame(game)
+                      }
+                      className="mb-4 w-full rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
+                    >
+                      <div className="mb-4 text-xs font-bold text-slate-500">
+                        {formatGameStatus(game)}
+                      </div>
+
+                      <div className="space-y-4">
+                        <TeamRow
+                          team={game.teams?.visitors}
+                          score={game.scores?.visitors}
+                        />
+
+                        <TeamRow
+                          team={game.teams?.home}
+                          score={game.scores?.home}
+                        />
+                      </div>
+                    </button>
+                  ))}
               </section>
             )}
 
@@ -1317,26 +1139,28 @@ export default function App() {
                   Españoles en la NBA
                 </h2>
 
-                {spanishLoading ? (
-                  <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
-                    Cargando actuaciones...
-                  </div>
-                ) : spanishError ? (
-                  <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
-                    {spanishError}
-                  </div>
-                ) : (
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {spanishPerformances.map(
-                      (stat) => (
-                        <SpanishPerformanceCard
-                          key={`${stat.game?.id}-${stat.player?.id}`}
-                          stat={stat}
-                        />
-                      )
-                    )}
+                {spanishLoading && (
+                  <div className="p-8 text-center">
+                    Cargando...
                   </div>
                 )}
+
+                {spanishError && (
+                  <div className="rounded-xl bg-red-50 p-4 text-red-700">
+                    {spanishError}
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  {spanishPerformances.map(
+                    (stat) => (
+                      <SpanishPerformanceCard
+                        key={`${stat.game?.id}-${stat.player?.id}`}
+                        stat={stat}
+                      />
+                    )
+                  )}
+                </div>
               </section>
             )}
           </>
