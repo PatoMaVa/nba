@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   MapPin,
   Clock,
-  ChevronRight,
   UserRound,
 } from "lucide-react";
 
@@ -57,26 +56,11 @@ const nav = [
 ];
 
 const SPANISH_PLAYERS = [
-  {
-    firstname: "Santi",
-    lastname: "Aldama",
-  },
-  {
-    firstname: "Sergio",
-    lastname: "De Larrea",
-  },
-  {
-    firstname: "Hugo",
-    lastname: "Gonzalez",
-  },
-  {
-    firstname: "Aday",
-    lastname: "Mara",
-  },
-  {
-    firstname: "Baba",
-    lastname: "Miller",
-  },
+  { firstname: "Santi", lastname: "Aldama" },
+  { firstname: "Sergio", lastname: "De Larrea" },
+  { firstname: "Hugo", lastname: "Gonzalez" },
+  { firstname: "Aday", lastname: "Mara" },
+  { firstname: "Baba", lastname: "Miller" },
 ];
 
 function normalizeText(value = "") {
@@ -97,20 +81,25 @@ function findSpanishPlayer(player) {
   return SPANISH_PLAYERS.find(
     (spanishPlayer) => {
       const spanishFirstname =
-        normalizeText(spanishPlayer.firstname);
+        normalizeText(
+          spanishPlayer.firstname
+        );
 
       const spanishLastname =
-        normalizeText(spanishPlayer.lastname);
+        normalizeText(
+          spanishPlayer.lastname
+        );
 
-      const normalOrder =
-        firstname === spanishFirstname &&
-        lastname === spanishLastname;
-
-      const reversedOrder =
-        firstname === spanishLastname &&
-        lastname === spanishFirstname;
-
-      return normalOrder || reversedOrder;
+      return (
+        (
+          firstname === spanishFirstname &&
+          lastname === spanishLastname
+        ) ||
+        (
+          firstname === spanishLastname &&
+          lastname === spanishFirstname
+        )
+      );
     }
   );
 }
@@ -348,7 +337,7 @@ function PlayerStatsTable({
       <div className="mb-3 flex items-center gap-3">
         <TeamLogo team={team} />
 
-        <div>
+        <div className="min-w-0">
           <div className="font-black text-slate-950">
             {team?.name}
           </div>
@@ -360,13 +349,26 @@ function PlayerStatsTable({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="grid grid-cols-[minmax(0,1fr)_40px_42px_42px_42px_22px] items-center gap-1 bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase text-slate-500">
-          <div>Jugador</div>
-          <div className="text-center">MIN</div>
-          <div className="text-center text-orange-600">PTS</div>
-          <div className="text-center">REB</div>
-          <div className="text-center">AST</div>
-          <div />
+        <div className="grid grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px] sm:px-3 sm:text-[10px]">
+          <div>
+            Jugador
+          </div>
+
+          <div className="text-center">
+            MIN
+          </div>
+
+          <div className="text-center text-orange-600">
+            PTS
+          </div>
+
+          <div className="text-center">
+            REB
+          </div>
+
+          <div className="text-center">
+            AST
+          </div>
         </div>
 
         <div>
@@ -378,40 +380,35 @@ function PlayerStatsTable({
                 onClick={() =>
                   onSelectPlayer(stat)
                 }
-                className="grid w-full grid-cols-[minmax(0,1fr)_40px_42px_42px_42px_22px] items-center gap-1 border-t border-slate-200 px-3 py-3 text-left transition active:bg-orange-50 sm:hover:bg-slate-50"
+                className="grid w-full grid-cols-[minmax(130px,1fr)_34px_36px_36px_36px] items-center gap-1 border-t border-slate-200 px-2 py-3 text-left transition active:bg-orange-50 sm:grid-cols-[minmax(180px,1fr)_50px_50px_50px_50px] sm:px-3 sm:hover:bg-slate-50"
               >
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-bold text-slate-950">
+                <div className="min-w-0 pr-1 sm:pr-3">
+                  <div className="whitespace-normal break-words text-[13px] font-bold leading-[1.15rem] text-slate-950 sm:text-sm">
                     {getPlayerDisplayName(
                       stat.player
                     )}
                   </div>
 
-                  <div className="text-[10px] text-slate-400">
+                  <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px]">
                     {stat.pos || "-"}
                   </div>
                 </div>
 
-                <div className="text-center text-sm text-slate-600">
+                <div className="text-center text-xs text-slate-600 sm:text-sm">
                   {stat.min ?? "-"}
                 </div>
 
-                <div className="text-center text-sm font-black text-orange-600">
+                <div className="text-center text-xs font-black text-orange-600 sm:text-sm">
                   {stat.points ?? 0}
                 </div>
 
-                <div className="text-center text-sm text-slate-700">
+                <div className="text-center text-xs text-slate-700 sm:text-sm">
                   {stat.totReb ?? 0}
                 </div>
 
-                <div className="text-center text-sm text-slate-700">
+                <div className="text-center text-xs text-slate-700 sm:text-sm">
                   {stat.assists ?? 0}
                 </div>
-
-                <ChevronRight
-                  size={17}
-                  className="text-slate-300"
-                />
               </button>
             )
           )}
@@ -445,7 +442,7 @@ function PlayerDetail({
     <section>
       <button
         onClick={onBack}
-        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition active:bg-slate-100"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm active:bg-slate-100"
       >
         <ArrowLeft size={18} />
         Volver al partido
@@ -459,7 +456,7 @@ function PlayerDetail({
             </div>
 
             <div className="min-w-0">
-              <h1 className="truncate text-2xl font-black">
+              <h1 className="text-2xl font-black">
                 {playerName}
               </h1>
 
@@ -622,13 +619,12 @@ function SpanishPerformanceCard({
         <TeamLogo team={stat.team} />
 
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-black text-slate-950">
+          <h3 className="text-lg font-black text-slate-950">
             {playerName}
           </h3>
 
           <p className="text-sm text-slate-500">
             {stat.team?.name}
-
             {stat.pos
               ? ` · ${stat.pos}`
               : ""}
@@ -657,29 +653,6 @@ function SpanishPerformanceCard({
           label="AST"
           value={stat.assists ?? 0}
         />
-      </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
-        <div className="rounded-xl border border-slate-200 p-2">
-          <strong>
-            {stat.fgm ?? 0}/{stat.fga ?? 0}
-          </strong>
-          <div className="text-xs text-slate-400">TC</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 p-2">
-          <strong>
-            {stat.tpm ?? 0}/{stat.tpa ?? 0}
-          </strong>
-          <div className="text-xs text-slate-400">3PT</div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 p-2">
-          <strong>
-            {stat.plusMinus ?? "-"}
-          </strong>
-          <div className="text-xs text-slate-400">+/-</div>
-        </div>
       </div>
     </article>
   );
@@ -726,14 +699,14 @@ function GameDetail({
     <section>
       <button
         onClick={onBack}
-        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition active:bg-slate-100"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm active:bg-slate-100"
       >
         <ArrowLeft size={18} />
         Partidos
       </button>
 
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
-        <div className="bg-gradient-to-br from-orange-500 to-red-500 px-4 py-4 text-center sm:px-5 sm:py-5">
+        <div className="bg-gradient-to-br from-orange-500 to-red-500 px-4 py-4 text-center">
           <div className="text-sm font-black tracking-widest text-white">
             {formatGameStatus(game)}
           </div>
@@ -752,7 +725,7 @@ function GameDetail({
               size="large"
             />
 
-            <div className="mt-2 line-clamp-2 min-h-10 text-sm font-bold text-slate-950 sm:text-base">
+            <div className="mt-2 min-h-10 text-sm font-bold text-slate-950">
               {visitors?.name}
             </div>
 
@@ -762,7 +735,7 @@ function GameDetail({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-3xl font-black text-slate-950 sm:text-5xl">
+            <span className="text-3xl font-black text-slate-950">
               {visitorsScore?.points ?? "-"}
             </span>
 
@@ -770,7 +743,7 @@ function GameDetail({
               -
             </span>
 
-            <span className="text-3xl font-black text-slate-950 sm:text-5xl">
+            <span className="text-3xl font-black text-slate-950">
               {homeScore?.points ?? "-"}
             </span>
           </div>
@@ -781,7 +754,7 @@ function GameDetail({
               size="large"
             />
 
-            <div className="mt-2 line-clamp-2 min-h-10 text-sm font-bold text-slate-950 sm:text-base">
+            <div className="mt-2 min-h-10 text-sm font-bold text-slate-950">
               {home?.name}
             </div>
 
@@ -791,8 +764,8 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-4 sm:p-5">
-          <h3 className="mb-3 text-base font-black text-slate-950 sm:text-lg">
+        <div className="border-t border-slate-200 p-4">
+          <h3 className="mb-3 text-base font-black text-slate-950">
             Marcador por cuartos
           </h3>
 
@@ -858,8 +831,8 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-4 sm:p-5">
-          <h3 className="mb-3 text-base font-black text-slate-950 sm:text-lg">
+        <div className="border-t border-slate-200 p-4">
+          <h3 className="mb-3 text-base font-black text-slate-950">
             Información
           </h3>
 
@@ -868,7 +841,7 @@ function GameDetail({
               <div className="flex items-start gap-3">
                 <MapPin
                   size={19}
-                  className="mt-0.5 flex-shrink-0 text-orange-500"
+                  className="mt-0.5 text-orange-500"
                 />
 
                 <div>
@@ -890,7 +863,7 @@ function GameDetail({
               <div className="flex items-start gap-3">
                 <Clock
                   size={19}
-                  className="mt-0.5 flex-shrink-0 text-orange-500"
+                  className="mt-0.5 text-orange-500"
                 />
 
                 <div>
@@ -907,18 +880,18 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-4 sm:p-5">
+        <div className="border-t border-slate-200 p-4">
           <div className="mb-4">
             <p className="text-xs font-semibold text-orange-600">
               BOX SCORE
             </p>
 
-            <h3 className="text-lg font-black text-slate-950 sm:text-xl">
+            <h3 className="text-lg font-black text-slate-950">
               Estadísticas del partido
             </h3>
 
             <p className="mt-1 text-xs text-slate-500">
-              Pulsa un jugador para ver todos los detalles.
+              Pulsa sobre un jugador para ver sus estadísticas completas.
             </p>
           </div>
 
@@ -929,19 +902,11 @@ function GameDetail({
           )}
 
           {!statsLoading && statsError && (
-            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+            <div className="flex items-center gap-3 rounded-2xl bg-red-50 p-5 text-sm text-red-700">
               <AlertCircle size={19} />
               {statsError}
             </div>
           )}
-
-          {!statsLoading &&
-            !statsError &&
-            playerStats.length === 0 && (
-              <div className="rounded-2xl bg-slate-100 p-6 text-center text-sm text-slate-500">
-                Estadísticas individuales todavía no disponibles.
-              </div>
-            )}
 
           {!statsLoading &&
             !statsError &&
@@ -988,9 +953,6 @@ export default function App() {
   const [error, setError] =
     useState("");
 
-  const [lastUpdate, setLastUpdate] =
-    useState(null);
-
   const [playerStats, setPlayerStats] =
     useState([]);
 
@@ -1035,17 +997,15 @@ export default function App() {
       const data =
         await response.json();
 
-      if (!Array.isArray(data.response)) {
-        throw new Error(
-          "Formato de datos NBA no válido"
-        );
-      }
+      setGames(
+        Array.isArray(data.response)
+          ? data.response
+          : []
+      );
 
-      setGames(data.response);
       setGameDate(
         data.parameters?.date || ""
       );
-      setLastUpdate(new Date());
     } catch (loadError) {
       console.error(loadError);
 
@@ -1083,11 +1043,10 @@ export default function App() {
       const data =
         await response.json();
 
-      const gamesData =
-        data.games || {};
-
       const stats =
-        Object.values(gamesData).flatMap(
+        Object.values(
+          data.games || {}
+        ).flatMap(
           (game) =>
             Array.isArray(game?.response)
               ? game.response
@@ -1097,8 +1056,6 @@ export default function App() {
       setAllPlayerStats(stats);
     } catch (loadError) {
       console.error(loadError);
-
-      setAllPlayerStats([]);
 
       setSpanishError(
         "No ha sido posible cargar las actuaciones españolas."
@@ -1118,35 +1075,29 @@ export default function App() {
         loadAllPlayerStats(false);
       }, 60000);
 
-    return () => {
+    return () =>
       window.clearInterval(
         refreshInterval
       );
-    };
   }, []);
 
   const spanishPerformances =
-    useMemo(() => {
-      return allPlayerStats
-        .filter(
+    useMemo(
+      () =>
+        allPlayerStats.filter(
           (stat) =>
             isSpanishPlayer(
               stat.player
             )
-        )
-        .sort(
-          (a, b) =>
-            Number(b.points || 0) -
-            Number(a.points || 0)
-        );
-    }, [allPlayerStats]);
+        ),
+      [allPlayerStats]
+    );
 
   async function openGame(game) {
     setSelectedGame(game);
     setSelectedPlayer(null);
-    setPlayerStats([]);
-    setStatsError("");
     setStatsLoading(true);
+    setStatsError("");
 
     window.scrollTo({
       top: 0,
@@ -1161,12 +1112,6 @@ export default function App() {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(
-          `HTTP ${response.status}`
-        );
-      }
-
       const data =
         await response.json();
 
@@ -1180,8 +1125,8 @@ export default function App() {
           ? gameStatistics.response
           : []
       );
-    } catch (statsLoadError) {
-      console.error(statsLoadError);
+    } catch (loadError) {
+      console.error(loadError);
 
       setStatsError(
         "No ha sido posible cargar las estadísticas."
@@ -1213,7 +1158,6 @@ export default function App() {
     setSelectedGame(null);
     setSelectedPlayer(null);
     setPlayerStats([]);
-    setStatsError("");
 
     window.scrollTo({
       top: 0,
@@ -1224,7 +1168,6 @@ export default function App() {
   function changeTab(newTab) {
     setSelectedGame(null);
     setSelectedPlayer(null);
-    setPlayerStats([]);
     setTab(newTab);
 
     window.scrollTo({
@@ -1232,10 +1175,6 @@ export default function App() {
       behavior: "smooth",
     });
   }
-
-  const showBottomNav =
-    !selectedGame &&
-    !selectedPlayer;
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
@@ -1246,7 +1185,7 @@ export default function App() {
             "env(safe-area-inset-top)",
         }}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <button
             onClick={() =>
               changeTab("Scores")
@@ -1258,7 +1197,7 @@ export default function App() {
             </div>
 
             <div className="text-left">
-              <div className="text-base font-black tracking-tight">
+              <div className="text-base font-black">
                 ÑBA
               </div>
 
@@ -1267,31 +1206,10 @@ export default function App() {
               </div>
             </div>
           </button>
-
-          <nav className="hidden gap-2 md:flex">
-            {nav.map(([label, Icon]) => (
-              <button
-                key={label}
-                onClick={() =>
-                  changeTab(label)
-                }
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm ${
-                  tab === label
-                    ? "bg-slate-950 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Icon size={16} />
-                {label === "Scores"
-                  ? "Partidos"
-                  : "Españoles"}
-              </button>
-            ))}
-          </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-5 sm:py-8">
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-5">
         {selectedPlayer &&
         selectedGame ? (
           <PlayerDetail
@@ -1310,17 +1228,17 @@ export default function App() {
           />
         ) : (
           <>
-            <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white shadow-md sm:mb-8 sm:p-8">
+            <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white shadow-md">
               <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-orange-100">
                 <CalendarDays size={14} />
                 ÑBA
               </div>
 
-              <h1 className="text-2xl font-black tracking-tight sm:text-5xl">
+              <h1 className="text-2xl font-black tracking-tight">
                 Baloncesto con Ñ.
               </h1>
 
-              <p className="mt-1 text-xs text-orange-50 sm:mt-3 sm:text-base">
+              <p className="mt-1 text-xs text-orange-50">
                 Partidos NBA y actuaciones españolas.
               </p>
             </section>
@@ -1346,193 +1264,119 @@ export default function App() {
                     onClick={() =>
                       loadGames()
                     }
-                    disabled={loading}
                     className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs"
                   >
-                    <RefreshCw
-                      size={15}
-                      className={
-                        loading
-                          ? "animate-spin"
-                          : ""
-                      }
-                    />
+                    <RefreshCw size={15} />
                     Actualizar
                   </button>
                 </div>
 
-                {loading && (
+                {loading ? (
                   <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
                     Cargando partidos...
                   </div>
-                )}
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {games.map((game) => (
+                      <button
+                        key={game.id}
+                        onClick={() =>
+                          openGame(game)
+                        }
+                        className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm"
+                      >
+                        <div className="mb-4 text-xs font-bold text-slate-500">
+                          {formatGameStatus(game)}
+                        </div>
 
-                {!loading && error && (
-                  <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
-                    {error}
+                        <div className="space-y-4">
+                          <TeamRow
+                            team={game.teams?.visitors}
+                            score={game.scores?.visitors}
+                          />
+
+                          <TeamRow
+                            team={game.teams?.home}
+                            score={game.scores?.home}
+                          />
+                        </div>
+
+                        <div className="mt-4 text-right text-xs font-bold text-orange-600">
+                          Ver partido →
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 )}
-
-                {!loading &&
-                  !error &&
-                  games.length === 0 && (
-                    <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
-                      No hay partidos disponibles.
-                    </div>
-                  )}
-
-                {!loading &&
-                  !error &&
-                  games.length > 0 && (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {games.map((game) => {
-                        const visitorPoints =
-                          game.scores?.visitors?.points;
-
-                        const homePoints =
-                          game.scores?.home?.points;
-
-                        const finished =
-                          game.status?.short === 3;
-
-                        return (
-                          <button
-                            key={game.id}
-                            onClick={() =>
-                              openGame(game)
-                            }
-                            className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm active:bg-orange-50"
-                          >
-                            <div className="mb-4 text-xs font-bold text-slate-500">
-                              {formatGameStatus(game)}
-                            </div>
-
-                            <div className="space-y-4">
-                              <TeamRow
-                                team={game.teams?.visitors}
-                                score={game.scores?.visitors}
-                                winner={
-                                  finished &&
-                                  visitorPoints > homePoints
-                                }
-                              />
-
-                              <TeamRow
-                                team={game.teams?.home}
-                                score={game.scores?.home}
-                                winner={
-                                  finished &&
-                                  homePoints > visitorPoints
-                                }
-                              />
-                            </div>
-
-                            <div className="mt-4 text-right text-xs font-bold text-orange-600">
-                              Ver partido →
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
               </section>
             )}
 
             {tab === "Spanish" && (
               <section>
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-orange-600">
-                    ÑBA
-                  </p>
+                <h2 className="mb-4 text-xl font-black">
+                  Españoles en la NBA
+                </h2>
 
-                  <h2 className="text-xl font-black">
-                    Españoles en la NBA
-                  </h2>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    Actuaciones disponibles del día.
-                  </p>
-                </div>
-
-                {spanishLoading && (
+                {spanishLoading ? (
                   <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
                     Cargando actuaciones...
                   </div>
+                ) : spanishError ? (
+                  <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
+                    {spanishError}
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {spanishPerformances.map(
+                      (stat) => (
+                        <SpanishPerformanceCard
+                          key={`${stat.game?.id}-${stat.player?.id}`}
+                          stat={stat}
+                        />
+                      )
+                    )}
+                  </div>
                 )}
-
-                {!spanishLoading &&
-                  spanishError && (
-                    <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
-                      {spanishError}
-                    </div>
-                  )}
-
-                {!spanishLoading &&
-                  !spanishError &&
-                  spanishPerformances.length === 0 && (
-                    <div className="rounded-3xl bg-slate-100 p-8 text-center">
-                      <Flag
-                        size={30}
-                        className="mx-auto mb-3 text-orange-500"
-                      />
-
-                      <p className="text-sm font-bold">
-                        Sin actuaciones españolas
-                      </p>
-                    </div>
-                  )}
-
-                {!spanishLoading &&
-                  !spanishError &&
-                  spanishPerformances.length > 0 && (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {spanishPerformances.map(
-                        (stat) => (
-                          <SpanishPerformanceCard
-                            key={`${stat.game?.id}-${stat.player?.id}`}
-                            stat={stat}
-                          />
-                        )
-                      )}
-                    </div>
-                  )}
               </section>
             )}
           </>
         )}
       </main>
 
-      {showBottomNav && (
-        <nav
-          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 px-2 pt-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden"
-          style={{
-            paddingBottom:
-              "calc(0.5rem + env(safe-area-inset-bottom))",
-          }}
-        >
-          {nav.map(([label, Icon]) => (
-            <button
-              key={label}
-              onClick={() =>
-                changeTab(label)
-              }
-              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
-                tab === label
-                  ? "bg-slate-950 text-white"
-                  : "text-slate-500"
-              }`}
-            >
-              <Icon size={19} />
+      {!selectedGame &&
+        !selectedPlayer && (
+          <nav
+            className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 px-2 pt-2 md:hidden"
+            style={{
+              paddingBottom:
+                "calc(0.5rem + env(safe-area-inset-bottom))",
+            }}
+          >
+            {nav.map(
+              ([label, Icon]) => (
+                <button
+                  key={label}
+                  onClick={() =>
+                    changeTab(label)
+                  }
+                  className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
+                    tab === label
+                      ? "bg-slate-950 text-white"
+                      : "text-slate-500"
+                  }`}
+                >
+                  <Icon size={19} />
 
-              {label === "Scores"
-                ? "Partidos"
-                : "Españoles"}
-            </button>
-          ))}
-        </nav>
-      )}
+                  {label === "Scores"
+                    ? "Partidos"
+                    : "Españoles"}
+                </button>
+              )
+            )}
+          </nav>
+        )}
 
-      <footer className="mx-auto max-w-7xl px-5 pb-24 pt-8 text-xs text-slate-400">
+      <footer className="px-5 pb-24 pt-8 text-xs text-slate-400">
         ÑBA · Resultados y jugadores españoles
       </footer>
     </div>
