@@ -113,21 +113,13 @@ jobs:
           )
 
           player_rows.sort(
-              key=lambda row: (
-                  -float(
-                      row.get("points_per_game")
-                      or row.get("pts_per_game")
-                      or row.get("ppg")
-                      or row.get("points")
-                      or 0
-                  ),
-                  str(
-                      row.get("player_name")
-                      or row.get("player")
-                      or ""
-                  ),
-              )
-          )
+    key=lambda row: (
+        -float(row.get("points_pg") or 0),
+        -float(row.get("rebounds_pg") or 0),
+        -float(row.get("assists_pg") or 0),
+        str(row.get("player_name") or ""),
+    )
+)
 
           updated_at = datetime.now(
               timezone.utc
