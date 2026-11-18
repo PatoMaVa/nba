@@ -3,11 +3,14 @@ name: Update NBA season data
 on:
   schedule:
     - cron: "35 15 * * *"
-
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: update-nba-season-data
+  cancel-in-progress: false
 
 jobs:
   update-season-data:
@@ -21,6 +24,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Create data folder
+        run: mkdir -p public/data
 
       - name: Download and convert season data
         run: |
@@ -45,9 +51,23 @@ jobs:
           )
 
           OUTPUT_DIRECTORY = Path("public/data")
-          OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+          STANDINGS_FILE = (
+              OUTPUT_DIRECTORY / "standings.json"
+          )
+
+          PLAYERS_FILE = (
+              OUTPUT_DIRECTORY / "season-player-stats.json"
+          )
+
+          OUTPUT_DIRECTORY.mkdir(
+              parents=True,
+              exist_ok=True,
+          )
 
           def download_csv(url):
+              print(f"Downloading: {url}")
+
               request = urllib.request.Request(
                   url,
                   headers={
@@ -62,13 +82,21 @@ jobs:
                   request,
                   timeout=60,
               ) as response:
-                  text = response.read().decode("utf-8-sig")
+                  text = response.read().decode(
+                      "utf-8-sig"
+                  )
 
-              return list(
+              rows = list(
                   csv.DictReader(
                       io.StringIO(text)
                   )
               )
+
+              print(
+                  f"Downloaded {len(rows)} rows"
+              )
+
+              return rows
 
           def clean_value(value):
               if value is None:
@@ -84,42 +112,91 @@ jobs:
                       return float(value)
 
                   return int(value)
+
               except ValueError:
                   return value
 
           def clean_rows(rows):
-              return [
-                  {
-                      key: clean_value(value)
-                      for key, value in row.items()
-                  }
-                  for row in rows
-              ]
+              cleaned = []
+
+              for row in rows:
+                  cleaned_row = {}
+
+                  for key, value in row.items():
+                      cleaned_row[key] = clean_value(
+                          value
+                      )
+
+                  cleaned.append(
+                      cleaned_row
+                  )
+
+              return cleaned
 
           standings_rows = clean_rows(
-              download_csv(STANDINGS_URL)
+              download_csv(
+                  STANDINGS_URL
+              )
           )
 
           player_rows = clean_rows(
-              download_csv(PLAYERS_URL)
+              download_csv(
+                  PLAYERS_URL
+              )
           )
+
+          if len(standings_rows) != 30:
+              raise RuntimeError(
+                  "Expected 30 NBA teams in standings, "
+                  f"received {len(standings_rows)}"
+              )
+
+          if len(player_rows) == 0:
+              raise RuntimeError(
+                  "No player season statistics received"
+              )
 
           standings_rows.sort(
               key=lambda row: (
-                  -float(row.get("win_pct") or 0),
-                  -int(row.get("wins") or 0),
-                  int(row.get("losses") or 0),
+                  -float(
+                      row.get("win_pct")
+                      or 0
+                  ),
+                  -int(
+                      row.get("wins")
+                      or 0
+                  ),
+                  int(
+                      row.get("losses")
+                      or 0
+                  ),
+                  str(
+                      row.get("team")
+                      or ""
+                  ),
               )
           )
 
           player_rows.sort(
-    key=lambda row: (
-        -float(row.get("points_pg") or 0),
-        -float(row.get("rebounds_pg") or 0),
-        -float(row.get("assists_pg") or 0),
-        str(row.get("player_name") or ""),
-    )
-)
+              key=lambda row: (
+                  -float(
+                      row.get("points_pg")
+                      or 0
+                  ),
+                  -float(
+                      row.get("rebounds_pg")
+                      or 0
+                  ),
+                  -float(
+                      row.get("assists_pg")
+                      or 0
+                  ),
+                  str(
+                      row.get("player_name")
+                      or ""
+                  ),
+              )
+          )
 
           updated_at = datetime.now(
               timezone.utc
@@ -130,7 +207,9 @@ jobs:
               "updatedAt": updated_at,
               "source": "BoxScore Lab",
               "license": "CC BY 4.0",
-              "results": len(standings_rows),
+              "results": len(
+                  standings_rows
+              ),
               "response": standings_rows,
           }
 
@@ -139,12 +218,13 @@ jobs:
               "updatedAt": updated_at,
               "source": "BoxScore Lab",
               "license": "CC BY 4.0",
-              "results": len(player_rows),
+              "results": len(
+                  player_rows
+              ),
               "response": player_rows,
           }
 
-          with open(
-              OUTPUT_DIRECTORY / "standings.json",
+          with STANDINGS_FILE.open(
               "w",
               encoding="utf-8",
           ) as file:
@@ -155,8 +235,7 @@ jobs:
                   indent=2,
               )
 
-          with open(
-              OUTPUT_DIRECTORY / "season-player-stats.json",
+          with PLAYERS_FILE.open(
               "w",
               encoding="utf-8",
           ) as file:
@@ -167,13 +246,74 @@ jobs:
                   indent=2,
               )
 
+          print("")
+          print("Season data generated successfully")
           print(
-              f"Standings rows: {len(standings_rows)}"
+              f"Standings: {len(standings_rows)} teams"
+          )
+          print(
+              f"Players: {len(player_rows)} players"
+          )
+          print(
+              f"Updated at: {updated_at}"
+          )
+          PYTHON
+
+      - name: Verify generated files
+        run: |
+          python -m json.tool public/data/standings.json > /dev/null
+          python -m json.tool public/data/season-player-stats.json > /dev/null
+
+          echo "JSON files are valid"
+
+          echo ""
+          echo "Standings:"
+          ls -lh public/data/standings.json
+
+          echo ""
+          echo "Season player statistics:"
+          ls -lh public/data/season-player-stats.json
+
+      - name: Show data summary
+        run: |
+          python <<'PYTHON'
+          import json
+
+          with open(
+              "public/data/standings.json",
+              encoding="utf-8",
+          ) as file:
+              standings = json.load(file)
+
+          with open(
+              "public/data/season-player-stats.json",
+              encoding="utf-8",
+          ) as file:
+              players = json.load(file)
+
+          print(
+              "Standings teams:",
+              standings.get("results")
           )
 
           print(
-              f"Player rows: {len(player_rows)}"
+              "Season players:",
+              players.get("results")
           )
+
+          print("")
+          print("Top 5 scorers:")
+
+          for player in players.get(
+              "response",
+              []
+          )[:5]:
+              print(
+                  player.get("player_name"),
+                  "-",
+                  player.get("points_pg"),
+                  "PPG"
+              )
           PYTHON
 
       - name: Commit updated season data
@@ -185,9 +325,8 @@ jobs:
           git add public/data/season-player-stats.json
 
           if git diff --cached --quiet; then
-            echo "No season-data changes detected."
-            exit 0
+            echo "No season data changes"
+          else
+            git commit -m "Update NBA season standings and player stats"
+            git push
           fi
-
-          git commit -m "Update NBA season standings and player stats"
-          git push
