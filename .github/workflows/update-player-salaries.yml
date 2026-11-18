@@ -1,0 +1,289 @@
+name: Update NBA player salaries
+
+on:
+  schedule:
+    - cron: "15 16 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-nba-player-salaries
+  cancel-in-progress: false
+
+jobs:
+  update-player-salaries:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install \
+            pandas \
+            lxml \
+            beautifulsoup4
+
+      - name: Download NBA salaries
+        run: |
+          python <<'PYTHON'
+          import json
+          import re
+          import urllib.request
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          from bs4 import BeautifulSoup
+
+          SOURCE_URL = (
+              "https://www.basketball-reference.com/"
+              "contracts/players.html"
+          )
+
+          OUTPUT_DIRECTORY = Path("public/data")
+          OUTPUT_FILE = (
+              OUTPUT_DIRECTORY / "player-salaries.json"
+          )
+
+          OUTPUT_DIRECTORY.mkdir(
+              parents=True,
+              exist_ok=True,
+          )
+
+          request = urllib.request.Request(
+              SOURCE_URL,
+              headers={
+                  "User-Agent": (
+                      "Mozilla/5.0 "
+                      "(Macintosh; Intel Mac OS X 10_15_7) "
+                      "AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) "
+                      "Chrome/131.0 Safari/537.36"
+                  ),
+                  "Accept": (
+                      "text/html,application/xhtml+xml,"
+                      "application/xml;q=0.9,*/*;q=0.8"
+                  ),
+                  "Accept-Language": "en-US,en;q=0.9",
+              },
+          )
+
+          with urllib.request.urlopen(
+              request,
+              timeout=60,
+          ) as response:
+              html = response.read().decode(
+                  "utf-8",
+                  errors="replace",
+              )
+
+          soup = BeautifulSoup(
+              html,
+              "html.parser",
+          )
+
+          table = soup.find(
+              "table",
+              id="player-contracts",
+          )
+
+          if table is None:
+              for comment in soup.find_all(
+                  string=lambda text: (
+                      text
+                      and "player-contracts" in text
+                  )
+              ):
+                  comment_soup = BeautifulSoup(
+                      comment,
+                      "html.parser",
+                  )
+
+                  table = comment_soup.find(
+                      "table",
+                      id="player-contracts",
+                  )
+
+                  if table is not None:
+                      break
+
+          if table is None:
+              raise RuntimeError(
+                  "Player contracts table was not found"
+              )
+
+          def parse_salary(value):
+              if not value:
+                  return None
+
+              cleaned = re.sub(
+                  r"[^0-9]",
+                  "",
+                  value,
+              )
+
+              return (
+                  int(cleaned)
+                  if cleaned
+                  else None
+              )
+
+          players = []
+
+          for row in table.select(
+              "tbody tr"
+          ):
+              if "thead" in (
+                  row.get("class") or []
+              ):
+                  continue
+
+              player_cell = row.find(
+                  ["th", "td"],
+                  attrs={
+                      "data-stat": "player"
+                  },
+              )
+
+              team_cell = row.find(
+                  "td",
+                  attrs={
+                      "data-stat": "team_id"
+                  },
+              )
+
+              salary_cell = row.find(
+                  "td",
+                  attrs={
+                      "data-stat": "y1"
+                  },
+              )
+
+              if (
+                  player_cell is None
+                  or salary_cell is None
+              ):
+                  continue
+
+              player_name = (
+                  player_cell
+                  .get_text(
+                      " ",
+                      strip=True,
+                  )
+              )
+
+              team = (
+                  team_cell.get_text(
+                      " ",
+                      strip=True,
+                  )
+                  if team_cell
+                  else ""
+              )
+
+              salary = parse_salary(
+                  salary_cell.get_text(
+                      " ",
+                      strip=True,
+                  )
+              )
+
+              if (
+                  not player_name
+                  or salary is None
+              ):
+                  continue
+
+              players.append(
+                  {
+                      "player_name": player_name,
+                      "team": team,
+                      "salary": salary,
+                  }
+              )
+
+          if len(players) < 300:
+              raise RuntimeError(
+                  "Too few player salaries received: "
+                  f"{len(players)}"
+              )
+
+          players.sort(
+              key=lambda player: (
+                  -player["salary"],
+                  player["player_name"],
+              )
+          )
+
+          output = {
+              "season": "2026-27",
+              "updatedAt": datetime.now(
+                  timezone.utc
+              ).isoformat(),
+              "source": "Basketball-Reference",
+              "results": len(players),
+              "response": players,
+          }
+
+          with OUTPUT_FILE.open(
+              "w",
+              encoding="utf-8",
+          ) as file:
+              json.dump(
+                  output,
+                  file,
+                  ensure_ascii=False,
+                  indent=2,
+              )
+
+          print(
+              f"Generated {len(players)} salaries"
+          )
+
+          for player in players[:5]:
+              print(
+                  player["player_name"],
+                  player["team"],
+                  player["salary"],
+              )
+          PYTHON
+
+      - name: Verify salary data
+        run: |
+          python -m json.tool \
+            public/data/player-salaries.json \
+            > /dev/null
+
+          ls -lh \
+            public/data/player-salaries.json
+
+      - name: Commit salary data
+        run: |
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            public/data/player-salaries.json
+
+          if git diff --cached --quiet; then
+            echo "No salary changes"
+          else
+            git commit \
+              -m "Update NBA player salaries"
+
+            git push
+          fi
