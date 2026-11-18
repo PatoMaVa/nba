@@ -1,0 +1,201 @@
+name: Update NBA season data
+
+on:
+  schedule:
+    - cron: "35 15 * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-season-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download and convert season data
+        run: |
+          python <<'PYTHON'
+          import csv
+          import io
+          import json
+          import urllib.request
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          SEASON = "2026-27"
+
+          STANDINGS_URL = (
+              "https://boxscorelab.com/downloads/"
+              f"{SEASON}-team-standings.csv"
+          )
+
+          PLAYERS_URL = (
+              "https://boxscorelab.com/downloads/"
+              f"{SEASON}-player-season-totals.csv"
+          )
+
+          OUTPUT_DIRECTORY = Path("public/data")
+          OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
+
+          def download_csv(url):
+              request = urllib.request.Request(
+                  url,
+                  headers={
+                      "User-Agent": (
+                          "Mozilla/5.0 "
+                          "(compatible; NBAStatsApp/1.0)"
+                      )
+                  },
+              )
+
+              with urllib.request.urlopen(
+                  request,
+                  timeout=60,
+              ) as response:
+                  text = response.read().decode("utf-8-sig")
+
+              return list(
+                  csv.DictReader(
+                      io.StringIO(text)
+                  )
+              )
+
+          def clean_value(value):
+              if value is None:
+                  return None
+
+              value = value.strip()
+
+              if value == "":
+                  return None
+
+              try:
+                  if "." in value:
+                      return float(value)
+
+                  return int(value)
+              except ValueError:
+                  return value
+
+          def clean_rows(rows):
+              return [
+                  {
+                      key: clean_value(value)
+                      for key, value in row.items()
+                  }
+                  for row in rows
+              ]
+
+          standings_rows = clean_rows(
+              download_csv(STANDINGS_URL)
+          )
+
+          player_rows = clean_rows(
+              download_csv(PLAYERS_URL)
+          )
+
+          standings_rows.sort(
+              key=lambda row: (
+                  -float(row.get("win_pct") or 0),
+                  -int(row.get("wins") or 0),
+                  int(row.get("losses") or 0),
+              )
+          )
+
+          player_rows.sort(
+              key=lambda row: (
+                  -float(
+                      row.get("points_per_game")
+                      or row.get("pts_per_game")
+                      or row.get("ppg")
+                      or row.get("points")
+                      or 0
+                  ),
+                  str(
+                      row.get("player_name")
+                      or row.get("player")
+                      or ""
+                  ),
+              )
+          )
+
+          updated_at = datetime.now(
+              timezone.utc
+          ).isoformat()
+
+          standings_output = {
+              "season": SEASON,
+              "updatedAt": updated_at,
+              "source": "BoxScore Lab",
+              "license": "CC BY 4.0",
+              "results": len(standings_rows),
+              "response": standings_rows,
+          }
+
+          players_output = {
+              "season": SEASON,
+              "updatedAt": updated_at,
+              "source": "BoxScore Lab",
+              "license": "CC BY 4.0",
+              "results": len(player_rows),
+              "response": player_rows,
+          }
+
+          with open(
+              OUTPUT_DIRECTORY / "standings.json",
+              "w",
+              encoding="utf-8",
+          ) as file:
+              json.dump(
+                  standings_output,
+                  file,
+                  ensure_ascii=False,
+                  indent=2,
+              )
+
+          with open(
+              OUTPUT_DIRECTORY / "season-player-stats.json",
+              "w",
+              encoding="utf-8",
+          ) as file:
+              json.dump(
+                  players_output,
+                  file,
+                  ensure_ascii=False,
+                  indent=2,
+              )
+
+          print(
+              f"Standings rows: {len(standings_rows)}"
+          )
+
+          print(
+              f"Player rows: {len(player_rows)}"
+          )
+          PYTHON
+
+      - name: Commit updated season data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/data/standings.json
+          git add public/data/season-player-stats.json
+
+          if git diff --cached --quiet; then
+            echo "No season-data changes detected."
+            exit 0
+          fi
+
+          git commit -m "Update NBA season standings and player stats"
+          git push
