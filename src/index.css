@@ -10,6 +10,11 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #ffffff;
+  overscroll-behavior-y: none;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 button,
@@ -19,4 +24,9 @@ input {
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  -webkit-user-drag: none;
 }
