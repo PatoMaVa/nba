@@ -8,6 +8,8 @@ import {
   ArrowLeft,
   MapPin,
   Clock,
+  ChevronRight,
+  UserRound,
 } from "lucide-react";
 
 const NBA_SCOREBOARD_URL =
@@ -15,6 +17,7 @@ const NBA_SCOREBOARD_URL =
 
 const PLAYER_STATS_URL =
   `${import.meta.env.BASE_URL}data/player-stats.json`;
+
 const NBA_TEAM_IDS = {
   ATL: 1610612737,
   BOS: 1610612738,
@@ -47,17 +50,6 @@ const NBA_TEAM_IDS = {
   UTA: 1610612762,
   WAS: 1610612764,
 };
-
-function getTeamLogo(team) {
-  const teamId =
-    NBA_TEAM_IDS[team?.code];
-
-  if (!teamId) {
-    return team?.logo || "";
-  }
-
-  return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
-}
 
 const nav = [
   ["Scores", Activity],
@@ -105,14 +97,10 @@ function findSpanishPlayer(player) {
   return SPANISH_PLAYERS.find(
     (spanishPlayer) => {
       const spanishFirstname =
-        normalizeText(
-          spanishPlayer.firstname
-        );
+        normalizeText(spanishPlayer.firstname);
 
       const spanishLastname =
-        normalizeText(
-          spanishPlayer.lastname
-        );
+        normalizeText(spanishPlayer.lastname);
 
       const normalOrder =
         firstname === spanishFirstname &&
@@ -133,9 +121,7 @@ function isSpanishPlayer(player) {
   );
 }
 
-function getSpanishPlayerDisplayName(
-  player
-) {
+function getSpanishPlayerDisplayName(player) {
   const matchedPlayer =
     findSpanishPlayer(player);
 
@@ -146,6 +132,23 @@ function getSpanishPlayerDisplayName(
   return `${player?.firstname || ""} ${
     player?.lastname || ""
   }`.trim();
+}
+
+function getPlayerDisplayName(player) {
+  return `${player?.firstname || ""} ${
+    player?.lastname || ""
+  }`.trim();
+}
+
+function getTeamLogo(team) {
+  const teamId =
+    NBA_TEAM_IDS[team?.code];
+
+  if (!teamId) {
+    return team?.logo || "";
+  }
+
+  return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
 }
 
 function formatGameStatus(game) {
@@ -183,6 +186,22 @@ function formatGameTime(game) {
   });
 }
 
+function formatGameDate(game) {
+  if (!game.date?.start) {
+    return "";
+  }
+
+  return new Date(
+    game.date.start
+  ).toLocaleString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function TeamLogo({
   team,
   size = "small",
@@ -192,13 +211,13 @@ function TeamLogo({
 
   const containerSize =
     size === "large"
-      ? "h-20 w-20"
-      : "h-12 w-12";
+      ? "h-16 w-16 sm:h-20 sm:w-20"
+      : "h-11 w-11";
 
   const imageSize =
     size === "large"
-      ? "h-16 w-16"
-      : "h-10 w-10";
+      ? "h-12 w-12 sm:h-16 sm:w-16"
+      : "h-9 w-9";
 
   const logoUrl =
     getTeamLogo(team);
@@ -222,7 +241,7 @@ function TeamLogo({
           }
         />
       ) : (
-        <span className="text-sm font-black text-slate-900">
+        <span className="text-xs font-black text-slate-900">
           {team?.code || "NBA"}
         </span>
       )}
@@ -268,9 +287,41 @@ function TeamRow({
   );
 }
 
+function StatBox({
+  label,
+  value,
+  featured = false,
+  valueClassName = "",
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-3 text-center ${
+        featured
+          ? "bg-orange-50"
+          : "bg-slate-100"
+      }`}
+    >
+      <div
+        className={`text-xl font-black ${
+          featured
+            ? "text-orange-600"
+            : "text-slate-950"
+        } ${valueClassName}`}
+      >
+        {value}
+      </div>
+
+      <div className="mt-1 text-[10px] font-bold uppercase text-slate-400">
+        {label}
+      </div>
+    </div>
+  );
+}
+
 function PlayerStatsTable({
   team,
   playerStats,
+  onSelectPlayer,
 }) {
   const teamPlayers =
     playerStats
@@ -308,161 +359,252 @@ function PlayerStatsTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[800px] text-right text-sm">
-          <thead className="bg-slate-100 text-xs uppercase text-slate-500">
-            <tr>
-              <th className="p-3 text-left">
-                Jugador
-              </th>
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+        <div className="grid grid-cols-[minmax(0,1fr)_40px_42px_42px_42px_22px] items-center gap-1 bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase text-slate-500">
+          <div>Jugador</div>
+          <div className="text-center">MIN</div>
+          <div className="text-center text-orange-600">PTS</div>
+          <div className="text-center">REB</div>
+          <div className="text-center">AST</div>
+          <div />
+        </div>
 
-              <th className="p-3">
-                MIN
-              </th>
+        <div>
+          {teamPlayers.map(
+            (stat) => (
+              <button
+                key={stat.player?.id}
+                type="button"
+                onClick={() =>
+                  onSelectPlayer(stat)
+                }
+                className="grid w-full grid-cols-[minmax(0,1fr)_40px_42px_42px_42px_22px] items-center gap-1 border-t border-slate-200 px-3 py-3 text-left transition active:bg-orange-50 sm:hover:bg-slate-50"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-bold text-slate-950">
+                    {getPlayerDisplayName(
+                      stat.player
+                    )}
+                  </div>
 
-              <th className="p-3 text-orange-600">
-                PTS
-              </th>
+                  <div className="text-[10px] text-slate-400">
+                    {stat.pos || "-"}
+                  </div>
+                </div>
 
-              <th className="p-3">
-                REB
-              </th>
+                <div className="text-center text-sm text-slate-600">
+                  {stat.min ?? "-"}
+                </div>
 
-              <th className="p-3">
-                AST
-              </th>
+                <div className="text-center text-sm font-black text-orange-600">
+                  {stat.points ?? 0}
+                </div>
 
-              <th className="p-3">
-                ROB
-              </th>
+                <div className="text-center text-sm text-slate-700">
+                  {stat.totReb ?? 0}
+                </div>
 
-              <th className="p-3">
-                TAP
-              </th>
+                <div className="text-center text-sm text-slate-700">
+                  {stat.assists ?? 0}
+                </div>
 
-              <th className="p-3">
-                TC
-              </th>
-
-              <th className="p-3">
-                3PT
-              </th>
-
-              <th className="p-3">
-                TL
-              </th>
-
-              <th className="p-3">
-                PERD
-              </th>
-
-              <th className="p-3">
-                FALT
-              </th>
-
-              <th className="p-3">
-                +/-
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="text-slate-700">
-            {teamPlayers.map(
-              (stat) => (
-                <tr
-                  key={
-                    stat.player?.id
-                  }
-                  className="border-t border-slate-200"
-                >
-                  <td className="whitespace-nowrap p-3 text-left">
-                    <div className="font-bold text-slate-950">
-                      {
-                        stat.player
-                          ?.firstname
-                      }{" "}
-                      {
-                        stat.player
-                          ?.lastname
-                      }
-                    </div>
-
-                    <div className="text-xs text-slate-400">
-                      {stat.pos || "-"}
-                    </div>
-                  </td>
-
-                  <td className="p-3">
-                    {stat.min ?? "-"}
-                  </td>
-
-                  <td className="p-3 font-black text-orange-600">
-                    {stat.points ?? 0}
-                  </td>
-
-                  <td className="p-3">
-                    {stat.totReb ?? 0}
-                  </td>
-
-                  <td className="p-3">
-                    {stat.assists ?? 0}
-                  </td>
-
-                  <td className="p-3">
-                    {stat.steals ?? 0}
-                  </td>
-
-                  <td className="p-3">
-                    {stat.blocks ?? 0}
-                  </td>
-
-                  <td className="whitespace-nowrap p-3">
-                    {stat.fgm ?? 0}/
-                    {stat.fga ?? 0}
-                  </td>
-
-                  <td className="whitespace-nowrap p-3">
-                    {stat.tpm ?? 0}/
-                    {stat.tpa ?? 0}
-                  </td>
-
-                  <td className="whitespace-nowrap p-3">
-                    {stat.ftm ?? 0}/
-                    {stat.fta ?? 0}
-                  </td>
-
-                  <td className="p-3">
-                    {stat.turnovers ?? 0}
-                  </td>
-
-                  <td className="p-3">
-                    {stat.pFouls ?? 0}
-                  </td>
-
-                  <td
-                    className={`p-3 font-semibold ${
-                      String(
-                        stat.plusMinus ||
-                          ""
-                      ).startsWith("+")
-                        ? "text-emerald-600"
-                        : String(
-                            stat.plusMinus ||
-                              ""
-                          ).startsWith("-")
-                        ? "text-red-600"
-                        : "text-slate-500"
-                    }`}
-                  >
-                    {stat.plusMinus ?? "-"}
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
+                <ChevronRight
+                  size={17}
+                  className="text-slate-300"
+                />
+              </button>
+            )
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function PlayerDetail({
+  stat,
+  game,
+  onBack,
+}) {
+  const playerName =
+    getPlayerDisplayName(
+      stat.player
+    );
+
+  const plusMinus =
+    stat.plusMinus ?? "-";
+
+  const plusMinusClass =
+    String(plusMinus).startsWith("+")
+      ? "text-emerald-600"
+      : String(plusMinus).startsWith("-")
+      ? "text-red-600"
+      : "text-slate-950";
+
+  return (
+    <section>
+      <button
+        onClick={onBack}
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition active:bg-slate-100"
+      >
+        <ArrowLeft size={18} />
+        Volver al partido
+      </button>
+
+      <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-red-500 px-5 py-5 text-white">
+          <div className="flex items-center gap-4">
+            <div className="grid h-14 w-14 flex-shrink-0 place-items-center rounded-2xl bg-white/20">
+              <UserRound size={30} />
+            </div>
+
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-black">
+                {playerName}
+              </h1>
+
+              <p className="mt-1 text-sm text-orange-100">
+                {stat.team?.name}
+                {stat.pos
+                  ? ` · ${stat.pos}`
+                  : ""}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-b border-slate-200 p-5">
+          <div className="flex items-center gap-3">
+            <TeamLogo
+              team={stat.team}
+            />
+
+            <div>
+              <p className="font-bold text-slate-950">
+                {game.teams?.visitors?.name}
+                {" vs "}
+                {game.teams?.home?.name}
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                {formatGameDate(game)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
+            Estadísticas principales
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatBox
+              label="Minutos"
+              value={stat.min ?? "-"}
+            />
+
+            <StatBox
+              label="Puntos"
+              value={stat.points ?? 0}
+              featured
+            />
+
+            <StatBox
+              label="Rebotes"
+              value={stat.totReb ?? 0}
+            />
+
+            <StatBox
+              label="Asistencias"
+              value={stat.assists ?? 0}
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 p-5">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
+            Tiro
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatBox
+              label="Tiros de campo"
+              value={`${stat.fgm ?? 0}/${stat.fga ?? 0}`}
+            />
+
+            <StatBox
+              label="% de campo"
+              value={`${stat.fgp ?? 0}%`}
+            />
+
+            <StatBox
+              label="Triples"
+              value={`${stat.tpm ?? 0}/${stat.tpa ?? 0}`}
+            />
+
+            <StatBox
+              label="% de triples"
+              value={`${stat.tpp ?? 0}%`}
+            />
+
+            <StatBox
+              label="Tiros libres"
+              value={`${stat.ftm ?? 0}/${stat.fta ?? 0}`}
+            />
+
+            <StatBox
+              label="% tiros libres"
+              value={`${stat.ftp ?? 0}%`}
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 p-5">
+          <p className="mb-3 text-xs font-bold uppercase tracking-wider text-orange-600">
+            Otros datos
+          </p>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <StatBox
+              label="Rebotes ofensivos"
+              value={stat.offReb ?? 0}
+            />
+
+            <StatBox
+              label="Rebotes defensivos"
+              value={stat.defReb ?? 0}
+            />
+
+            <StatBox
+              label="Robos"
+              value={stat.steals ?? 0}
+            />
+
+            <StatBox
+              label="Tapones"
+              value={stat.blocks ?? 0}
+            />
+
+            <StatBox
+              label="Pérdidas"
+              value={stat.turnovers ?? 0}
+            />
+
+            <StatBox
+              label="Faltas"
+              value={stat.pFouls ?? 0}
+            />
+
+            <StatBox
+              label="+/-"
+              value={plusMinus}
+              valueClassName={plusMinusClass}
+            />
+          </div>
+        </div>
+      </article>
+    </section>
   );
 }
 
@@ -495,118 +637,49 @@ function SpanishPerformanceCard({
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        {[
-          [
-            "MIN",
-            stat.min ?? "-",
-          ],
-          [
-            "PTS",
-            stat.points ?? 0,
-          ],
-          [
-            "REB",
-            stat.totReb ?? 0,
-          ],
-          [
-            "AST",
-            stat.assists ?? 0,
-          ],
-        ].map(
-          ([label, value]) => (
-            <div
-              key={label}
-              className="rounded-2xl bg-slate-100 p-3 text-center"
-            >
-              <div className="text-xl font-black text-slate-950">
-                {value}
-              </div>
+        <StatBox
+          label="MIN"
+          value={stat.min ?? "-"}
+        />
 
-              <div className="mt-1 text-[10px] font-bold text-slate-400">
-                {label}
-              </div>
-            </div>
-          )
-        )}
+        <StatBox
+          label="PTS"
+          value={stat.points ?? 0}
+          featured
+        />
+
+        <StatBox
+          label="REB"
+          value={stat.totReb ?? 0}
+        />
+
+        <StatBox
+          label="AST"
+          value={stat.assists ?? 0}
+        />
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
         <div className="rounded-xl border border-slate-200 p-2">
-          <strong className="text-slate-950">
-            {stat.fgm ?? 0}/
-            {stat.fga ?? 0}
+          <strong>
+            {stat.fgm ?? 0}/{stat.fga ?? 0}
           </strong>
-
-          <div className="text-xs text-slate-400">
-            TC
-          </div>
+          <div className="text-xs text-slate-400">TC</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 p-2">
-          <strong className="text-slate-950">
-            {stat.tpm ?? 0}/
-            {stat.tpa ?? 0}
+          <strong>
+            {stat.tpm ?? 0}/{stat.tpa ?? 0}
           </strong>
-
-          <div className="text-xs text-slate-400">
-            3PT
-          </div>
+          <div className="text-xs text-slate-400">3PT</div>
         </div>
 
         <div className="rounded-xl border border-slate-200 p-2">
-          <strong
-            className={
-              String(
-                stat.plusMinus || ""
-              ).startsWith("+")
-                ? "text-emerald-600"
-                : String(
-                    stat.plusMinus || ""
-                  ).startsWith("-")
-                ? "text-red-600"
-                : "text-slate-950"
-            }
-          >
+          <strong>
             {stat.plusMinus ?? "-"}
           </strong>
-
-          <div className="text-xs text-slate-400">
-            +/-
-          </div>
+          <div className="text-xs text-slate-400">+/-</div>
         </div>
-      </div>
-
-      <div className="mt-4 grid grid-cols-4 gap-2 border-t border-slate-200 pt-4 text-center">
-        {[
-          [
-            "ROB",
-            stat.steals ?? 0,
-          ],
-          [
-            "TAP",
-            stat.blocks ?? 0,
-          ],
-          [
-            "PERD",
-            stat.turnovers ?? 0,
-          ],
-          [
-            "FALT",
-            stat.pFouls ?? 0,
-          ],
-        ].map(
-          ([label, value]) => (
-            <div key={label}>
-              <div className="font-black text-slate-950">
-                {value}
-              </div>
-
-              <div className="text-[10px] font-bold text-slate-400">
-                {label}
-              </div>
-            </div>
-          )
-        )}
       </div>
     </article>
   );
@@ -618,6 +691,7 @@ function GameDetail({
   playerStats,
   statsLoading,
   statsError,
+  onSelectPlayer,
 }) {
   const visitors =
     game.teams?.visitors;
@@ -632,85 +706,72 @@ function GameDetail({
     game.scores?.home;
 
   const visitorsLines =
-    visitorsScore?.linescore ||
-    [];
+    visitorsScore?.linescore || [];
 
   const homeLines =
-    homeScore?.linescore ||
-    [];
+    homeScore?.linescore || [];
 
-  const maxPeriods =
-    Math.max(
-      visitorsLines.length,
-      homeLines.length,
-      4
-    );
+  const maxPeriods = Math.max(
+    visitorsLines.length,
+    homeLines.length,
+    4
+  );
 
-  const periods =
-    Array.from(
-      {
-        length: maxPeriods,
-      },
-      (_, index) => index
-    );
+  const periods = Array.from(
+    { length: maxPeriods },
+    (_, index) => index
+  );
 
   return (
     <section>
       <button
         onClick={onBack}
-        className="mb-6 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition active:bg-slate-100"
       >
         <ArrowLeft size={18} />
         Partidos
       </button>
 
-      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-lg">
-        <div className="bg-gradient-to-br from-orange-500 to-red-600 px-5 py-6 text-center">
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-red-500 px-4 py-4 text-center sm:px-5 sm:py-5">
           <div className="text-sm font-black tracking-widest text-white">
-            {formatGameStatus(
-              game
-            )}
+            {formatGameStatus(game)}
           </div>
 
-          {game.status?.short !==
-            3 && (
-            <div className="mt-1 text-sm text-orange-100">
-              {formatGameTime(
-                game
-              )}
+          {game.status?.short !== 3 && (
+            <div className="mt-1 text-xs text-orange-100">
+              {formatGameTime(game)}
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-8 md:px-8">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-6 sm:gap-4 sm:px-8">
           <div className="flex min-w-0 flex-col items-center text-center">
             <TeamLogo
               team={visitors}
               size="large"
             />
 
-            <div className="mt-3 min-h-12 font-bold text-slate-950">
+            <div className="mt-2 line-clamp-2 min-h-10 text-sm font-bold text-slate-950 sm:text-base">
               {visitors?.name}
             </div>
 
-            <div className="mt-1 text-xs text-slate-400">
+            <div className="mt-1 text-[10px] text-slate-400">
               VISITANTE
             </div>
           </div>
 
-          <div className="flex items-center gap-3 px-1">
-            <span className="text-4xl font-black text-slate-950 sm:text-5xl">
-              {visitorsScore?.points ??
-                "-"}
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-black text-slate-950 sm:text-5xl">
+              {visitorsScore?.points ?? "-"}
             </span>
 
-            <span className="text-xl text-slate-300">
+            <span className="text-lg text-slate-300">
               -
             </span>
 
-            <span className="text-4xl font-black text-slate-950 sm:text-5xl">
-              {homeScore?.points ??
-                "-"}
+            <span className="text-3xl font-black text-slate-950 sm:text-5xl">
+              {homeScore?.points ?? "-"}
             </span>
           </div>
 
@@ -720,49 +781,41 @@ function GameDetail({
               size="large"
             />
 
-            <div className="mt-3 min-h-12 font-bold text-slate-950">
+            <div className="mt-2 line-clamp-2 min-h-10 text-sm font-bold text-slate-950 sm:text-base">
               {home?.name}
             </div>
 
-            <div className="mt-1 text-xs text-slate-400">
+            <div className="mt-1 text-[10px] text-slate-400">
               LOCAL
             </div>
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-5">
-          <h3 className="mb-4 text-lg font-black text-slate-950">
+        <div className="border-t border-slate-200 p-4 sm:p-5">
+          <h3 className="mb-3 text-base font-black text-slate-950 sm:text-lg">
             Marcador por cuartos
           </h3>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] text-center text-slate-700">
+            <table className="w-full min-w-[360px] text-center text-sm text-slate-700">
               <thead>
-                <tr className="text-xs text-slate-400">
-                  <th className="pb-3 text-left">
+                <tr className="text-[10px] text-slate-400">
+                  <th className="pb-2 text-left">
                     EQUIPO
                   </th>
 
-                  {periods.map(
-                    (period) => (
-                      <th
-                        key={period}
-                        className="pb-3"
-                      >
-                        {period < 4
-                          ? `Q${
-                              period +
-                              1
-                            }`
-                          : `OT${
-                              period -
-                              3
-                            }`}
-                      </th>
-                    )
-                  )}
+                  {periods.map((period) => (
+                    <th
+                      key={period}
+                      className="pb-2"
+                    >
+                      {period < 4
+                        ? `Q${period + 1}`
+                        : `OT${period - 3}`}
+                    </th>
+                  ))}
 
-                  <th className="pb-3 text-orange-600">
+                  <th className="pb-2 text-orange-600">
                     TOTAL
                   </th>
                 </tr>
@@ -770,50 +823,34 @@ function GameDetail({
 
               <tbody>
                 <tr className="border-t border-slate-200">
-                  <td className="py-4 text-left font-black text-slate-950">
+                  <td className="py-3 text-left font-black">
                     {visitors?.code}
                   </td>
 
-                  {periods.map(
-                    (period) => (
-                      <td
-                        key={period}
-                        className="py-4"
-                      >
-                        {visitorsLines[
-                          period
-                        ] ?? "-"}
-                      </td>
-                    )
-                  )}
+                  {periods.map((period) => (
+                    <td key={period}>
+                      {visitorsLines[period] ?? "-"}
+                    </td>
+                  ))}
 
-                  <td className="py-4 font-black text-slate-950">
-                    {visitorsScore?.points ??
-                      "-"}
+                  <td className="font-black">
+                    {visitorsScore?.points ?? "-"}
                   </td>
                 </tr>
 
                 <tr className="border-t border-slate-200">
-                  <td className="py-4 text-left font-black text-slate-950">
+                  <td className="py-3 text-left font-black">
                     {home?.code}
                   </td>
 
-                  {periods.map(
-                    (period) => (
-                      <td
-                        key={period}
-                        className="py-4"
-                      >
-                        {homeLines[
-                          period
-                        ] ?? "-"}
-                      </td>
-                    )
-                  )}
+                  {periods.map((period) => (
+                    <td key={period}>
+                      {homeLines[period] ?? "-"}
+                    </td>
+                  ))}
 
-                  <td className="py-4 font-black text-slate-950">
-                    {homeScore?.points ??
-                      "-"}
+                  <td className="font-black">
+                    {homeScore?.points ?? "-"}
                   </td>
                 </tr>
               </tbody>
@@ -821,35 +858,27 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-5">
-          <h3 className="mb-4 text-lg font-black text-slate-950">
+        <div className="border-t border-slate-200 p-4 sm:p-5">
+          <h3 className="mb-3 text-base font-black text-slate-950 sm:text-lg">
             Información
           </h3>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {game.arena?.name && (
               <div className="flex items-start gap-3">
                 <MapPin
-                  size={20}
-                  className="mt-0.5 text-orange-500"
+                  size={19}
+                  className="mt-0.5 flex-shrink-0 text-orange-500"
                 />
 
                 <div>
-                  <div className="font-semibold text-slate-950">
-                    {
-                      game.arena
-                        .name
-                    }
+                  <div className="text-sm font-semibold">
+                    {game.arena.name}
                   </div>
 
-                  <div className="text-sm text-slate-500">
-                    {
-                      game.arena
-                        .city
-                    }
-
-                    {game.arena
-                      .state
+                  <div className="text-xs text-slate-500">
+                    {game.arena.city}
+                    {game.arena.state
                       ? `, ${game.arena.state}`
                       : ""}
                   </div>
@@ -860,31 +889,17 @@ function GameDetail({
             {game.date?.start && (
               <div className="flex items-start gap-3">
                 <Clock
-                  size={20}
-                  className="mt-0.5 text-orange-500"
+                  size={19}
+                  className="mt-0.5 flex-shrink-0 text-orange-500"
                 />
 
                 <div>
-                  <div className="font-semibold text-slate-950">
+                  <div className="text-sm font-semibold">
                     Fecha y hora
                   </div>
 
-                  <div className="text-sm text-slate-500">
-                    {new Date(
-                      game.date
-                        .start
-                    ).toLocaleString(
-                      "es-ES",
-                      {
-                        day: "2-digit",
-                        month:
-                          "2-digit",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute:
-                          "2-digit",
-                      }
-                    )}
+                  <div className="text-xs text-slate-500">
+                    {formatGameDate(game)}
                   </div>
                 </div>
               </div>
@@ -892,15 +907,19 @@ function GameDetail({
           </div>
         </div>
 
-        <div className="border-t border-slate-200 p-5">
-          <div className="mb-5">
-            <p className="text-sm font-semibold text-orange-600">
+        <div className="border-t border-slate-200 p-4 sm:p-5">
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-orange-600">
               BOX SCORE
             </p>
 
-            <h3 className="text-xl font-black text-slate-950">
+            <h3 className="text-lg font-black text-slate-950 sm:text-xl">
               Estadísticas del partido
             </h3>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Pulsa un jugador para ver todos los detalles.
+            </p>
           </div>
 
           {statsLoading && (
@@ -909,45 +928,35 @@ function GameDetail({
             </div>
           )}
 
-          {!statsLoading &&
-            statsError && (
-              <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
-                <AlertCircle
-                  size={19}
-                />
-
-                {statsError}
-              </div>
-            )}
+          {!statsLoading && statsError && (
+            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+              <AlertCircle size={19} />
+              {statsError}
+            </div>
+          )}
 
           {!statsLoading &&
             !statsError &&
-            playerStats.length ===
-              0 && (
+            playerStats.length === 0 && (
               <div className="rounded-2xl bg-slate-100 p-6 text-center text-sm text-slate-500">
-                Estadísticas individuales todavía no disponibles para este partido.
+                Estadísticas individuales todavía no disponibles.
               </div>
             )}
 
           {!statsLoading &&
             !statsError &&
-            playerStats.length >
-              0 && (
-              <div className="space-y-8">
+            playerStats.length > 0 && (
+              <div className="space-y-7">
                 <PlayerStatsTable
-                  team={
-                    visitors
-                  }
-                  playerStats={
-                    playerStats
-                  }
+                  team={visitors}
+                  playerStats={playerStats}
+                  onSelectPlayer={onSelectPlayer}
                 />
 
                 <PlayerStatsTable
                   team={home}
-                  playerStats={
-                    playerStats
-                  }
+                  playerStats={playerStats}
+                  onSelectPlayer={onSelectPlayer}
                 />
               </div>
             )}
@@ -964,67 +973,40 @@ export default function App() {
   const [games, setGames] =
     useState([]);
 
-  const [
-    gameDate,
-    setGameDate,
-  ] =
+  const [gameDate, setGameDate] =
     useState("");
 
-  const [
-    selectedGame,
-    setSelectedGame,
-  ] =
+  const [selectedGame, setSelectedGame] =
     useState(null);
 
-  const [
-    loading,
-    setLoading,
-  ] =
+  const [selectedPlayer, setSelectedPlayer] =
+    useState(null);
+
+  const [loading, setLoading] =
     useState(true);
 
   const [error, setError] =
     useState("");
 
-  const [
-    lastUpdate,
-    setLastUpdate,
-  ] =
+  const [lastUpdate, setLastUpdate] =
     useState(null);
 
-  const [
-    playerStats,
-    setPlayerStats,
-  ] =
+  const [playerStats, setPlayerStats] =
     useState([]);
 
-  const [
-    statsLoading,
-    setStatsLoading,
-  ] =
+  const [statsLoading, setStatsLoading] =
     useState(false);
 
-  const [
-    statsError,
-    setStatsError,
-  ] =
+  const [statsError, setStatsError] =
     useState("");
 
-  const [
-    allPlayerStats,
-    setAllPlayerStats,
-  ] =
+  const [allPlayerStats, setAllPlayerStats] =
     useState([]);
 
-  const [
-    spanishLoading,
-    setSpanishLoading,
-  ] =
+  const [spanishLoading, setSpanishLoading] =
     useState(true);
 
-  const [
-    spanishError,
-    setSpanishError,
-  ] =
+  const [spanishError, setSpanishError] =
     useState("");
 
   async function loadGames(
@@ -1037,52 +1019,35 @@ export default function App() {
     setError("");
 
     try {
-      const response =
-        await fetch(
-          `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
-          {
-            cache:
-              "no-store",
-          }
-        );
+      const response = await fetch(
+        `${NBA_SCOREBOARD_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${
-            response.status
-          }`
+          `HTTP ${response.status}`
         );
       }
 
       const data =
         await response.json();
 
-      if (
-        !Array.isArray(
-          data.response
-        )
-      ) {
+      if (!Array.isArray(data.response)) {
         throw new Error(
           "Formato de datos NBA no válido"
         );
       }
 
-      setGames(
-        data.response
-      );
-
+      setGames(data.response);
       setGameDate(
-        data.parameters
-          ?.date || ""
+        data.parameters?.date || ""
       );
-
-      setLastUpdate(
-        new Date()
-      );
+      setLastUpdate(new Date());
     } catch (loadError) {
-      console.error(
-        loadError
-      );
+      console.error(loadError);
 
       setError(
         "No ha sido posible cargar los resultados NBA."
@@ -1096,28 +1061,22 @@ export default function App() {
     showLoader = true
   ) {
     if (showLoader) {
-      setSpanishLoading(
-        true
-      );
+      setSpanishLoading(true);
     }
 
     setSpanishError("");
 
     try {
-      const response =
-        await fetch(
-          `${PLAYER_STATS_URL}?t=${Date.now()}`,
-          {
-            cache:
-              "no-store",
-          }
-        );
+      const response = await fetch(
+        `${PLAYER_STATS_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${
-            response.status
-          }`
+          `HTTP ${response.status}`
         );
       }
 
@@ -1128,39 +1087,24 @@ export default function App() {
         data.games || {};
 
       const stats =
-        Object.values(
-          gamesData
-        ).flatMap(
+        Object.values(gamesData).flatMap(
           (game) =>
-            Array.isArray(
-              game?.response
-            )
+            Array.isArray(game?.response)
               ? game.response
               : []
         );
 
-      setAllPlayerStats(
-        stats
-      );
-    } catch (
-      loadError
-    ) {
-      console.error(
-        "Error cargando actuaciones españolas:",
-        loadError
-      );
+      setAllPlayerStats(stats);
+    } catch (loadError) {
+      console.error(loadError);
 
-      setAllPlayerStats(
-        []
-      );
+      setAllPlayerStats([]);
 
       setSpanishError(
-        "No ha sido posible cargar las actuaciones de los jugadores españoles."
+        "No ha sido posible cargar las actuaciones españolas."
       );
     } finally {
-      setSpanishLoading(
-        false
-      );
+      setSpanishLoading(false);
     }
   }
 
@@ -1169,16 +1113,10 @@ export default function App() {
     loadAllPlayerStats();
 
     const refreshInterval =
-      window.setInterval(
-        () => {
-          loadGames(false);
-
-          loadAllPlayerStats(
-            false
-          );
-        },
-        60000
-      );
+      window.setInterval(() => {
+        loadGames(false);
+        loadAllPlayerStats(false);
+      }, 60000);
 
     return () => {
       window.clearInterval(
@@ -1196,49 +1134,19 @@ export default function App() {
               stat.player
             )
         )
-        .sort((a, b) => {
-          const pointsDifference =
-            Number(
-              b.points ||
-                0
-            ) -
-            Number(
-              a.points ||
-                0
-            );
-
-          if (
-            pointsDifference !==
-            0
-          ) {
-            return pointsDifference;
-          }
-
-          return (
-            Number(
-              b.min || 0
-            ) -
-            Number(
-              a.min || 0
-            )
-          );
-        });
+        .sort(
+          (a, b) =>
+            Number(b.points || 0) -
+            Number(a.points || 0)
+        );
     }, [allPlayerStats]);
 
-  async function openGame(
-    game
-  ) {
-    setSelectedGame(
-      game
-    );
-
+  async function openGame(game) {
+    setSelectedGame(game);
+    setSelectedPlayer(null);
     setPlayerStats([]);
-
     setStatsError("");
-
-    setStatsLoading(
-      true
-    );
+    setStatsLoading(true);
 
     window.scrollTo({
       top: 0,
@@ -1246,20 +1154,16 @@ export default function App() {
     });
 
     try {
-      const response =
-        await fetch(
-          `${PLAYER_STATS_URL}?t=${Date.now()}`,
-          {
-            cache:
-              "no-store",
-          }
-        );
+      const response = await fetch(
+        `${PLAYER_STATS_URL}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${
-            response.status
-          }`
+          `HTTP ${response.status}`
         );
       }
 
@@ -1267,48 +1171,28 @@ export default function App() {
         await response.json();
 
       const gameStatistics =
-        data.games?.[
-          String(game.id)
-        ];
+        data.games?.[String(game.id)];
 
       setPlayerStats(
         Array.isArray(
-          gameStatistics
-            ?.response
+          gameStatistics?.response
         )
           ? gameStatistics.response
           : []
       );
-    } catch (
-      statsLoadError
-    ) {
-      console.error(
-        "Error cargando estadísticas:",
-        statsLoadError
-      );
-
-      setPlayerStats([]);
+    } catch (statsLoadError) {
+      console.error(statsLoadError);
 
       setStatsError(
-        "No ha sido posible cargar las estadísticas del partido."
+        "No ha sido posible cargar las estadísticas."
       );
     } finally {
-      setStatsLoading(
-        false
-      );
+      setStatsLoading(false);
     }
   }
 
-  function closeGame() {
-    setSelectedGame(null);
-
-    setPlayerStats([]);
-
-    setStatsError("");
-
-    setStatsLoading(
-      false
-    );
+  function openPlayer(stat) {
+    setSelectedPlayer(stat);
 
     window.scrollTo({
       top: 0,
@@ -1316,15 +1200,31 @@ export default function App() {
     });
   }
 
-  function changeTab(
-    newTab
-  ) {
+  function closePlayer() {
+    setSelectedPlayer(null);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function closeGame() {
     setSelectedGame(null);
-
+    setSelectedPlayer(null);
     setPlayerStats([]);
-
     setStatsError("");
 
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function changeTab(newTab) {
+    setSelectedGame(null);
+    setSelectedPlayer(null);
+    setPlayerStats([]);
     setTab(newTab);
 
     window.scrollTo({
@@ -1333,462 +1233,264 @@ export default function App() {
     });
   }
 
-  function refreshCurrentSection() {
-    if (
-      tab === "Spanish"
-    ) {
-      loadAllPlayerStats();
-    } else {
-      loadGames();
-    }
-  }
+  const showBottomNav =
+    !selectedGame &&
+    !selectedPlayer;
 
   return (
     <div className="min-h-screen bg-white text-slate-950">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+      <header
+        className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur"
+        style={{
+          paddingTop:
+            "env(safe-area-inset-top)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
           <button
             onClick={() =>
-              changeTab(
-                "Scores"
-              )
+              changeTab("Scores")
             }
             className="flex items-center gap-3"
           >
-            <div className="grid h-10 w-10 place-items-center rounded-2xl bg-orange-500 font-black text-white">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500 text-sm font-black text-white">
               ÑBA
             </div>
 
             <div className="text-left">
-              <div className="text-lg font-black tracking-tight text-slate-950">
+              <div className="text-base font-black tracking-tight">
                 ÑBA
               </div>
 
-              <div className="text-xs text-slate-500">
+              <div className="text-[10px] text-slate-500">
                 Resultados y españoles
               </div>
             </div>
           </button>
 
           <nav className="hidden gap-2 md:flex">
-            {nav.map(
-              ([
-                label,
-                Icon,
-              ]) => (
-                <button
-                  key={
-                    label
-                  }
-                  onClick={() =>
-                    changeTab(
-                      label
-                    )
-                  }
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm ${
-                    tab ===
-                    label
-                      ? "bg-slate-950 text-white"
-                      : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  <Icon
-                    size={
-                      16
-                    }
-                  />
-
-                  {label ===
-                  "Scores"
-                    ? "Partidos"
-                    : "Españoles"}
-                </button>
-              )
-            )}
+            {nav.map(([label, Icon]) => (
+              <button
+                key={label}
+                onClick={() =>
+                  changeTab(label)
+                }
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm ${
+                  tab === label
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Icon size={16} />
+                {label === "Scores"
+                  ? "Partidos"
+                  : "Españoles"}
+              </button>
+            ))}
           </nav>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-8">
-        {selectedGame ? (
+      <main className="mx-auto max-w-7xl px-4 py-5 sm:px-5 sm:py-8">
+        {selectedPlayer &&
+        selectedGame ? (
+          <PlayerDetail
+            stat={selectedPlayer}
+            game={selectedGame}
+            onBack={closePlayer}
+          />
+        ) : selectedGame ? (
           <GameDetail
-            game={
-              selectedGame
-            }
-            onBack={
-              closeGame
-            }
-            playerStats={
-              playerStats
-            }
-            statsLoading={
-              statsLoading
-            }
-            statsError={
-              statsError
-            }
+            game={selectedGame}
+            onBack={closeGame}
+            playerStats={playerStats}
+            statsLoading={statsLoading}
+            statsError={statsError}
+            onSelectPlayer={openPlayer}
           />
         ) : (
           <>
-            <section className="mb-8 rounded-[2rem] bg-gradient-to-br from-orange-500 via-orange-500 to-red-500 p-7 text-white shadow-lg md:p-10">
-              <div className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-orange-100">
-                <CalendarDays
-                  size={16}
-                />
+            <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white shadow-md sm:mb-8 sm:p-8">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-orange-100">
+                <CalendarDays size={14} />
                 ÑBA
               </div>
 
-              <h1 className="max-w-3xl text-4xl font-black tracking-tight md:text-6xl">
+              <h1 className="text-2xl font-black tracking-tight sm:text-5xl">
                 Baloncesto con Ñ.
               </h1>
 
-              <p className="mt-4 max-w-2xl text-orange-50">
-                Partidos NBA y actuaciones de los jugadores españoles.
+              <p className="mt-1 text-xs text-orange-50 sm:mt-3 sm:text-base">
+                Partidos NBA y actuaciones españolas.
               </p>
             </section>
 
-            {tab ===
-              "Scores" && (
+            {tab === "Scores" && (
               <section>
-                <div className="mb-5 flex items-end justify-between gap-4">
+                <div className="mb-4 flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-orange-600">
+                    <p className="text-xs font-semibold text-orange-600">
                       SCOREBOARD
                     </p>
 
-                    <h2 className="text-2xl font-bold text-slate-950">
+                    <h2 className="text-xl font-bold">
                       Partidos
                     </h2>
 
-                    {gameDate && (
-                      <p className="mt-1 text-sm text-slate-500">
-                        {
-                          gameDate
-                        }
-                      </p>
-                    )}
-
-                    {lastUpdate && (
-                      <p className="mt-1 text-xs text-slate-400">
-                        Cargado a las{" "}
-                        {lastUpdate.toLocaleTimeString(
-                          "es-ES",
-                          {
-                            hour: "2-digit",
-                            minute:
-                              "2-digit",
-                          }
-                        )}
-                      </p>
-                    )}
+                    <p className="text-xs text-slate-400">
+                      {gameDate}
+                    </p>
                   </div>
 
                   <button
-                    onClick={
-                      refreshCurrentSection
+                    onClick={() =>
+                      loadGames()
                     }
-                    disabled={
-                      loading
-                    }
-                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    disabled={loading}
+                    className="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs"
                   >
                     <RefreshCw
-                      size={
-                        16
-                      }
+                      size={15}
                       className={
                         loading
                           ? "animate-spin"
                           : ""
                       }
                     />
-
                     Actualizar
                   </button>
                 </div>
 
                 {loading && (
-                  <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
-                    Cargando partidos NBA...
+                  <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
+                    Cargando partidos...
+                  </div>
+                )}
+
+                {!loading && error && (
+                  <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
+                    {error}
                   </div>
                 )}
 
                 {!loading &&
-                  error && (
-                    <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
-                      <AlertCircle
-                        size={
-                          20
-                        }
-                      />
-                      {
-                        error
-                      }
+                  !error &&
+                  games.length === 0 && (
+                    <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
+                      No hay partidos disponibles.
                     </div>
                   )}
 
                 {!loading &&
                   !error &&
-                  games.length ===
-                    0 && (
-                    <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
-                      No hay partidos NBA disponibles para esta fecha.
-                    </div>
-                  )}
-
-                {!loading &&
-                  !error &&
-                  games.length >
-                    0 && (
+                  games.length > 0 && (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {games.map(
-                        (
-                          game
-                        ) => {
-                          const visitorsPoints =
-                            game
-                              .scores
-                              ?.visitors
-                              ?.points;
+                      {games.map((game) => {
+                        const visitorPoints =
+                          game.scores?.visitors?.points;
 
-                          const homePoints =
-                            game
-                              .scores
-                              ?.home
-                              ?.points;
+                        const homePoints =
+                          game.scores?.home?.points;
 
-                          const finished =
-                            game
-                              .status
-                              ?.short ===
-                            3;
+                        const finished =
+                          game.status?.short === 3;
 
-                          const visitorsWinner =
-                            finished &&
-                            visitorsPoints >
-                              homePoints;
+                        return (
+                          <button
+                            key={game.id}
+                            onClick={() =>
+                              openGame(game)
+                            }
+                            className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm active:bg-orange-50"
+                          >
+                            <div className="mb-4 text-xs font-bold text-slate-500">
+                              {formatGameStatus(game)}
+                            </div>
 
-                          const homeWinner =
-                            finished &&
-                            homePoints >
-                              visitorsPoints;
+                            <div className="space-y-4">
+                              <TeamRow
+                                team={game.teams?.visitors}
+                                score={game.scores?.visitors}
+                                winner={
+                                  finished &&
+                                  visitorPoints > homePoints
+                                }
+                              />
 
-                          return (
-                            <button
-                              key={
-                                game.id
-                              }
-                              onClick={() =>
-                                openGame(
-                                  game
-                                )
-                              }
-                              className="rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-orange-300 hover:shadow-md"
-                            >
-                              <div className="mb-5 flex items-start justify-between gap-4">
-                                <div>
-                                  <div
-                                    className={`text-xs font-bold ${
-                                      game
-                                        .status
-                                        ?.short ===
-                                      2
-                                        ? "text-emerald-600"
-                                        : "text-slate-500"
-                                    }`}
-                                  >
-                                    {formatGameStatus(
-                                      game
-                                    )}
-                                  </div>
+                              <TeamRow
+                                team={game.teams?.home}
+                                score={game.scores?.home}
+                                winner={
+                                  finished &&
+                                  homePoints > visitorPoints
+                                }
+                              />
+                            </div>
 
-                                  {game
-                                    .status
-                                    ?.short !==
-                                    3 && (
-                                    <div className="mt-1 text-xs text-slate-400">
-                                      {formatGameTime(
-                                        game
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {game
-                                  .status
-                                  ?.short ===
-                                  2 && (
-                                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-600">
-                                    ● LIVE
-                                  </span>
-                                )}
-                              </div>
-
-                              <div className="space-y-4">
-                                <TeamRow
-                                  team={
-                                    game
-                                      .teams
-                                      ?.visitors
-                                  }
-                                  score={
-                                    game
-                                      .scores
-                                      ?.visitors
-                                  }
-                                  winner={
-                                    visitorsWinner
-                                  }
-                                />
-
-                                <TeamRow
-                                  team={
-                                    game
-                                      .teams
-                                      ?.home
-                                  }
-                                  score={
-                                    game
-                                      .scores
-                                      ?.home
-                                  }
-                                  winner={
-                                    homeWinner
-                                  }
-                                />
-                              </div>
-
-                              {game
-                                .arena
-                                ?.name && (
-                                <div className="mt-5 border-t border-slate-200 pt-4">
-                                  <p className="truncate text-xs text-slate-400">
-                                    {
-                                      game
-                                        .arena
-                                        .name
-                                    }
-
-                                    {game
-                                      .arena
-                                      .city
-                                      ? ` · ${game.arena.city}`
-                                      : ""}
-                                  </p>
-                                </div>
-                              )}
-
-                              <div className="mt-4 text-right text-xs font-bold text-orange-600">
-                                Ver partido →
-                              </div>
-                            </button>
-                          );
-                        }
-                      )}
+                            <div className="mt-4 text-right text-xs font-bold text-orange-600">
+                              Ver partido →
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
               </section>
             )}
 
-            {tab ===
-              "Spanish" && (
+            {tab === "Spanish" && (
               <section>
-                <div className="mb-6 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-orange-600">
-                      ÑBA
-                    </p>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-orange-600">
+                    ÑBA
+                  </p>
 
-                    <h2 className="text-2xl font-black text-slate-950">
-                      Españoles en la NBA
-                    </h2>
+                  <h2 className="text-xl font-black">
+                    Españoles en la NBA
+                  </h2>
 
-                    <p className="mt-2 text-sm text-slate-500">
-                      Actuaciones registradas en los box scores disponibles del día.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={
-                      refreshCurrentSection
-                    }
-                    disabled={
-                      spanishLoading
-                    }
-                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    <RefreshCw
-                      size={
-                        16
-                      }
-                      className={
-                        spanishLoading
-                          ? "animate-spin"
-                          : ""
-                      }
-                    />
-
-                    Actualizar
-                  </button>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Actuaciones disponibles del día.
+                  </p>
                 </div>
 
                 {spanishLoading && (
-                  <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500 shadow-sm">
+                  <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
                     Cargando actuaciones...
                   </div>
                 )}
 
                 {!spanishLoading &&
                   spanishError && (
-                    <div className="flex items-center gap-3 rounded-3xl border border-red-200 bg-red-50 p-5 text-red-700">
-                      <AlertCircle
-                        size={
-                          20
-                        }
-                      />
-
-                      {
-                        spanishError
-                      }
+                    <div className="rounded-3xl bg-red-50 p-5 text-sm text-red-700">
+                      {spanishError}
                     </div>
                   )}
 
                 {!spanishLoading &&
                   !spanishError &&
-                  spanishPerformances.length ===
-                    0 && (
-                    <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                  spanishPerformances.length === 0 && (
+                    <div className="rounded-3xl bg-slate-100 p-8 text-center">
                       <Flag
-                        size={
-                          32
-                        }
+                        size={30}
                         className="mx-auto mb-3 text-orange-500"
                       />
 
-                      <h3 className="font-black text-slate-950">
+                      <p className="text-sm font-bold">
                         Sin actuaciones españolas
-                      </h3>
-
-                      <p className="mt-2 text-sm text-slate-500">
-                        Ningún jugador español aparece en los box scores disponibles del día.
                       </p>
                     </div>
                   )}
 
                 {!spanishLoading &&
                   !spanishError &&
-                  spanishPerformances.length >
-                    0 && (
+                  spanishPerformances.length > 0 && (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {spanishPerformances.map(
-                        (
-                          stat
-                        ) => (
+                        (stat) => (
                           <SpanishPerformanceCard
                             key={`${stat.game?.id}-${stat.player?.id}`}
-                            stat={
-                              stat
-                            }
+                            stat={stat}
                           />
                         )
                       )}
@@ -1800,46 +1502,37 @@ export default function App() {
         )}
       </main>
 
-      {!selectedGame && (
-        <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 p-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden">
-          {nav.map(
-            ([
-              label,
-              Icon,
-            ]) => (
-              <button
-                key={
-                  label
-                }
-                onClick={() =>
-                  changeTab(
-                    label
-                  )
-                }
-                className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
-                  tab ===
-                  label
-                    ? "bg-slate-950 text-white"
-                    : "text-slate-500"
-                }`}
-              >
-                <Icon
-                  size={
-                    19
-                  }
-                />
+      {showBottomNav && (
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-2 border-t border-slate-200 bg-white/95 px-2 pt-2 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] backdrop-blur md:hidden"
+          style={{
+            paddingBottom:
+              "calc(0.5rem + env(safe-area-inset-bottom))",
+          }}
+        >
+          {nav.map(([label, Icon]) => (
+            <button
+              key={label}
+              onClick={() =>
+                changeTab(label)
+              }
+              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-xs ${
+                tab === label
+                  ? "bg-slate-950 text-white"
+                  : "text-slate-500"
+              }`}
+            >
+              <Icon size={19} />
 
-                {label ===
-                "Scores"
-                  ? "Partidos"
-                  : "Españoles"}
-              </button>
-            )
-          )}
+              {label === "Scores"
+                ? "Partidos"
+                : "Españoles"}
+            </button>
+          ))}
         </nav>
       )}
 
-      <footer className="mx-auto max-w-7xl px-5 pb-24 pt-10 text-xs text-slate-400 md:pb-10">
+      <footer className="mx-auto max-w-7xl px-5 pb-24 pt-8 text-xs text-slate-400">
         ÑBA · Resultados y jugadores españoles
       </footer>
     </div>
