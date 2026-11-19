@@ -19,11 +19,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install \
+            beautifulsoup4 \
+            lxml
 
       - name: Create data folder
         run: mkdir -p public/data
@@ -34,15 +42,19 @@ jobs:
           import csv
           import io
           import json
+          import re
+          import time
           import urllib.request
           from datetime import datetime, timezone
           from pathlib import Path
 
+          from bs4 import BeautifulSoup, Comment
+
           SEASON = "2026-27"
 
-          STANDINGS_URL = (
-              "https://boxscorelab.com/downloads/"
-              f"{SEASON}-team-standings.csv"
+          BASKETBALL_REFERENCE_URL = (
+              "https://www.basketball-reference.com/"
+              "leagues/NBA_2027_standings.html"
           )
 
           PLAYERS_URL = (
@@ -57,7 +69,8 @@ jobs:
           )
 
           PLAYERS_FILE = (
-              OUTPUT_DIRECTORY / "season-player-stats.json"
+              OUTPUT_DIRECTORY
+              / "season-player-stats.json"
           )
 
           OUTPUT_DIRECTORY.mkdir(
@@ -65,7 +78,41 @@ jobs:
               exist_ok=True,
           )
 
-          def download_csv(url):
+          TEAM_CODES = {
+              "Atlanta Hawks": "ATL",
+              "Boston Celtics": "BOS",
+              "Brooklyn Nets": "BKN",
+              "Charlotte Hornets": "CHA",
+              "Chicago Bulls": "CHI",
+              "Cleveland Cavaliers": "CLE",
+              "Dallas Mavericks": "DAL",
+              "Denver Nuggets": "DEN",
+              "Detroit Pistons": "DET",
+              "Golden State Warriors": "GSW",
+              "Houston Rockets": "HOU",
+              "Indiana Pacers": "IND",
+              "Los Angeles Clippers": "LAC",
+              "LA Clippers": "LAC",
+              "Los Angeles Lakers": "LAL",
+              "Memphis Grizzlies": "MEM",
+              "Miami Heat": "MIA",
+              "Milwaukee Bucks": "MIL",
+              "Minnesota Timberwolves": "MIN",
+              "New Orleans Pelicans": "NOP",
+              "New York Knicks": "NYK",
+              "Oklahoma City Thunder": "OKC",
+              "Orlando Magic": "ORL",
+              "Philadelphia 76ers": "PHI",
+              "Phoenix Suns": "PHX",
+              "Portland Trail Blazers": "POR",
+              "Sacramento Kings": "SAC",
+              "San Antonio Spurs": "SAS",
+              "Toronto Raptors": "TOR",
+              "Utah Jazz": "UTA",
+              "Washington Wizards": "WAS",
+          }
+
+          def download_text(url):
               print(f"Downloading: {url}")
 
               request = urllib.request.Request(
@@ -73,36 +120,62 @@ jobs:
                   headers={
                       "User-Agent": (
                           "Mozilla/5.0 "
-                          "(compatible; NBAStatsApp/1.0)"
-                      )
+                          "(Macintosh; Intel Mac OS X 10_15_7) "
+                          "AppleWebKit/537.36 "
+                          "(KHTML, like Gecko) "
+                          "Chrome/131.0 Safari/537.36"
+                      ),
+                      "Accept": (
+                          "text/html,application/xhtml+xml,"
+                          "application/xml;q=0.9,*/*;q=0.8"
+                      ),
+                      "Accept-Language": (
+                          "en-US,en;q=0.9"
+                      ),
+                      "Cache-Control": "no-cache",
                   },
               )
 
-              with urllib.request.urlopen(
-                  request,
-                  timeout=60,
-              ) as response:
-                  text = response.read().decode(
-                      "utf-8-sig"
-                  )
+              last_error = None
 
-              rows = list(
-                  csv.DictReader(
-                      io.StringIO(text)
-                  )
+              for attempt in range(1, 4):
+                  try:
+                      with urllib.request.urlopen(
+                          request,
+                          timeout=60,
+                      ) as response:
+                          return (
+                              response
+                              .read()
+                              .decode(
+                                  "utf-8-sig",
+                                  errors="replace",
+                              )
+                          )
+
+                  except Exception as error:
+                      last_error = error
+
+                      print(
+                          f"Attempt {attempt} failed: "
+                          f"{error}"
+                      )
+
+                      if attempt < 3:
+                          time.sleep(
+                              attempt * 5
+                          )
+
+              raise RuntimeError(
+                  f"Could not download {url}: "
+                  f"{last_error}"
               )
-
-              print(
-                  f"Downloaded {len(rows)} rows"
-              )
-
-              return rows
 
           def clean_value(value):
               if value is None:
                   return None
 
-              value = value.strip()
+              value = str(value).strip()
 
               if value == "":
                   return None
@@ -117,65 +190,355 @@ jobs:
                   return value
 
           def clean_rows(rows):
-              cleaned = []
+              return [
+                  {
+                      key: clean_value(value)
+                      for key, value in row.items()
+                  }
+                  for row in rows
+              ]
 
-              for row in rows:
-                  cleaned_row = {}
+          def clean_team_name(value):
+              value = (
+                  value
+                  .replace("*", "")
+                  .strip()
+              )
 
-                  for key, value in row.items():
-                      cleaned_row[key] = clean_value(
-                          value
-                      )
+              value = re.sub(
+                  r"\s+\(\d+\)$",
+                  "",
+                  value,
+              )
 
-                  cleaned.append(
-                      cleaned_row
+              return value.strip()
+
+          def find_standings_tables(html):
+              soup = BeautifulSoup(
+                  html,
+                  "lxml",
+              )
+
+              tables = list(
+                  soup.find_all("table")
+              )
+
+              for comment in soup.find_all(
+                  string=lambda text: (
+                      isinstance(text, Comment)
+                      and "<table" in text
+                  )
+              ):
+                  comment_soup = BeautifulSoup(
+                      comment,
+                      "lxml",
                   )
 
-              return cleaned
+                  tables.extend(
+                      comment_soup.find_all(
+                          "table"
+                      )
+                  )
 
-          standings_rows = clean_rows(
-              download_csv(
-                  STANDINGS_URL
+              standings_tables = []
+
+              for table in tables:
+                  table_id = (
+                      table.get("id")
+                      or ""
+                  ).lower()
+
+                  if (
+                      "standings" in table_id
+                      or table.find(
+                          attrs={
+                              "data-stat": "wins"
+                          }
+                      )
+                  ):
+                      standings_tables.append(
+                          table
+                      )
+
+              return standings_tables
+
+          def parse_standings(html):
+              rows_by_team = {}
+
+              tables = find_standings_tables(
+                  html
               )
+
+              print(
+                  "Possible standings tables:",
+                  len(tables),
+              )
+
+              for table in tables:
+                  table_id = (
+                      table.get("id")
+                      or ""
+                  ).lower()
+
+                  if (
+                      "standings_e" in table_id
+                      or table_id.endswith("_e")
+                      or "eastern" in table_id
+                  ):
+                      conference = "East"
+
+                  elif (
+                      "standings_w" in table_id
+                      or table_id.endswith("_w")
+                      or "western" in table_id
+                  ):
+                      conference = "West"
+
+                  else:
+                      conference = None
+
+                  for row in table.select(
+                      "tbody tr"
+                  ):
+                      if "thead" in (
+                          row.get("class")
+                          or []
+                      ):
+                          continue
+
+                      team_cell = row.find(
+                          ["th", "td"],
+                          attrs={
+                              "data-stat": "team_name"
+                          },
+                      )
+
+                      if team_cell is None:
+                          team_cell = row.find(
+                              ["th", "td"],
+                              attrs={
+                                  "data-stat": "team"
+                              },
+                          )
+
+                      wins_cell = row.find(
+                          "td",
+                          attrs={
+                              "data-stat": "wins"
+                          },
+                      )
+
+                      losses_cell = row.find(
+                          "td",
+                          attrs={
+                              "data-stat": "losses"
+                          },
+                      )
+
+                      percentage_cell = row.find(
+                          "td",
+                          attrs={
+                              "data-stat": "win_loss_pct"
+                          },
+                      )
+
+                      points_cell = row.find(
+                          "td",
+                          attrs={
+                              "data-stat": "pts_per_g"
+                          },
+                      )
+
+                      opponent_points_cell = row.find(
+                          "td",
+                          attrs={
+                              "data-stat": "opp_pts_per_g"
+                          },
+                      )
+
+                      if (
+                          team_cell is None
+                          or wins_cell is None
+                          or losses_cell is None
+                      ):
+                          continue
+
+                      team_name = clean_team_name(
+                          team_cell.get_text(
+                              " ",
+                              strip=True,
+                          )
+                      )
+
+                      team_code = TEAM_CODES.get(
+                          team_name
+                      )
+
+                      if not team_code:
+                          print(
+                              "Unknown team name:",
+                              team_name,
+                          )
+                          continue
+
+                      wins = int(
+                          wins_cell.get_text(
+                              strip=True
+                          )
+                          or 0
+                      )
+
+                      losses = int(
+                          losses_cell.get_text(
+                              strip=True
+                          )
+                          or 0
+                      )
+
+                      games = wins + losses
+
+                      if percentage_cell:
+                          percentage_text = (
+                              percentage_cell
+                              .get_text(
+                                  strip=True
+                              )
+                          )
+
+                          win_pct = float(
+                              percentage_text
+                              or 0
+                          )
+
+                      else:
+                          win_pct = (
+                              wins / games
+                              if games
+                              else 0
+                          )
+
+                      points_pg = None
+
+                      if points_cell:
+                          points_text = (
+                              points_cell
+                              .get_text(
+                                  strip=True
+                              )
+                          )
+
+                          if points_text:
+                              points_pg = float(
+                                  points_text
+                              )
+
+                      opponent_points_pg = None
+
+                      if opponent_points_cell:
+                          opponent_text = (
+                              opponent_points_cell
+                              .get_text(
+                                  strip=True
+                              )
+                          )
+
+                          if opponent_text:
+                              opponent_points_pg = (
+                                  float(
+                                      opponent_text
+                                  )
+                              )
+
+                      rows_by_team[
+                          team_code
+                      ] = {
+                          "season": SEASON,
+                          "team": team_code,
+                          "team_name": team_name,
+                          "conference": conference,
+                          "wins": wins,
+                          "losses": losses,
+                          "win_pct": round(
+                              win_pct,
+                              4,
+                          ),
+                          "games": games,
+                          "points_pg": points_pg,
+                          "opponent_points_pg": (
+                              opponent_points_pg
+                          ),
+                      }
+
+              standings = list(
+                  rows_by_team.values()
+              )
+
+              if len(standings) != 30:
+                  missing = sorted(
+                      set(
+                          TEAM_CODES.values()
+                      )
+                      - set(
+                          rows_by_team.keys()
+                      )
+                  )
+
+                  raise RuntimeError(
+                      "Expected 30 NBA teams, "
+                      f"received {len(standings)}. "
+                      f"Missing codes: {missing}"
+                  )
+
+              standings.sort(
+                  key=lambda team: (
+                      -float(
+                          team.get("win_pct")
+                          or 0
+                      ),
+                      -int(
+                          team.get("wins")
+                          or 0
+                      ),
+                      int(
+                          team.get("losses")
+                          or 0
+                      ),
+                      str(
+                          team.get("team")
+                          or ""
+                      ),
+                  )
+              )
+
+              return standings
+
+          standings_html = download_text(
+              BASKETBALL_REFERENCE_URL
+          )
+
+          standings_rows = parse_standings(
+              standings_html
+          )
+
+          players_csv = download_text(
+              PLAYERS_URL
           )
 
           player_rows = clean_rows(
-              download_csv(
-                  PLAYERS_URL
+              list(
+                  csv.DictReader(
+                      io.StringIO(
+                          players_csv
+                      )
+                  )
               )
           )
 
-          if len(standings_rows) != 30:
+          if len(player_rows) < 300:
               raise RuntimeError(
-                  "Expected 30 NBA teams in standings, "
-                  f"received {len(standings_rows)}"
+                  "Too few player statistics: "
+                  f"{len(player_rows)}"
               )
-
-          if len(player_rows) == 0:
-              raise RuntimeError(
-                  "No player season statistics received"
-              )
-
-          standings_rows.sort(
-              key=lambda row: (
-                  -float(
-                      row.get("win_pct")
-                      or 0
-                  ),
-                  -int(
-                      row.get("wins")
-                      or 0
-                  ),
-                  int(
-                      row.get("losses")
-                      or 0
-                  ),
-                  str(
-                      row.get("team")
-                      or ""
-                  ),
-              )
-          )
 
           player_rows.sort(
               key=lambda row: (
@@ -205,8 +568,9 @@ jobs:
           standings_output = {
               "season": SEASON,
               "updatedAt": updated_at,
-              "source": "BoxScore Lab",
-              "license": "CC BY 4.0",
+              "source": (
+                  "Basketball-Reference"
+              ),
               "results": len(
                   standings_rows
               ),
@@ -247,15 +611,24 @@ jobs:
               )
 
           print("")
-          print("Season data generated successfully")
           print(
-              f"Standings: {len(standings_rows)} teams"
+              "Season data generated "
+              "successfully"
           )
+
           print(
-              f"Players: {len(player_rows)} players"
+              "Standings source: "
+              "Basketball-Reference"
           )
+
           print(
-              f"Updated at: {updated_at}"
+              f"Standings teams: "
+              f"{len(standings_rows)}"
+          )
+
+          print(
+              f"Season players: "
+              f"{len(player_rows)}"
           )
           PYTHON
 
@@ -292,6 +665,11 @@ jobs:
               players = json.load(file)
 
           print(
+              "Standings source:",
+              standings.get("source")
+          )
+
+          print(
               "Standings teams:",
               standings.get("results")
           )
@@ -300,6 +678,21 @@ jobs:
               "Season players:",
               players.get("results")
           )
+
+          print("")
+          print("Top standings:")
+
+          for team in standings.get(
+              "response",
+              []
+          )[:5]:
+              print(
+                  team.get("team"),
+                  team.get("wins"),
+                  "-",
+                  team.get("losses"),
+                  team.get("win_pct"),
+              )
 
           print("")
           print("Top 5 scorers:")
@@ -312,7 +705,7 @@ jobs:
                   player.get("player_name"),
                   "-",
                   player.get("points_pg"),
-                  "PPG"
+                  "PPG",
               )
           PYTHON
 
@@ -326,7 +719,15 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No season data changes"
-          else
-            git commit -m "Update NBA season standings and player stats"
-            git push
+            exit 0
           fi
+
+          git commit -m "Update NBA season standings and player stats"
+
+          echo "Synchronizing with latest main..."
+
+          git pull --rebase origin main
+
+          echo "Pushing season data..."
+
+          git push origin main
