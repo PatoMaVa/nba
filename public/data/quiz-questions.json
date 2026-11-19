@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": 1,
+      "category": "Historia",
+      "difficulty": "media",
+      "question": "¿Qué jugador anotó 100 puntos en un partido NBA?",
+      "options": [
+        "Michael Jordan",
+        "Kobe Bryant",
+        "Wilt Chamberlain",
+        "LeBron James"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Wilt Chamberlain anotó 100 puntos en un partido en 1962."
+    },
+    {
+      "id": 2,
+      "category": "Equipos",
+      "difficulty": "facil",
+      "question": "¿En qué equipo comenzó su carrera NBA Tim Duncan?",
+      "options": [
+        "Los Angeles Lakers",
+        "San Antonio Spurs",
+        "Dallas Mavericks",
+        "Houston Rockets"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Tim Duncan desarrolló toda su carrera NBA con San Antonio Spurs."
+    },
+    {
+      "id": 3,
+      "category": "España",
+      "difficulty": "facil",
+      "question": "¿Con qué equipo ganó Pau Gasol sus campeonatos NBA?",
+      "options": [
+        "Memphis Grizzlies",
+        "Chicago Bulls",
+        "Los Angeles Lakers",
+        "San Antonio Spurs"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Pau Gasol ganó los campeonatos de 2009 y 2010 con Los Angeles Lakers."
+    }
+  ]
+}
