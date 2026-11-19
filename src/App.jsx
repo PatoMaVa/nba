@@ -8,10 +8,11 @@ import {
   RefreshCw,
   AlertCircle,
   ArrowLeft,
-  UserRound,
   Search,
   DollarSign,
   TrendingUp,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL;
@@ -95,42 +96,42 @@ const STAT_CATEGORIES = [
     key: "points_pg",
     label: "PTS",
     title: "Puntos por partido",
-    decimals: 1,
   },
   {
     key: "rebounds_pg",
     label: "REB",
     title: "Rebotes por partido",
-    decimals: 1,
   },
   {
     key: "assists_pg",
     label: "AST",
     title: "Asistencias por partido",
-    decimals: 1,
   },
   {
     key: "steals_pg",
     label: "ROB",
     title: "Robos por partido",
-    decimals: 1,
   },
   {
     key: "blocks_pg",
     label: "TAP",
     title: "Tapones por partido",
-    decimals: 1,
   },
   {
     key: "three_point_makes_pg",
     label: "3PT",
     title: "Triples anotados por partido",
-    decimals: 1,
   },
   {
     key: "field_goal_pct",
     label: "TC%",
     title: "Porcentaje de tiros de campo",
+    percentage: true,
+  },
+  {
+    key: "three_point_pct",
+    label: "3PT%",
+    title: "Porcentaje de triples",
     percentage: true,
   },
   {
@@ -150,27 +151,27 @@ const STAT_CATEGORIES = [
 const SALARY_CATEGORIES = [
   {
     key: "costPerPoint",
-    label: "€/PTS",
+    label: "$/PTS",
     title: "Coste por punto",
   },
   {
     key: "costPerRebound",
-    label: "€/REB",
+    label: "$/REB",
     title: "Coste por rebote",
   },
   {
     key: "costPerAssist",
-    label: "€/AST",
+    label: "$/AST",
     title: "Coste por asistencia",
   },
   {
     key: "costPerSteal",
-    label: "€/ROB",
+    label: "$/ROB",
     title: "Coste por robo",
   },
   {
     key: "costPerBlock",
-    label: "€/TAP",
+    label: "$/TAP",
     title: "Coste por tapón",
   },
 ];
@@ -185,8 +186,42 @@ function normalizeText(value = "") {
     .trim();
 }
 
-function playerName(player) {
-  return `${player?.firstname || ""} ${player?.lastname || ""}`.trim();
+function boxPlayerName(player) {
+  return `${player?.firstname || ""} ${
+    player?.lastname || ""
+  }`.trim();
+}
+
+function reversedBoxPlayerName(player) {
+  return `${player?.lastname || ""} ${
+    player?.firstname || ""
+  }`.trim();
+}
+
+function isSpanishName(name) {
+  const normalized = normalizeText(name);
+
+  return SPANISH_PLAYERS.some((spanishName) => {
+    const parts = spanishName.split(" ");
+    const reverse = `${parts.slice(1).join(" ")} ${parts[0]}`;
+
+    return (
+      normalized === normalizeText(spanishName) ||
+      normalized === normalizeText(reverse)
+    );
+  });
+}
+
+function canonicalSpanishName(player) {
+  const normal = normalizeText(boxPlayerName(player));
+  const reverse = normalizeText(reversedBoxPlayerName(player));
+
+  return (
+    SPANISH_PLAYERS.find((name) => {
+      const expected = normalizeText(name);
+      return expected === normal || expected === reverse;
+    }) || boxPlayerName(player)
+  );
 }
 
 function teamLogo(code) {
@@ -197,7 +232,7 @@ function teamLogo(code) {
     : "";
 }
 
-function number(value, decimals = 1) {
+function formatNumber(value, decimals = 1) {
   if (
     value === null ||
     value === undefined ||
@@ -212,7 +247,7 @@ function number(value, decimals = 1) {
   });
 }
 
-function percent(value) {
+function formatPercentage(value) {
   if (
     value === null ||
     value === undefined ||
@@ -221,10 +256,10 @@ function percent(value) {
     return "-";
   }
 
-  return `${number(Number(value) * 100, 1)}%`;
+  return `${formatNumber(Number(value) * 100, 1)}%`;
 }
 
-function money(value) {
+function formatMoney(value) {
   if (!Number.isFinite(Number(value))) {
     return "-";
   }
@@ -236,7 +271,7 @@ function money(value) {
   }).format(value);
 }
 
-function compactMoney(value) {
+function formatCompactMoney(value) {
   if (!Number.isFinite(Number(value))) {
     return "-";
   }
@@ -249,15 +284,15 @@ function compactMoney(value) {
   }).format(value);
 }
 
-function safeDivide(a, b) {
-  const numerator = Number(a || 0);
-  const denominator = Number(b || 0);
+function safeDivide(numerator, denominator) {
+  const first = Number(numerator || 0);
+  const second = Number(denominator || 0);
 
-  if (denominator <= 0) {
+  if (second <= 0) {
     return null;
   }
 
-  return numerator / denominator;
+  return first / second;
 }
 
 function formatGameStatus(game) {
@@ -276,41 +311,65 @@ function formatGameStatus(game) {
   return game.status?.long?.toUpperCase() || "PROGRAMADO";
 }
 
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Date(value).toLocaleString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function scrollTop() {
-  requestAnimationFrame(() => {
+  window.requestAnimationFrame(() => {
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   });
 }
 
-function Logo({ code, name, size = "normal" }) {
-  const [error, setError] = useState(false);
+function Logo({
+  code,
+  name,
+  size = "normal",
+}) {
+  const [logoError, setLogoError] = useState(false);
   const url = teamLogo(code);
 
   useEffect(() => {
-    setError(false);
+    setLogoError(false);
   }, [code]);
 
-  const box =
-    size === "large" ? "h-16 w-16" : "h-10 w-10";
+  const boxClass =
+    size === "large"
+      ? "h-16 w-16"
+      : "h-10 w-10";
 
-  const image =
-    size === "large" ? "h-13 w-13" : "h-8 w-8";
+  const imageClass =
+    size === "large"
+      ? "h-13 w-13"
+      : "h-8 w-8";
 
   return (
     <div
-      className={`grid ${box} flex-shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm`}
+      className={`grid ${boxClass} flex-shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm`}
     >
-      {url && !error ? (
+      {url && !logoError ? (
         <img
           src={url}
           alt={name || code}
-          className={`${image} object-contain`}
-          onError={() => setError(true)}
+          className={`${imageClass} object-contain`}
+          onError={() => setLogoError(true)}
         />
       ) : (
-        <span className="text-xs font-black">{code}</span>
+        <span className="text-xs font-black">
+          {code || "NBA"}
+        </span>
       )}
     </div>
   );
@@ -320,17 +379,20 @@ function StatBox({
   label,
   value,
   featured = false,
-  className = "",
 }) {
   return (
     <div
       className={`rounded-2xl p-3 text-center ${
-        featured ? "bg-orange-50" : "bg-slate-100"
-      } ${className}`}
+        featured
+          ? "bg-orange-50"
+          : "bg-slate-100"
+      }`}
     >
       <div
         className={`text-xl font-black ${
-          featured ? "text-orange-600" : "text-slate-950"
+          featured
+            ? "text-orange-600"
+            : "text-slate-950"
         }`}
       >
         {value}
@@ -343,7 +405,9 @@ function StatBox({
   );
 }
 
-function Loading({ text = "Cargando..." }) {
+function Loading({
+  text = "Cargando...",
+}) {
   return (
     <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
       {text}
@@ -360,7 +424,10 @@ function ErrorBox({ text }) {
   );
 }
 
-function TeamRow({ team, score }) {
+function TeamRow({
+  team,
+  score,
+}) {
   return (
     <div className="flex items-center gap-3">
       <Logo
@@ -369,8 +436,13 @@ function TeamRow({ team, score }) {
       />
 
       <div className="min-w-0 flex-1">
-        <div className="truncate font-bold">{team?.name}</div>
-        <div className="text-xs text-slate-400">{team?.code}</div>
+        <div className="truncate font-bold">
+          {team?.name}
+        </div>
+
+        <div className="text-xs text-slate-400">
+          {team?.code}
+        </div>
       </div>
 
       <div className="text-2xl font-black">
@@ -380,16 +452,23 @@ function TeamRow({ team, score }) {
   );
 }
 
-function mergeSeasonStatsAndSalaries(stats, salaries) {
-  const salaryByNameAndTeam = new Map();
-  const salaryByName = new Map();
+function mergeSeasonStatsAndSalaries(
+  stats,
+  salaries
+) {
+  const salaryByPlayerAndTeam = new Map();
+  const salaryByPlayer = new Map();
 
   salaries.forEach((salary) => {
     const name = normalizeText(salary.player_name);
     const team = salary.team || "";
 
-    salaryByNameAndTeam.set(`${name}|${team}`, salary);
-    salaryByName.set(name, salary);
+    salaryByPlayerAndTeam.set(
+      `${name}|${team}`,
+      salary
+    );
+
+    salaryByPlayer.set(name, salary);
   });
 
   return stats.map((player) => {
@@ -397,8 +476,8 @@ function mergeSeasonStatsAndSalaries(stats, salaries) {
     const team = player.team || "";
 
     const salaryRecord =
-      salaryByNameAndTeam.get(`${name}|${team}`) ||
-      salaryByName.get(name) ||
+      salaryByPlayerAndTeam.get(`${name}|${team}`) ||
+      salaryByPlayer.get(name) ||
       null;
 
     const salary = Number(salaryRecord?.salary || 0);
@@ -415,16 +494,64 @@ function mergeSeasonStatsAndSalaries(stats, salaries) {
         player.three_point_makes,
         games
       ),
-      costPerPoint: safeDivide(salary, player.points),
-      costPerRebound: safeDivide(salary, player.rebounds),
-      costPerAssist: safeDivide(salary, player.assists),
-      costPerSteal: safeDivide(salary, player.steals),
-      costPerBlock: safeDivide(salary, player.blocks),
+      costPerPoint: salary
+        ? safeDivide(salary, player.points)
+        : null,
+      costPerRebound: salary
+        ? safeDivide(salary, player.rebounds)
+        : null,
+      costPerAssist: salary
+        ? safeDivide(salary, player.assists)
+        : null,
+      costPerSteal: salary
+        ? safeDivide(salary, player.steals)
+        : null,
+      costPerBlock: salary
+        ? safeDivide(salary, player.blocks)
+        : null,
     };
   });
 }
 
-function SeasonPlayerDetail({ player, onBack }) {
+function findSeasonPlayerForBoxScore(
+  boxScore,
+  seasonPlayers
+) {
+  if (!boxScore) {
+    return null;
+  }
+
+  const normal = normalizeText(
+    boxPlayerName(boxScore.player)
+  );
+
+  const reverse = normalizeText(
+    reversedBoxPlayerName(boxScore.player)
+  );
+
+  const team = boxScore.team?.code;
+
+  return (
+    seasonPlayers.find(
+      (player) =>
+        player.team === team &&
+        [normal, reverse].includes(
+          normalizeText(player.player_name)
+        )
+    ) ||
+    seasonPlayers.find((player) =>
+      [normal, reverse].includes(
+        normalizeText(player.player_name)
+      )
+    ) ||
+    null
+  );
+}
+
+function SeasonPlayerDetail({
+  player,
+  onBack,
+}) {
   if (!player) {
     return null;
   }
@@ -472,32 +599,32 @@ function SeasonPlayerDetail({ player, onBack }) {
             />
             <StatBox
               label="Minutos"
-              value={number(player.minutes_pg)}
+              value={formatNumber(player.minutes_pg)}
             />
             <StatBox
               label="Puntos"
-              value={number(player.points_pg)}
+              value={formatNumber(player.points_pg)}
               featured
             />
             <StatBox
               label="Rebotes"
-              value={number(player.rebounds_pg)}
+              value={formatNumber(player.rebounds_pg)}
             />
             <StatBox
               label="Asistencias"
-              value={number(player.assists_pg)}
+              value={formatNumber(player.assists_pg)}
             />
             <StatBox
               label="Robos"
-              value={number(player.steals_pg)}
+              value={formatNumber(player.steals_pg)}
             />
             <StatBox
               label="Tapones"
-              value={number(player.blocks_pg)}
+              value={formatNumber(player.blocks_pg)}
             />
             <StatBox
               label="Pérdidas"
-              value={number(player.turnovers_pg)}
+              value={formatNumber(player.turnovers_pg)}
             />
           </div>
         </div>
@@ -510,34 +637,44 @@ function SeasonPlayerDetail({ player, onBack }) {
           <div className="grid grid-cols-2 gap-3">
             <StatBox
               label="TC"
-              value={percent(player.field_goal_pct)}
+              value={formatPercentage(
+                player.field_goal_pct
+              )}
             />
             <StatBox
               label="3PT"
-              value={percent(player.three_point_pct)}
+              value={formatPercentage(
+                player.three_point_pct
+              )}
             />
             <StatBox
               label="TL"
-              value={percent(player.free_throw_pct)}
+              value={formatPercentage(
+                player.free_throw_pct
+              )}
             />
             <StatBox
               label="True Shooting"
-              value={percent(player.ts_pct)}
+              value={formatPercentage(
+                player.ts_pct
+              )}
             />
             <StatBox
               label="Uso"
-              value={percent(player.usage_rate)}
+              value={formatPercentage(
+                player.usage_rate
+              )}
             />
             <StatBox
               label="Rating neto"
-              value={number(player.net_rating)}
+              value={formatNumber(player.net_rating)}
             />
           </div>
         </div>
 
         <div className="border-t border-slate-200 p-5">
           <p className="mb-3 text-xs font-bold uppercase text-orange-600">
-            Salario y coste por producción
+            Salario y coste
           </p>
 
           {player.salary ? (
@@ -546,31 +683,32 @@ function SeasonPlayerDetail({ player, onBack }) {
                 <div className="text-xs text-slate-300">
                   Salario anual
                 </div>
+
                 <div className="mt-1 text-2xl font-black">
-                  {money(player.salary)}
+                  {formatMoney(player.salary)}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <StatBox
                   label="Coste/punto"
-                  value={money(player.costPerPoint)}
+                  value={formatMoney(player.costPerPoint)}
                 />
                 <StatBox
                   label="Coste/rebote"
-                  value={money(player.costPerRebound)}
+                  value={formatMoney(player.costPerRebound)}
                 />
                 <StatBox
                   label="Coste/asistencia"
-                  value={money(player.costPerAssist)}
+                  value={formatMoney(player.costPerAssist)}
                 />
                 <StatBox
                   label="Coste/robo"
-                  value={money(player.costPerSteal)}
+                  value={formatMoney(player.costPerSteal)}
                 />
                 <StatBox
                   label="Coste/tapón"
-                  value={money(player.costPerBlock)}
+                  value={formatMoney(player.costPerBlock)}
                 />
               </div>
             </>
@@ -580,11 +718,6 @@ function SeasonPlayerDetail({ player, onBack }) {
             </p>
           )}
         </div>
-
-        <p className="border-t border-slate-200 p-5 text-[10px] text-slate-400">
-          Estadísticas: BoxScore Lab · CC BY 4.0. Salarios:
-          Basketball-Reference.
-        </p>
       </article>
     </section>
   );
@@ -592,8 +725,6 @@ function SeasonPlayerDetail({ player, onBack }) {
 
 function PlayersView({
   players,
-  loading,
-  error,
   onSelect,
 }) {
   const [mode, setMode] = useState("stats");
@@ -601,88 +732,152 @@ function PlayersView({
     useState("points_pg");
   const [salaryCategory, setSalaryCategory] =
     useState("costPerPoint");
+  const [sortDirection, setSortDirection] =
+    useState("desc");
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(50);
 
-  const category =
+  const categories =
     mode === "stats"
-      ? STAT_CATEGORIES.find(
-          (item) => item.key === statCategory
-        )
-      : SALARY_CATEGORIES.find(
-          (item) => item.key === salaryCategory
-        );
+      ? STAT_CATEGORIES
+      : SALARY_CATEGORIES;
+
+  const selectedKey =
+    mode === "stats"
+      ? statCategory
+      : salaryCategory;
+
+  const category =
+    categories.find(
+      (item) => item.key === selectedKey
+    ) || categories[0];
 
   const rankedPlayers = useMemo(() => {
-    const searchText = normalizeText(search);
+    const searchValue =
+      normalizeText(search);
 
     return players
       .filter((player) => {
         const matchesSearch =
-          !searchText ||
-          normalizeText(player.player_name).includes(searchText) ||
-          normalizeText(player.team).includes(searchText);
+          !searchValue ||
+          normalizeText(player.player_name).includes(
+            searchValue
+          ) ||
+          normalizeText(player.team).includes(
+            searchValue
+          );
 
         if (!matchesSearch) {
           return false;
         }
 
-        const value = player[category.key];
+        const value =
+          Number(player[category.key]);
 
-        if (!Number.isFinite(Number(value))) {
+        if (!Number.isFinite(value)) {
           return false;
         }
 
         if (mode === "salary") {
           return (
             Number(player.salary || 0) > 0 &&
-            Number(value) > 0
+            value > 0
           );
         }
 
         return true;
       })
-      .sort((a, b) => {
-        if (mode === "salary") {
-          return Number(a[category.key]) - Number(b[category.key]);
+      .sort((first, second) => {
+        const firstValue =
+          Number(first[category.key]);
+
+        const secondValue =
+          Number(second[category.key]);
+
+        if (sortDirection === "asc") {
+          return (
+            firstValue - secondValue ||
+            String(first.player_name).localeCompare(
+              String(second.player_name),
+              "es"
+            )
+          );
         }
 
-        return Number(b[category.key]) - Number(a[category.key]);
+        return (
+          secondValue - firstValue ||
+          String(first.player_name).localeCompare(
+            String(second.player_name),
+            "es"
+          )
+        );
       });
-  }, [players, search, category, mode]);
+  }, [
+    players,
+    search,
+    category,
+    mode,
+    sortDirection,
+  ]);
+
+  function changeMode(nextMode) {
+    setMode(nextMode);
+    setLimit(50);
+
+    if (nextMode === "stats") {
+      setSortDirection("desc");
+    } else {
+      setSortDirection("asc");
+    }
+  }
+
+  function changeCategory(key) {
+    if (mode === "stats") {
+      setStatCategory(key);
+    } else {
+      setSalaryCategory(key);
+    }
+
+    setLimit(50);
+  }
 
   function displayValue(player) {
-    const value = player[category.key];
+    const value =
+      player[category.key];
 
     if (mode === "salary") {
-      return compactMoney(value);
+      return formatCompactMoney(
+        value
+      );
     }
 
     if (category.percentage) {
-      return percent(value);
+      return formatPercentage(
+        value
+      );
     }
 
-    return number(value, category.decimals ?? 1);
+    return formatNumber(value);
   }
+
+  const ascending =
+    sortDirection === "asc";
 
   return (
     <section>
-      <div className="mb-4">
-        <p className="text-xs font-semibold text-orange-600">
-          TEMPORADA 2026-27
-        </p>
+      <p className="text-xs font-semibold text-orange-600">
+        TEMPORADA 2026-27
+      </p>
 
-        <h2 className="text-xl font-black">
-          Ranking de jugadores
-        </h2>
-      </div>
+      <h2 className="text-xl font-black">
+        Ranking de jugadores
+      </h2>
 
-      <div className="mb-4 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
+      <div className="my-4 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
         <button
-          onClick={() => {
-            setMode("stats");
-            setLimit(50);
-          }}
+          onClick={() =>
+            changeMode("stats")
+          }
           className={`rounded-xl py-2 text-xs font-bold ${
             mode === "stats"
               ? "bg-white shadow-sm"
@@ -696,10 +891,9 @@ function PlayersView({
         </button>
 
         <button
-          onClick={() => {
-            setMode("salary");
-            setLimit(50);
-          }}
+          onClick={() =>
+            changeMode("salary")
+          }
           className={`rounded-xl py-2 text-xs font-bold ${
             mode === "salary"
               ? "bg-white shadow-sm"
@@ -714,30 +908,66 @@ function PlayersView({
       </div>
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {(mode === "stats"
-          ? STAT_CATEGORIES
-          : SALARY_CATEGORIES
-        ).map((item) => (
-          <button
-            key={item.key}
-            onClick={() => {
-              if (mode === "stats") {
-                setStatCategory(item.key);
-              } else {
-                setSalaryCategory(item.key);
+        {categories.map(
+          (item) => (
+            <button
+              key={item.key}
+              onClick={() =>
+                changeCategory(
+                  item.key
+                )
               }
+              className={`flex-shrink-0 rounded-xl px-3 py-2 text-xs font-bold ${
+                category.key ===
+                item.key
+                  ? "bg-orange-500 text-white"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {item.label}
+            </button>
+          )
+        )}
+      </div>
 
-              setLimit(50);
-            }}
-            className={`flex-shrink-0 rounded-xl px-3 py-2 text-xs font-bold ${
-              category.key === item.key
-                ? "bg-orange-500 text-white"
-                : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="mb-4 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1">
+        <button
+          onClick={() => {
+            setSortDirection(
+              "desc"
+            );
+            setLimit(50);
+          }}
+          className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-bold ${
+            !ascending
+              ? "bg-slate-950 text-white"
+              : "text-slate-500"
+          }`}
+        >
+          <ArrowDownWideNarrow
+            size={15}
+          />
+          Mayor a menor
+        </button>
+
+        <button
+          onClick={() => {
+            setSortDirection(
+              "asc"
+            );
+            setLimit(50);
+          }}
+          className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-bold ${
+            ascending
+              ? "bg-slate-950 text-white"
+              : "text-slate-500"
+          }`}
+        >
+          <ArrowUpNarrowWide
+            size={15}
+          />
+          Menor a mayor
+        </button>
       </div>
 
       <div className="relative mb-4">
@@ -749,7 +979,9 @@ function PlayersView({
         <input
           value={search}
           onChange={(event) => {
-            setSearch(event.target.value);
+            setSearch(
+              event.target.value
+            );
             setLimit(50);
           }}
           placeholder="Buscar jugador o equipo"
@@ -758,105 +990,176 @@ function PlayersView({
       </div>
 
       <div className="mb-3 rounded-2xl bg-orange-50 p-3">
-        <div className="text-xs font-bold text-orange-700">
-          {category.title}
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <div className="text-xs font-bold text-orange-700">
+              {category.title}
+            </div>
+
+            <div className="mt-1 text-[10px] text-orange-600">
+              Orden:{" "}
+              <strong>
+                {ascending
+                  ? "menor a mayor"
+                  : "mayor a menor"}
+              </strong>
+            </div>
+          </div>
+
+          {ascending ? (
+            <ArrowUpNarrowWide
+              size={20}
+              className="text-orange-600"
+            />
+          ) : (
+            <ArrowDownWideNarrow
+              size={20}
+              className="text-orange-600"
+            />
+          )}
         </div>
 
         {mode === "salary" && (
-          <div className="mt-1 text-[10px] text-orange-600">
-            Menor coste por unidad = mejor posición. Se calcula con
-            salario anual dividido por el total acumulado.
+          <div className="mt-2 text-[10px] text-orange-600">
+            En eficiencia salarial, ordenar de menor a mayor
+            muestra primero a los jugadores con menor coste por
+            unidad estadística.
           </div>
         )}
       </div>
 
-      {loading && <Loading text="Cargando jugadores..." />}
+      <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="grid grid-cols-[30px_minmax(0,1fr)_74px] bg-slate-100 px-3 py-2 text-[9px] font-bold uppercase text-slate-500">
+          <div>#</div>
+          <div>Jugador</div>
+          <div className="text-right">
+            {category.label}
+          </div>
+        </div>
 
-      {!loading && error && <ErrorBox text={error} />}
+        {rankedPlayers
+          .slice(0, limit)
+          .map(
+            (
+              player,
+              index
+            ) => (
+              <button
+                key={`${player.player_name}-${player.team}`}
+                onClick={() =>
+                  onSelect(player)
+                }
+                className="grid w-full grid-cols-[30px_minmax(0,1fr)_74px] items-center border-t border-slate-200 px-3 py-3 text-left active:bg-orange-50"
+              >
+                <div className="text-xs font-black text-slate-400">
+                  {index + 1}
+                </div>
 
-      {!loading && !error && (
-        <>
-          <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <div className="grid grid-cols-[30px_minmax(0,1fr)_74px] bg-slate-100 px-3 py-2 text-[9px] font-bold uppercase text-slate-500">
-              <div>#</div>
-              <div>Jugador</div>
-              <div className="text-right">
-                {category.label}
-              </div>
-            </div>
+                <div className="flex min-w-0 items-center gap-2">
+                  <Logo
+                    code={
+                      player.team
+                    }
+                    name={
+                      player.player_name
+                    }
+                  />
 
-            {rankedPlayers
-              .slice(0, limit)
-              .map((player, index) => (
-                <button
-                  key={`${player.player_name}-${player.team}`}
-                  onClick={() => onSelect(player)}
-                  className="grid w-full grid-cols-[30px_minmax(0,1fr)_74px] items-center border-t border-slate-200 px-3 py-3 text-left active:bg-orange-50"
-                >
-                  <div className="text-xs font-black text-slate-400">
-                    {index + 1}
-                  </div>
+                  <div className="min-w-0">
+                    <div className="whitespace-normal text-xs font-bold leading-4">
+                      {
+                        player.player_name
+                      }
+                    </div>
 
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Logo
-                      code={player.team}
-                      name={player.player_name}
-                    />
-
-                    <div className="min-w-0">
-                      <div className="whitespace-normal text-xs font-bold leading-4">
-                        {player.player_name}
-                      </div>
-
-                      <div className="mt-0.5 text-[9px] text-slate-400">
-                        {player.team} · {player.position || "-"} ·{" "}
-                        {player.games_played} PJ
-                      </div>
+                    <div className="mt-0.5 text-[9px] text-slate-400">
+                      {player.team} ·{" "}
+                      {player.position ||
+                        "-"}{" "}
+                      ·{" "}
+                      {
+                        player.games_played
+                      }{" "}
+                      PJ
                     </div>
                   </div>
+                </div>
 
-                  <div className="text-right text-xs font-black text-orange-600">
-                    {displayValue(player)}
-                  </div>
-                </button>
-              ))}
-          </div>
-
-          {limit < rankedPlayers.length && (
-            <button
-              onClick={() => setLimit((current) => current + 50)}
-              className="mt-4 w-full rounded-2xl bg-slate-950 py-3 text-sm font-bold text-white"
-            >
-              Mostrar 50 más
-            </button>
+                <div className="text-right text-xs font-black text-orange-600">
+                  {displayValue(
+                    player
+                  )}
+                </div>
+              </button>
+            )
           )}
+      </div>
 
-          <p className="mt-4 text-[10px] text-slate-400">
-            Estadísticas: BoxScore Lab · CC BY 4.0. Salarios:
-            Basketball-Reference.
-          </p>
-        </>
+      {rankedPlayers.length === 0 && (
+        <div className="rounded-b-2xl bg-slate-100 p-8 text-center text-sm text-slate-500">
+          No hay jugadores que cumplan los filtros seleccionados.
+        </div>
+      )}
+
+      {limit <
+        rankedPlayers.length && (
+        <button
+          onClick={() =>
+            setLimit(
+              (current) =>
+                current + 50
+            )
+          }
+          className="mt-4 w-full rounded-2xl bg-slate-950 py-3 text-sm font-bold text-white"
+        >
+          Mostrar 50 más
+        </button>
       )}
     </section>
   );
 }
 
-function StandingsView({ standings, loading, error }) {
-  const [conference, setConference] = useState("East");
+function StandingsView({
+  standings,
+}) {
+  const [
+    conference,
+    setConference,
+  ] = useState("East");
 
-  const teams = useMemo(() => {
-    return standings
-      .filter((team) =>
-        conference === "East"
-          ? EAST_TEAMS.has(team.team)
-          : !EAST_TEAMS.has(team.team)
-      )
-      .sort(
-        (a, b) =>
-          Number(b.win_pct || 0) - Number(a.win_pct || 0) ||
-          Number(b.wins || 0) - Number(a.wins || 0)
-      );
-  }, [standings, conference]);
+  const teams =
+    useMemo(() => {
+      return standings
+        .filter(
+          (team) =>
+            conference ===
+            "East"
+              ? EAST_TEAMS.has(
+                  team.team
+                )
+              : !EAST_TEAMS.has(
+                  team.team
+                )
+        )
+        .sort(
+          (a, b) =>
+            Number(
+              b.win_pct || 0
+            ) -
+              Number(
+                a.win_pct || 0
+              ) ||
+            Number(
+              b.wins || 0
+            ) -
+              Number(
+                a.wins || 0
+              )
+        );
+    }, [
+      standings,
+      conference,
+    ]);
 
   return (
     <section>
@@ -869,38 +1172,56 @@ function StandingsView({ standings, loading, error }) {
       </h2>
 
       <div className="mb-4 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
-        {[
-          ["East", "Este"],
-          ["West", "Oeste"],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setConference(key)}
-            className={`rounded-xl py-2 text-sm font-bold ${
-              conference === key
-                ? "bg-white shadow-sm"
-                : "text-slate-500"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        <button
+          onClick={() =>
+            setConference(
+              "East"
+            )
+          }
+          className={`rounded-xl py-2 text-sm font-bold ${
+            conference ===
+            "East"
+              ? "bg-white shadow-sm"
+              : "text-slate-500"
+          }`}
+        >
+          Este
+        </button>
+
+        <button
+          onClick={() =>
+            setConference(
+              "West"
+            )
+          }
+          className={`rounded-xl py-2 text-sm font-bold ${
+            conference ===
+            "West"
+              ? "bg-white shadow-sm"
+              : "text-slate-500"
+          }`}
+        >
+          Oeste
+        </button>
       </div>
 
-      {loading && <Loading text="Cargando clasificación..." />}
-      {!loading && error && <ErrorBox text={error} />}
-
-      {!loading && !error && (
-        <div className="overflow-hidden rounded-2xl border border-slate-200">
-          <div className="grid grid-cols-[28px_minmax(0,1fr)_28px_28px_48px] bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500">
-            <div>#</div>
-            <div>Equipo</div>
-            <div className="text-center">V</div>
-            <div className="text-center">D</div>
-            <div className="text-right">%</div>
+      <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <div className="grid grid-cols-[28px_minmax(0,1fr)_28px_28px_48px] bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500">
+          <div>#</div>
+          <div>Equipo</div>
+          <div className="text-center">
+            V
           </div>
+          <div className="text-center">
+            D
+          </div>
+          <div className="text-right">
+            %
+          </div>
+        </div>
 
-          {teams.map((team, index) => (
+        {teams.map(
+          (team, index) => (
             <div
               key={team.team}
               className={`grid grid-cols-[28px_minmax(0,1fr)_28px_28px_48px] items-center border-t border-slate-200 px-2 py-3 ${
@@ -916,12 +1237,20 @@ function StandingsView({ standings, loading, error }) {
               </div>
 
               <div className="flex min-w-0 items-center gap-2">
-                <Logo code={team.team} name={team.team_name} />
+                <Logo
+                  code={team.team}
+                  name={
+                    team.team_name
+                  }
+                />
 
                 <div className="min-w-0">
                   <div className="truncate text-xs font-bold">
-                    {team.team_name}
+                    {
+                      team.team_name
+                    }
                   </div>
+
                   <div className="text-[9px] text-slate-400">
                     {team.team}
                   </div>
@@ -937,12 +1266,19 @@ function StandingsView({ standings, loading, error }) {
               </div>
 
               <div className="text-right text-xs font-bold">
-                {Number(team.win_pct).toFixed(3).replace(/^0/, "")}
+                {Number(
+                  team.win_pct
+                )
+                  .toFixed(3)
+                  .replace(
+                    /^0/,
+                    ""
+                  )}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          )
+        )}
+      </div>
     </section>
   );
 }
@@ -952,16 +1288,36 @@ function PlayerBoxScore({
   stats,
   onSelect,
 }) {
-  const players = stats
-    .filter((stat) => stat.team?.id === team?.id)
-    .sort((a, b) => Number(b.min || 0) - Number(a.min || 0));
+  const players =
+    stats
+      .filter(
+        (stat) =>
+          stat.team?.id ===
+          team?.id
+      )
+      .sort(
+        (a, b) =>
+          Number(
+            b.min || 0
+          ) -
+          Number(
+            a.min || 0
+          )
+      );
 
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
-        <Logo code={team?.code} name={team?.name} />
+        <Logo
+          code={team?.code}
+          name={team?.name}
+        />
+
         <div>
-          <div className="font-black">{team?.name}</div>
+          <div className="font-black">
+            {team?.name}
+          </div>
+
           <div className="text-xs text-slate-400">
             {players.length} jugadores
           </div>
@@ -971,33 +1327,55 @@ function PlayerBoxScore({
       <div className="overflow-hidden rounded-2xl border border-slate-200">
         <div className="grid grid-cols-[minmax(125px,1fr)_34px_36px_36px_36px] bg-slate-100 px-2 py-2 text-[9px] font-bold text-slate-500">
           <div>JUGADOR</div>
-          <div className="text-center">MIN</div>
-          <div className="text-center text-orange-600">PTS</div>
-          <div className="text-center">REB</div>
-          <div className="text-center">AST</div>
+          <div className="text-center">
+            MIN
+          </div>
+          <div className="text-center text-orange-600">
+            PTS
+          </div>
+          <div className="text-center">
+            REB
+          </div>
+          <div className="text-center">
+            AST
+          </div>
         </div>
 
-        {players.map((stat) => (
-          <button
-            key={stat.player?.id}
-            onClick={() => onSelect(stat)}
-            className="grid w-full grid-cols-[minmax(125px,1fr)_34px_36px_36px_36px] items-center border-t border-slate-200 px-2 py-3 text-left"
-          >
-            <div className="pr-1 text-[13px] font-bold leading-4">
-              {playerName(stat.player)}
-            </div>
-            <div className="text-center text-xs">{stat.min ?? "-"}</div>
-            <div className="text-center text-xs font-black text-orange-600">
-              {stat.points ?? 0}
-            </div>
-            <div className="text-center text-xs">
-              {stat.totReb ?? 0}
-            </div>
-            <div className="text-center text-xs">
-              {stat.assists ?? 0}
-            </div>
-          </button>
-        ))}
+        {players.map(
+          (stat) => (
+            <button
+              key={
+                stat.player?.id
+              }
+              onClick={() =>
+                onSelect(stat)
+              }
+              className="grid w-full grid-cols-[minmax(125px,1fr)_34px_36px_36px_36px] items-center border-t border-slate-200 px-2 py-3 text-left"
+            >
+              <div className="pr-1 text-[13px] font-bold leading-4">
+                {boxPlayerName(
+                  stat.player
+                )}
+              </div>
+
+              <div className="text-center text-xs">
+                {stat.min ?? "-"}
+              </div>
+
+              <div className="text-center text-xs font-black text-orange-600">
+                {stat.points ?? 0}
+              </div>
+
+              <div className="text-center text-xs">
+                {stat.totReb ?? 0}
+              </div>
+
+              <div className="text-center text-xs">
+                {stat.assists ?? 0}
+              </div>
+            </button>
+          )
+        )}
       </div>
     </div>
   );
@@ -1011,14 +1389,17 @@ function GameDetail({
   onBack,
   onPlayer,
 }) {
-  const visitors = game.teams?.visitors;
-  const home = game.teams?.home;
+  const visitors =
+    game.teams?.visitors;
+
+  const home =
+    game.teams?.home;
 
   return (
     <section>
       <button
         onClick={onBack}
-        className="mb-5 flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold"
       >
         <ArrowLeft size={18} />
         Partidos
@@ -1026,26 +1407,43 @@ function GameDetail({
 
       <article className="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
         <div className="bg-gradient-to-br from-orange-500 to-red-500 p-4 text-center text-sm font-black text-white">
-          {formatGameStatus(game)}
+          {formatGameStatus(
+            game
+          )}
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 p-5">
           <div className="flex flex-col items-center text-center">
             <Logo
-              code={visitors?.code}
-              name={visitors?.name}
+              code={
+                visitors?.code
+              }
+              name={
+                visitors?.name
+              }
               size="large"
             />
-            <div className="mt-2 text-xs font-bold">{visitors?.name}</div>
+
+            <div className="mt-2 text-xs font-bold">
+              {visitors?.name}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-3xl font-black">
-              {game.scores?.visitors?.points ?? "-"}
+              {game.scores
+                ?.visitors
+                ?.points ?? "-"}
             </span>
-            <span className="text-slate-300">-</span>
+
+            <span className="text-slate-300">
+              -
+            </span>
+
             <span className="text-3xl font-black">
-              {game.scores?.home?.points ?? "-"}
+              {game.scores
+                ?.home
+                ?.points ?? "-"}
             </span>
           </div>
 
@@ -1055,7 +1453,10 @@ function GameDetail({
               name={home?.name}
               size="large"
             />
-            <div className="mt-2 text-xs font-bold">{home?.name}</div>
+
+            <div className="mt-2 text-xs font-bold">
+              {home?.name}
+            </div>
           </div>
         </div>
 
@@ -1064,24 +1465,39 @@ function GameDetail({
             Estadísticas del partido
           </h3>
 
-          {loading && <Loading text="Cargando estadísticas..." />}
-          {!loading && error && <ErrorBox text={error} />}
-
-          {!loading && !error && stats.length > 0 && (
-            <div className="space-y-7">
-              <PlayerBoxScore
-                team={visitors}
-                stats={stats}
-                onSelect={onPlayer}
-              />
-
-              <PlayerBoxScore
-                team={home}
-                stats={stats}
-                onSelect={onPlayer}
-              />
-            </div>
+          {loading && (
+            <Loading text="Cargando estadísticas..." />
           )}
+
+          {!loading &&
+            error && (
+              <ErrorBox
+                text={error}
+              />
+            )}
+
+          {!loading &&
+            !error &&
+            stats.length >
+              0 && (
+              <div className="space-y-7">
+                <PlayerBoxScore
+                  team={visitors}
+                  stats={stats}
+                  onSelect={
+                    onPlayer
+                  }
+                />
+
+                <PlayerBoxScore
+                  team={home}
+                  stats={stats}
+                  onSelect={
+                    onPlayer
+                  }
+                />
+              </div>
+            )}
         </div>
       </article>
     </section>
@@ -1091,14 +1507,13 @@ function GameDetail({
 function GamePlayerDetail({
   stat,
   seasonPlayer,
-  game,
   onBack,
 }) {
   return (
     <section>
       <button
         onClick={onBack}
-        className="mb-5 flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold"
+        className="mb-5 flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold"
       >
         <ArrowLeft size={18} />
         Volver al partido
@@ -1107,10 +1522,14 @@ function GamePlayerDetail({
       <article className="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
         <div className="bg-gradient-to-br from-orange-500 to-red-500 p-5 text-white">
           <h1 className="text-2xl font-black">
-            {playerName(stat.player)}
+            {boxPlayerName(
+              stat.player
+            )}
           </h1>
+
           <p className="mt-1 text-sm text-orange-100">
-            {stat.team?.name} · {stat.pos || "-"}
+            {stat.team?.name} ·{" "}
+            {stat.pos || "-"}
           </p>
         </div>
 
@@ -1120,14 +1539,63 @@ function GamePlayerDetail({
           </p>
 
           <div className="grid grid-cols-2 gap-3">
-            <StatBox label="MIN" value={stat.min ?? "-"} />
-            <StatBox label="PTS" value={stat.points ?? 0} featured />
-            <StatBox label="REB" value={stat.totReb ?? 0} />
-            <StatBox label="AST" value={stat.assists ?? 0} />
-            <StatBox label="ROB" value={stat.steals ?? 0} />
-            <StatBox label="TAP" value={stat.blocks ?? 0} />
-            <StatBox label="PERD" value={stat.turnovers ?? 0} />
-            <StatBox label="+/-" value={stat.plusMinus ?? "-"} />
+            <StatBox
+              label="MIN"
+              value={
+                stat.min ?? "-"
+              }
+            />
+
+            <StatBox
+              label="PTS"
+              value={
+                stat.points ?? 0
+              }
+              featured
+            />
+
+            <StatBox
+              label="REB"
+              value={
+                stat.totReb ?? 0
+              }
+            />
+
+            <StatBox
+              label="AST"
+              value={
+                stat.assists ?? 0
+              }
+            />
+
+            <StatBox
+              label="ROB"
+              value={
+                stat.steals ?? 0
+              }
+            />
+
+            <StatBox
+              label="TAP"
+              value={
+                stat.blocks ?? 0
+              }
+            />
+
+            <StatBox
+              label="PERD"
+              value={
+                stat.turnovers ?? 0
+              }
+            />
+
+            <StatBox
+              label="+/-"
+              value={
+                stat.plusMinus ??
+                "-"
+              }
+            />
           </div>
         </div>
 
@@ -1140,50 +1608,61 @@ function GamePlayerDetail({
             <div className="grid grid-cols-2 gap-3">
               <StatBox
                 label="PJ"
-                value={seasonPlayer.games_played}
+                value={
+                  seasonPlayer.games_played
+                }
               />
+
               <StatBox
                 label="MIN"
-                value={number(seasonPlayer.minutes_pg)}
+                value={formatNumber(
+                  seasonPlayer.minutes_pg
+                )}
               />
+
               <StatBox
                 label="PTS"
-                value={number(seasonPlayer.points_pg)}
+                value={formatNumber(
+                  seasonPlayer.points_pg
+                )}
                 featured
               />
+
               <StatBox
                 label="REB"
-                value={number(seasonPlayer.rebounds_pg)}
+                value={formatNumber(
+                  seasonPlayer.rebounds_pg
+                )}
               />
+
               <StatBox
                 label="AST"
-                value={number(seasonPlayer.assists_pg)}
+                value={formatNumber(
+                  seasonPlayer.assists_pg
+                )}
               />
+
               <StatBox
                 label="ROB"
-                value={number(seasonPlayer.steals_pg)}
+                value={formatNumber(
+                  seasonPlayer.steals_pg
+                )}
               />
+
               <StatBox
                 label="TAP"
-                value={number(seasonPlayer.blocks_pg)}
+                value={formatNumber(
+                  seasonPlayer.blocks_pg
+                )}
               />
+
               <StatBox
                 label="TS%"
-                value={percent(seasonPlayer.ts_pct)}
+                value={formatPercentage(
+                  seasonPlayer.ts_pct
+                )}
               />
             </div>
-
-            {seasonPlayer.salary && (
-              <button
-                onClick={() => {}}
-                className="mt-4 w-full rounded-2xl bg-slate-950 p-4 text-left text-white"
-              >
-                <div className="text-xs text-slate-300">Salario anual</div>
-                <div className="mt-1 text-xl font-black">
-                  {money(seasonPlayer.salary)}
-                </div>
-              </button>
-            )}
           </div>
         )}
       </article>
@@ -1191,91 +1670,428 @@ function GamePlayerDetail({
   );
 }
 
-function SpanishView({ players }) {
-  const spanish = players.filter((player) => {
-    const name = normalizeText(player.player_name);
-
-    return SPANISH_PLAYERS.some(
-      (spanishName) => normalizeText(spanishName) === name
+function SpanishDailyCard({
+  performance,
+  game,
+  seasonPlayer,
+  onOpenGame,
+}) {
+  const canonicalName =
+    canonicalSpanishName(
+      performance.player
     );
-  });
+
+  const opponent = game
+    ? game.teams?.visitors
+        ?.id ===
+      performance.team?.id
+      ? game.teams?.home
+      : game.teams
+          ?.visitors
+    : null;
+
+  return (
+    <article className="rounded-3xl border border-orange-200 bg-orange-50/40 p-5 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <Logo
+          code={
+            performance.team?.code
+          }
+          name={
+            performance.team?.name
+          }
+        />
+
+        <div className="min-w-0">
+          <h3 className="font-black">
+            {canonicalName}
+          </h3>
+
+          <p className="text-xs text-slate-500">
+            {
+              performance.team
+                ?.name
+            }
+            {opponent
+              ? ` vs ${opponent.name}`
+              : ""}
+          </p>
+
+          {game && (
+            <p className="mt-0.5 text-[10px] text-slate-400">
+              {formatGameStatus(
+                game
+              )}
+              {" · "}
+              {formatDate(
+                game.date?.start
+              )}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <StatBox
+          label="MIN"
+          value={
+            performance.min ??
+            "-"
+          }
+        />
+
+        <StatBox
+          label="PTS"
+          value={
+            performance.points ??
+            0
+          }
+          featured
+        />
+
+        <StatBox
+          label="REB"
+          value={
+            performance.totReb ??
+            0
+          }
+        />
+
+        <StatBox
+          label="AST"
+          value={
+            performance.assists ??
+            0
+          }
+        />
+      </div>
+
+      {game && (
+        <button
+          onClick={() =>
+            onOpenGame(game)
+          }
+          className="mt-4 w-full rounded-2xl bg-orange-500 py-2.5 text-xs font-bold text-white"
+        >
+          Ver partido completo
+        </button>
+      )}
+
+      {seasonPlayer && (
+        <div className="mt-4 border-t border-orange-200 pt-3 text-[10px] text-slate-500">
+          Temporada:{" "}
+          <strong>
+            {formatNumber(
+              seasonPlayer.points_pg
+            )}{" "}
+            PTS
+          </strong>
+          {" · "}
+          {formatNumber(
+            seasonPlayer.rebounds_pg
+          )}{" "}
+          REB
+          {" · "}
+          {formatNumber(
+            seasonPlayer.assists_pg
+          )}{" "}
+          AST
+        </div>
+      )}
+    </article>
+  );
+}
+
+function SpanishSeasonCard({
+  player,
+  onSelect,
+}) {
+  return (
+    <button
+      onClick={() =>
+        onSelect(player)
+      }
+      className="w-full rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm"
+    >
+      <div className="mb-4 flex items-center gap-3">
+        <Logo
+          code={player.team}
+          name={
+            player.player_name
+          }
+        />
+
+        <div>
+          <h3 className="font-black">
+            {player.player_name}
+          </h3>
+
+          <p className="text-xs text-slate-500">
+            {player.team} ·{" "}
+            {player.position ||
+              "-"}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2">
+        <StatBox
+          label="PJ"
+          value={
+            player.games_played
+          }
+        />
+
+        <StatBox
+          label="PTS"
+          value={formatNumber(
+            player.points_pg
+          )}
+          featured
+        />
+
+        <StatBox
+          label="REB"
+          value={formatNumber(
+            player.rebounds_pg
+          )}
+        />
+
+        <StatBox
+          label="AST"
+          value={formatNumber(
+            player.assists_pg
+          )}
+        />
+      </div>
+    </button>
+  );
+}
+
+function SpanishView({
+  seasonPlayers,
+  dailyPerformances,
+  games,
+  onOpenGame,
+  onSelectSeasonPlayer,
+}) {
+  const dailyItems =
+    dailyPerformances
+      .map(
+        (performance) => {
+          const game =
+            games.find(
+              (item) =>
+                String(
+                  item.id
+                ) ===
+                String(
+                  performance
+                    .game?.id
+                )
+            ) || null;
+
+          const seasonPlayer =
+            findSeasonPlayerForBoxScore(
+              performance,
+              seasonPlayers
+            );
+
+          return {
+            performance,
+            game,
+            seasonPlayer,
+          };
+        }
+      )
+      .sort(
+        (a, b) =>
+          Number(
+            b.performance
+              .points || 0
+          ) -
+          Number(
+            a.performance
+              .points || 0
+          )
+      );
+
+  const spanishSeasonPlayers =
+    seasonPlayers
+      .filter(
+        (player) =>
+          isSpanishName(
+            player.player_name
+          )
+      )
+      .sort(
+        (a, b) =>
+          Number(
+            b.points_pg || 0
+          ) -
+          Number(
+            a.points_pg || 0
+          )
+      );
 
   return (
     <section>
       <p className="text-xs font-semibold text-orange-600">
-        TEMPORADA 2026-27
+        ÚLTIMA JORNADA
       </p>
 
-      <h2 className="mb-4 text-xl font-black">
-        Españoles en la NBA
+      <h2 className="text-xl font-black">
+        Actuaciones españolas
       </h2>
 
+      <div className="mt-4 space-y-4">
+        {dailyItems.length >
+        0 ? (
+          dailyItems.map(
+            ({
+              performance,
+              game,
+              seasonPlayer,
+            }) => (
+              <SpanishDailyCard
+                key={`${performance.game?.id}-${performance.player?.id}`}
+                performance={
+                  performance
+                }
+                game={game}
+                seasonPlayer={
+                  seasonPlayer
+                }
+                onOpenGame={
+                  onOpenGame
+                }
+              />
+            )
+          )
+        ) : (
+          <div className="rounded-3xl bg-slate-100 p-8 text-center">
+            <Flag
+              size={30}
+              className="mx-auto mb-3 text-orange-500"
+            />
+
+            <p className="font-bold">
+              Sin actuaciones españolas
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-4 mt-8">
+        <p className="text-xs font-semibold text-orange-600">
+          TEMPORADA 2026-27
+        </p>
+
+        <h2 className="text-xl font-black">
+          Promedios de temporada
+        </h2>
+      </div>
+
       <div className="space-y-4">
-        {spanish.map((player) => (
-          <article
-            key={`${player.player_name}-${player.team}`}
-            className="rounded-3xl border border-slate-200 p-5 shadow-sm"
-          >
-            <div className="mb-4 flex items-center gap-3">
-              <Logo code={player.team} name={player.player_name} />
-
-              <div>
-                <h3 className="font-black">{player.player_name}</h3>
-                <p className="text-xs text-slate-500">
-                  {player.team} · {player.position || "-"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-2">
-              <StatBox label="PJ" value={player.games_played} />
-              <StatBox
-                label="PTS"
-                value={number(player.points_pg)}
-                featured
-              />
-              <StatBox
-                label="REB"
-                value={number(player.rebounds_pg)}
-              />
-              <StatBox
-                label="AST"
-                value={number(player.assists_pg)}
-              />
-            </div>
-          </article>
-        ))}
+        {spanishSeasonPlayers.map(
+          (player) => (
+            <SpanishSeasonCard
+              key={`${player.player_name}-${player.team}`}
+              player={player}
+              onSelect={
+                onSelectSeasonPlayer
+              }
+            />
+          )
+        )}
       </div>
     </section>
   );
 }
 
 export default function App() {
-  const [tab, setTab] = useState("Scores");
-  const [games, setGames] = useState([]);
-  const [gameDate, setGameDate] = useState("");
-  const [standings, setStandings] = useState([]);
-  const [seasonStats, setSeasonStats] = useState([]);
-  const [salaries, setSalaries] = useState([]);
-  const [boxScoreFile, setBoxScoreFile] = useState({});
+  const [tab, setTab] =
+    useState("Scores");
 
-  const [selectedGame, setSelectedGame] = useState(null);
-  const [selectedBoxPlayer, setSelectedBoxPlayer] = useState(null);
-  const [selectedSeasonPlayer, setSelectedSeasonPlayer] = useState(null);
+  const [games, setGames] =
+    useState([]);
 
-  const [gameStats, setGameStats] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [gameStatsLoading, setGameStatsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [gameStatsError, setGameStatsError] = useState("");
+  const [
+    gameDate,
+    setGameDate,
+  ] = useState("");
 
-  async function getJson(url) {
-    const response = await fetch(`${url}?t=${Date.now()}`, {
-      cache: "no-store",
-    });
+  const [
+    standings,
+    setStandings,
+  ] = useState([]);
+
+  const [
+    seasonStats,
+    setSeasonStats,
+  ] = useState([]);
+
+  const [
+    salaries,
+    setSalaries,
+  ] = useState([]);
+
+  const [
+    boxScoreFile,
+    setBoxScoreFile,
+  ] = useState({});
+
+  const [
+    selectedGame,
+    setSelectedGame,
+  ] = useState(null);
+
+  const [
+    selectedBoxPlayer,
+    setSelectedBoxPlayer,
+  ] = useState(null);
+
+  const [
+    selectedSeasonPlayer,
+    setSelectedSeasonPlayer,
+  ] = useState(null);
+
+  const [
+    gameStats,
+    setGameStats,
+  ] = useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [
+    gameStatsLoading,
+    setGameStatsLoading,
+  ] = useState(false);
+
+  const [
+    gameStatsError,
+    setGameStatsError,
+  ] = useState("");
+
+  async function getJson(
+    url
+  ) {
+    const response =
+      await fetch(
+        `${url}?t=${Date.now()}`,
+        {
+          cache: "no-store",
+        }
+      );
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      throw new Error(
+        `HTTP ${response.status}`
+      );
     }
 
     return response.json();
@@ -1294,41 +2110,69 @@ export default function App() {
         salariesData,
       ] = await Promise.all([
         getJson(URLS.games),
-        getJson(URLS.boxScores),
-        getJson(URLS.standings),
-        getJson(URLS.seasonStats),
-        getJson(URLS.salaries),
+        getJson(
+          URLS.boxScores
+        ),
+        getJson(
+          URLS.standings
+        ),
+        getJson(
+          URLS.seasonStats
+        ),
+        getJson(
+          URLS.salaries
+        ),
       ]);
 
       setGames(
-        Array.isArray(gamesData.response)
+        Array.isArray(
+          gamesData.response
+        )
           ? gamesData.response
           : []
       );
 
-      setGameDate(gamesData.parameters?.date || "");
-      setBoxScoreFile(boxScoresData.games || {});
+      setGameDate(
+        gamesData.parameters
+          ?.date || ""
+      );
+
+      setBoxScoreFile(
+        boxScoresData.games ||
+          {}
+      );
 
       setStandings(
-        Array.isArray(standingsData.response)
+        Array.isArray(
+          standingsData.response
+        )
           ? standingsData.response
           : []
       );
 
       setSeasonStats(
-        Array.isArray(seasonData.response)
+        Array.isArray(
+          seasonData.response
+        )
           ? seasonData.response
           : []
       );
 
       setSalaries(
-        Array.isArray(salariesData.response)
+        Array.isArray(
+          salariesData.response
+        )
           ? salariesData.response
           : []
       );
     } catch (loadError) {
-      console.error(loadError);
-      setError("No ha sido posible cargar todos los datos.");
+      console.error(
+        loadError
+      );
+
+      setError(
+        "No ha sido posible cargar todos los datos."
+      );
     } finally {
       setLoading(false);
     }
@@ -1346,77 +2190,123 @@ export default function App() {
     ) {
       scrollTop();
     }
-  }, [selectedGame, selectedBoxPlayer, selectedSeasonPlayer]);
+  }, [
+    selectedGame,
+    selectedBoxPlayer,
+    selectedSeasonPlayer,
+  ]);
 
-  const enrichedPlayers = useMemo(
-    () => mergeSeasonStatsAndSalaries(seasonStats, salaries),
-    [seasonStats, salaries]
-  );
-
-  const boxPlayerSeason = useMemo(() => {
-    if (!selectedBoxPlayer) {
-      return null;
-    }
-
-    const normal = normalizeText(
-      playerName(selectedBoxPlayer.player)
+  const enrichedPlayers =
+    useMemo(
+      () =>
+        mergeSeasonStatsAndSalaries(
+          seasonStats,
+          salaries
+        ),
+      [
+        seasonStats,
+        salaries,
+      ]
     );
 
-    const reversed = normalizeText(
-      `${selectedBoxPlayer.player?.lastname || ""} ${
-        selectedBoxPlayer.player?.firstname || ""
-      }`
-    );
-
-    const team = selectedBoxPlayer.team?.code;
-
-    return (
-      enrichedPlayers.find(
-        (player) =>
-          player.team === team &&
-          [normal, reversed].includes(
-            normalizeText(player.player_name)
-          )
-      ) ||
-      enrichedPlayers.find((player) =>
-        [normal, reversed].includes(
-          normalizeText(player.player_name)
+  const spanishDailyPerformances =
+    useMemo(() => {
+      return Object.values(
+        boxScoreFile
+      )
+        .flatMap(
+          (gameData) =>
+            Array.isArray(
+              gameData?.response
+            )
+              ? gameData.response
+              : []
         )
-      ) ||
-      null
+        .filter(
+          (stat) =>
+            isSpanishName(
+              boxPlayerName(
+                stat.player
+              )
+            ) ||
+            isSpanishName(
+              reversedBoxPlayerName(
+                stat.player
+              )
+            )
+        );
+    }, [boxScoreFile]);
+
+  const boxPlayerSeason =
+    useMemo(
+      () =>
+        findSeasonPlayerForBoxScore(
+          selectedBoxPlayer,
+          enrichedPlayers
+        ),
+      [
+        selectedBoxPlayer,
+        enrichedPlayers,
+      ]
     );
-  }, [selectedBoxPlayer, enrichedPlayers]);
 
   function openGame(game) {
     setSelectedGame(game);
-    setSelectedBoxPlayer(null);
+    setSelectedBoxPlayer(
+      null
+    );
+
     setGameStatsError("");
-    setGameStatsLoading(true);
+    setGameStatsLoading(
+      true
+    );
 
-    const saved = boxScoreFile[String(game.id)];
+    const savedGame =
+      boxScoreFile[
+        String(game.id)
+      ];
 
-    if (Array.isArray(saved?.response)) {
-      setGameStats(saved.response);
-      setGameStatsLoading(false);
+    if (
+      Array.isArray(
+        savedGame?.response
+      )
+    ) {
+      setGameStats(
+        savedGame.response
+      );
+
+      setGameStatsLoading(
+        false
+      );
+
       return;
     }
 
     setGameStats([]);
-    setGameStatsLoading(false);
+    setGameStatsLoading(
+      false
+    );
+
     setGameStatsError(
       "Las estadísticas de este partido todavía no están disponibles."
     );
   }
 
-  function changeTab(nextTab) {
+  function changeTab(
+    nextTab
+  ) {
     setTab(nextTab);
     setSelectedGame(null);
-    setSelectedBoxPlayer(null);
-    setSelectedSeasonPlayer(null);
+    setSelectedBoxPlayer(
+      null
+    );
+    setSelectedSeasonPlayer(
+      null
+    );
     scrollTop();
   }
 
-  const showMainNavigation =
+  const showNavigation =
     !selectedGame &&
     !selectedBoxPlayer &&
     !selectedSeasonPlayer;
@@ -1426,12 +2316,17 @@ export default function App() {
       <header
         className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur"
         style={{
-          paddingTop: "env(safe-area-inset-top)",
+          paddingTop:
+            "env(safe-area-inset-top)",
         }}
       >
         <div className="flex items-center px-4 py-3">
           <button
-            onClick={() => changeTab("Scores")}
+            onClick={() =>
+              changeTab(
+                "Scores"
+              )
+            }
             className="flex items-center gap-3"
           >
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500 text-sm font-black text-white">
@@ -1439,7 +2334,10 @@ export default function App() {
             </div>
 
             <div className="text-left">
-              <div className="font-black">ÑBA</div>
+              <div className="font-black">
+                ÑBA
+              </div>
+
               <div className="text-[10px] text-slate-500">
                 Tu app de baloncesto
               </div>
@@ -1451,19 +2349,29 @@ export default function App() {
       <main className="mx-auto max-w-7xl px-4 py-5">
         {selectedSeasonPlayer ? (
           <SeasonPlayerDetail
-            player={selectedSeasonPlayer}
+            player={
+              selectedSeasonPlayer
+            }
             onBack={() => {
-              setSelectedSeasonPlayer(null);
+              setSelectedSeasonPlayer(
+                null
+              );
               scrollTop();
             }}
           />
-        ) : selectedBoxPlayer && selectedGame ? (
+        ) : selectedBoxPlayer &&
+          selectedGame ? (
           <GamePlayerDetail
-            stat={selectedBoxPlayer}
-            seasonPlayer={boxPlayerSeason}
-            game={selectedGame}
+            stat={
+              selectedBoxPlayer
+            }
+            seasonPlayer={
+              boxPlayerSeason
+            }
             onBack={() => {
-              setSelectedBoxPlayer(null);
+              setSelectedBoxPlayer(
+                null
+              );
               scrollTop();
             }}
           />
@@ -1471,20 +2379,30 @@ export default function App() {
           <GameDetail
             game={selectedGame}
             stats={gameStats}
-            loading={gameStatsLoading}
-            error={gameStatsError}
+            loading={
+              gameStatsLoading
+            }
+            error={
+              gameStatsError
+            }
             onBack={() => {
-              setSelectedGame(null);
+              setSelectedGame(
+                null
+              );
               setGameStats([]);
               scrollTop();
             }}
-            onPlayer={setSelectedBoxPlayer}
+            onPlayer={
+              setSelectedBoxPlayer
+            }
           />
         ) : (
           <>
             <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white">
               <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase">
-                <CalendarDays size={14} />
+                <CalendarDays
+                  size={14}
+                />
                 ÑBA
               </div>
 
@@ -1493,88 +2411,158 @@ export default function App() {
               </h1>
 
               <p className="mt-1 text-xs text-orange-50">
-                Resultados, clasificaciones, rankings y salarios.
+                Resultados, clasificación, rankings y españoles.
               </p>
             </section>
 
-            {loading && <Loading text="Cargando ÑBA..." />}
-            {!loading && error && <ErrorBox text={error} />}
+            {loading && (
+              <Loading text="Cargando ÑBA..." />
+            )}
 
-            {!loading && !error && tab === "Scores" && (
-              <section>
-                <div className="mb-4 flex items-end justify-between">
-                  <div>
-                    <h2 className="text-xl font-black">Partidos</h2>
-                    <p className="text-xs text-slate-400">
-                      {gameDate}
-                    </p>
+            {!loading &&
+              error && (
+                <ErrorBox
+                  text={error}
+                />
+              )}
+
+            {!loading &&
+              !error &&
+              tab ===
+                "Scores" && (
+                <section>
+                  <div className="mb-4 flex items-end justify-between">
+                    <div>
+                      <h2 className="text-xl font-black">
+                        Partidos
+                      </h2>
+
+                      <p className="text-xs text-slate-400">
+                        {gameDate}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={
+                        loadEverything
+                      }
+                      className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+                    >
+                      <RefreshCw
+                        size={14}
+                      />
+                      Actualizar
+                    </button>
                   </div>
 
-                  <button
-                    onClick={loadEverything}
-                    className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs"
-                  >
-                    <RefreshCw size={14} />
-                    Actualizar
-                  </button>
-                </div>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {games.map(
+                      (game) => (
+                        <button
+                          key={
+                            game.id
+                          }
+                          onClick={() =>
+                            openGame(
+                              game
+                            )
+                          }
+                          className="rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
+                        >
+                          <div className="mb-4 text-xs font-bold text-slate-500">
+                            {formatGameStatus(
+                              game
+                            )}
+                          </div>
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {games.map((game) => (
-                    <button
-                      key={game.id}
-                      onClick={() => openGame(game)}
-                      className="rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
-                    >
-                      <div className="mb-4 text-xs font-bold text-slate-500">
-                        {formatGameStatus(game)}
-                      </div>
+                          <div className="space-y-4">
+                            <TeamRow
+                              team={
+                                game
+                                  .teams
+                                  ?.visitors
+                              }
+                              score={
+                                game
+                                  .scores
+                                  ?.visitors
+                              }
+                            />
 
-                      <div className="space-y-4">
-                        <TeamRow
-                          team={game.teams?.visitors}
-                          score={game.scores?.visitors}
-                        />
-                        <TeamRow
-                          team={game.teams?.home}
-                          score={game.scores?.home}
-                        />
-                      </div>
+                            <TeamRow
+                              team={
+                                game
+                                  .teams
+                                  ?.home
+                              }
+                              score={
+                                game
+                                  .scores
+                                  ?.home
+                              }
+                            />
+                          </div>
 
-                      <div className="mt-4 text-right text-xs font-bold text-orange-600">
-                        Ver partido →
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
+                          <div className="mt-4 text-right text-xs font-bold text-orange-600">
+                            Ver partido →
+                          </div>
+                        </button>
+                      )
+                    )}
+                  </div>
+                </section>
+              )}
 
-            {!loading && !error && tab === "Standings" && (
-              <StandingsView
-                standings={standings}
-                loading={false}
-                error=""
-              />
-            )}
+            {!loading &&
+              !error &&
+              tab ===
+                "Standings" && (
+                <StandingsView
+                  standings={
+                    standings
+                  }
+                />
+              )}
 
-            {!loading && !error && tab === "Players" && (
-              <PlayersView
-                players={enrichedPlayers}
-                loading={false}
-                error=""
-                onSelect={setSelectedSeasonPlayer}
-              />
-            )}
+            {!loading &&
+              !error &&
+              tab ===
+                "Players" && (
+                <PlayersView
+                  players={
+                    enrichedPlayers
+                  }
+                  onSelect={
+                    setSelectedSeasonPlayer
+                  }
+                />
+              )}
 
-            {!loading && !error && tab === "Spanish" && (
-              <SpanishView players={enrichedPlayers} />
-            )}
+            {!loading &&
+              !error &&
+              tab ===
+                "Spanish" && (
+                <SpanishView
+                  seasonPlayers={
+                    enrichedPlayers
+                  }
+                  dailyPerformances={
+                    spanishDailyPerformances
+                  }
+                  games={games}
+                  onOpenGame={
+                    openGame
+                  }
+                  onSelectSeasonPlayer={
+                    setSelectedSeasonPlayer
+                  }
+                />
+              )}
           </>
         )}
       </main>
 
-      {showMainNavigation && (
+      {showNavigation && (
         <nav
           className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-1 pt-2 backdrop-blur md:hidden"
           style={{
@@ -1582,20 +2570,30 @@ export default function App() {
               "calc(0.5rem + env(safe-area-inset-bottom))",
           }}
         >
-          {NAV.map(([key, Icon, label]) => (
-            <button
-              key={key}
-              onClick={() => changeTab(key)}
-              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[9px] ${
-                tab === key
-                  ? "bg-slate-950 text-white"
-                  : "text-slate-500"
-              }`}
-            >
-              <Icon size={17} />
-              {label}
-            </button>
-          ))}
+          {NAV.map(
+            ([
+              key,
+              Icon,
+              label,
+            ]) => (
+              <button
+                key={key}
+                onClick={() =>
+                  changeTab(key)
+                }
+                className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[9px] ${
+                  tab === key
+                    ? "bg-slate-950 text-white"
+                    : "text-slate-500"
+                }`}
+              >
+                <Icon
+                  size={17}
+                />
+                {label}
+              </button>
+            )
+          )}
         </nav>
       )}
 
