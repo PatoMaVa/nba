@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-19T09:00:23.010186+00:00",
+  "updatedAt": "2026-11-19T10:04:11.497889+00:00",
   "source": "Basketball-Reference",
   "results": 30,
   "response": [
@@ -10,23 +10,23 @@
       "team_name": "Los Angeles Lakers",
       "conference": "West",
       "wins": 13,
-      "losses": 2,
-      "win_pct": 0.867,
-      "games": 15,
-      "points_pg": 122.5,
-      "opponent_points_pg": 114.8
+      "losses": 3,
+      "win_pct": 0.813,
+      "games": 16,
+      "points_pg": 120.9,
+      "opponent_points_pg": 114.4
     },
     {
       "season": "2026-27",
       "team": "PHI",
       "team_name": "Philadelphia 76ers",
       "conference": "East",
-      "wins": 12,
+      "wins": 13,
       "losses": 3,
-      "win_pct": 0.8,
-      "games": 15,
-      "points_pg": 114.1,
-      "opponent_points_pg": 111.3
+      "win_pct": 0.813,
+      "games": 16,
+      "points_pg": 114.5,
+      "opponent_points_pg": 111.6
     },
     {
       "season": "2026-27",
@@ -42,27 +42,39 @@
     },
     {
       "season": "2026-27",
+      "team": "HOU",
+      "team_name": "Houston Rockets",
+      "conference": "West",
+      "wins": 12,
+      "losses": 4,
+      "win_pct": 0.75,
+      "games": 16,
+      "points_pg": 117.9,
+      "opponent_points_pg": 109.2
+    },
+    {
+      "season": "2026-27",
       "team": "BOS",
       "team_name": "Boston Celtics",
       "conference": "East",
       "wins": 11,
-      "losses": 3,
-      "win_pct": 0.786,
-      "games": 14,
-      "points_pg": 114.8,
-      "opponent_points_pg": 103.3
+      "losses": 4,
+      "win_pct": 0.733,
+      "games": 15,
+      "points_pg": 113.9,
+      "opponent_points_pg": 103.4
     },
     {
       "season": "2026-27",
-      "team": "HOU",
-      "team_name": "Houston Rockets",
+      "team": "MEM",
+      "team_name": "Memphis Grizzlies",
       "conference": "West",
       "wins": 11,
       "losses": 4,
       "win_pct": 0.733,
       "games": 15,
-      "points_pg": 117.8,
-      "opponent_points_pg": 109.5
+      "points_pg": 121.9,
+      "opponent_points_pg": 112.9
     },
     {
       "season": "2026-27",
@@ -78,39 +90,15 @@
     },
     {
       "season": "2026-27",
-      "team": "MEM",
-      "team_name": "Memphis Grizzlies",
-      "conference": "West",
+      "team": "DET",
+      "team_name": "Detroit Pistons",
+      "conference": "East",
       "wins": 10,
       "losses": 4,
       "win_pct": 0.714,
       "games": 14,
-      "points_pg": 121.7,
-      "opponent_points_pg": 112.3
-    },
-    {
-      "season": "2026-27",
-      "team": "DET",
-      "team_name": "Detroit Pistons",
-      "conference": "East",
-      "wins": 9,
-      "losses": 4,
-      "win_pct": 0.692,
-      "games": 13,
-      "points_pg": 114.8,
+      "points_pg": 115.4,
       "opponent_points_pg": 108.9
-    },
-    {
-      "season": "2026-27",
-      "team": "OKC",
-      "team_name": "Oklahoma City Thunder",
-      "conference": "West",
-      "wins": 9,
-      "losses": 5,
-      "win_pct": 0.643,
-      "games": 14,
-      "points_pg": 112.1,
-      "opponent_points_pg": 107.1
     },
     {
       "season": "2026-27",
@@ -129,48 +117,48 @@
       "team": "DEN",
       "team_name": "Denver Nuggets",
       "conference": "West",
-      "wins": 7,
+      "wins": 8,
       "losses": 5,
-      "win_pct": 0.583,
-      "games": 12,
-      "points_pg": 113.8,
-      "opponent_points_pg": 113.2
+      "win_pct": 0.615,
+      "games": 13,
+      "points_pg": 113.2,
+      "opponent_points_pg": 112.2
     },
     {
       "season": "2026-27",
       "team": "ATL",
       "team_name": "Atlanta Hawks",
       "conference": "East",
-      "wins": 8,
+      "wins": 9,
       "losses": 6,
-      "win_pct": 0.571,
-      "games": 14,
-      "points_pg": 117.8,
-      "opponent_points_pg": 116.1
-    },
-    {
-      "season": "2026-27",
-      "team": "GSW",
-      "team_name": "Golden State Warriors",
-      "conference": "West",
-      "wins": 8,
-      "losses": 6,
-      "win_pct": 0.571,
-      "games": 14,
-      "points_pg": 115.1,
-      "opponent_points_pg": 112.6
+      "win_pct": 0.6,
+      "games": 15,
+      "points_pg": 117.7,
+      "opponent_points_pg": 115.8
     },
     {
       "season": "2026-27",
       "team": "MIA",
       "team_name": "Miami Heat",
       "conference": "East",
-      "wins": 8,
+      "wins": 9,
       "losses": 6,
-      "win_pct": 0.571,
-      "games": 14,
-      "points_pg": 119.4,
-      "opponent_points_pg": 119.1
+      "win_pct": 0.6,
+      "games": 15,
+      "points_pg": 120.5,
+      "opponent_points_pg": 119.9
+    },
+    {
+      "season": "2026-27",
+      "team": "OKC",
+      "team_name": "Oklahoma City Thunder",
+      "conference": "West",
+      "wins": 9,
+      "losses": 6,
+      "win_pct": 0.6,
+      "games": 15,
+      "points_pg": 112.1,
+      "opponent_points_pg": 107.7
     },
     {
       "season": "2026-27",
@@ -186,27 +174,51 @@
     },
     {
       "season": "2026-27",
-      "team": "CLE",
-      "team_name": "Cleveland Cavaliers",
-      "conference": "East",
+      "team": "DAL",
+      "team_name": "Dallas Mavericks",
+      "conference": "West",
       "wins": 8,
       "losses": 7,
       "win_pct": 0.533,
       "games": 15,
-      "points_pg": 118.1,
-      "opponent_points_pg": 115.8
+      "points_pg": 112.3,
+      "opponent_points_pg": 113.2
     },
     {
       "season": "2026-27",
-      "team": "DAL",
-      "team_name": "Dallas Mavericks",
+      "team": "GSW",
+      "team_name": "Golden State Warriors",
+      "conference": "West",
+      "wins": 8,
+      "losses": 7,
+      "win_pct": 0.533,
+      "games": 15,
+      "points_pg": 113.7,
+      "opponent_points_pg": 112.8
+    },
+    {
+      "season": "2026-27",
+      "team": "CLE",
+      "team_name": "Cleveland Cavaliers",
+      "conference": "East",
+      "wins": 8,
+      "losses": 8,
+      "win_pct": 0.5,
+      "games": 16,
+      "points_pg": 118.3,
+      "opponent_points_pg": 116.3
+    },
+    {
+      "season": "2026-27",
+      "team": "PHX",
+      "team_name": "Phoenix Suns",
       "conference": "West",
       "wins": 7,
       "losses": 7,
       "win_pct": 0.5,
       "games": 14,
-      "points_pg": 112.1,
-      "opponent_points_pg": 114.6
+      "points_pg": 114.1,
+      "opponent_points_pg": 115.7
     },
     {
       "season": "2026-27",
@@ -214,23 +226,11 @@
       "team_name": "Orlando Magic",
       "conference": "East",
       "wins": 6,
-      "losses": 7,
-      "win_pct": 0.462,
-      "games": 13,
-      "points_pg": 108.8,
-      "opponent_points_pg": 112.2
-    },
-    {
-      "season": "2026-27",
-      "team": "PHX",
-      "team_name": "Phoenix Suns",
-      "conference": "West",
-      "wins": 6,
-      "losses": 7,
-      "win_pct": 0.462,
-      "games": 13,
-      "points_pg": 113.0,
-      "opponent_points_pg": 116.4
+      "losses": 8,
+      "win_pct": 0.429,
+      "games": 14,
+      "points_pg": 109.4,
+      "opponent_points_pg": 112.8
     },
     {
       "season": "2026-27",
@@ -238,11 +238,11 @@
       "team_name": "Indiana Pacers",
       "conference": "East",
       "wins": 5,
-      "losses": 9,
-      "win_pct": 0.357,
-      "games": 14,
-      "points_pg": 112.1,
-      "opponent_points_pg": 114.5
+      "losses": 10,
+      "win_pct": 0.333,
+      "games": 15,
+      "points_pg": 111.5,
+      "opponent_points_pg": 114.8
     },
     {
       "season": "2026-27",
@@ -250,11 +250,11 @@
       "team_name": "Toronto Raptors",
       "conference": "East",
       "wins": 5,
-      "losses": 9,
-      "win_pct": 0.357,
-      "games": 14,
-      "points_pg": 112.9,
-      "opponent_points_pg": 112.6
+      "losses": 10,
+      "win_pct": 0.333,
+      "games": 15,
+      "points_pg": 112.0,
+      "opponent_points_pg": 112.0
     },
     {
       "season": "2026-27",
@@ -262,11 +262,23 @@
       "team_name": "New Orleans Pelicans",
       "conference": "West",
       "wins": 5,
-      "losses": 10,
-      "win_pct": 0.333,
-      "games": 15,
-      "points_pg": 115.8,
-      "opponent_points_pg": 122.9
+      "losses": 11,
+      "win_pct": 0.313,
+      "games": 16,
+      "points_pg": 115.4,
+      "opponent_points_pg": 122.8
+    },
+    {
+      "season": "2026-27",
+      "team": "WAS",
+      "team_name": "Washington Wizards",
+      "conference": "East",
+      "wins": 5,
+      "losses": 11,
+      "win_pct": 0.313,
+      "games": 16,
+      "points_pg": 110.8,
+      "opponent_points_pg": 117.9
     },
     {
       "season": "2026-27",
@@ -294,15 +306,15 @@
     },
     {
       "season": "2026-27",
-      "team": "WAS",
-      "team_name": "Washington Wizards",
+      "team": "CHI",
+      "team_name": "Chicago Bulls",
       "conference": "East",
       "wins": 4,
-      "losses": 11,
-      "win_pct": 0.267,
-      "games": 15,
-      "points_pg": 111.3,
-      "opponent_points_pg": 119.2
+      "losses": 10,
+      "win_pct": 0.286,
+      "games": 14,
+      "points_pg": 116.2,
+      "opponent_points_pg": 124.6
     },
     {
       "season": "2026-27",
@@ -310,35 +322,23 @@
       "team_name": "Brooklyn Nets",
       "conference": "East",
       "wins": 3,
-      "losses": 10,
-      "win_pct": 0.231,
-      "games": 13,
-      "points_pg": 111.2,
-      "opponent_points_pg": 117.8
-    },
-    {
-      "season": "2026-27",
-      "team": "CHI",
-      "team_name": "Chicago Bulls",
-      "conference": "East",
-      "wins": 3,
-      "losses": 10,
-      "win_pct": 0.231,
-      "games": 13,
-      "points_pg": 114.6,
-      "opponent_points_pg": 125.9
+      "losses": 11,
+      "win_pct": 0.214,
+      "games": 14,
+      "points_pg": 110.9,
+      "opponent_points_pg": 119.2
     },
     {
       "season": "2026-27",
       "team": "UTA",
       "team_name": "Utah Jazz",
       "conference": "West",
-      "wins": 2,
+      "wins": 3,
       "losses": 13,
-      "win_pct": 0.133,
-      "games": 15,
-      "points_pg": 108.7,
-      "opponent_points_pg": 117.3
+      "win_pct": 0.188,
+      "games": 16,
+      "points_pg": 108.8,
+      "opponent_points_pg": 116.0
     },
     {
       "season": "2026-27",
@@ -346,11 +346,11 @@
       "team_name": "Sacramento Kings",
       "conference": "West",
       "wins": 1,
-      "losses": 12,
-      "win_pct": 0.077,
-      "games": 13,
-      "points_pg": 107.8,
-      "opponent_points_pg": 121.2
+      "losses": 13,
+      "win_pct": 0.071,
+      "games": 14,
+      "points_pg": 107.7,
+      "opponent_points_pg": 121.7
     },
     {
       "season": "2026-27",
@@ -358,11 +358,11 @@
       "team_name": "Milwaukee Bucks",
       "conference": "East",
       "wins": 1,
-      "losses": 13,
-      "win_pct": 0.071,
-      "games": 14,
-      "points_pg": 106.1,
-      "opponent_points_pg": 119.7
+      "losses": 14,
+      "win_pct": 0.067,
+      "games": 15,
+      "points_pg": 107.7,
+      "opponent_points_pg": 120.9
     }
   ]
 }
