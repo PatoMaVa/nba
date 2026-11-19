@@ -4,6 +4,7 @@ import {
   Trophy,
   BarChart3,
   Flag,
+  CircleHelp,
   CalendarDays,
   RefreshCw,
   AlertCircle,
@@ -13,6 +14,9 @@ import {
   TrendingUp,
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL;
@@ -23,6 +27,7 @@ const URLS = {
   standings: `${BASE}data/standings.json`,
   seasonStats: `${BASE}data/season-player-stats.json`,
   salaries: `${BASE}data/player-salaries.json`,
+  quiz: `${BASE}data/quiz-questions.json`,
 };
 
 const NBA_TEAM_IDS = {
@@ -86,9 +91,10 @@ const SPANISH_PLAYERS = [
 
 const NAV = [
   ["Scores", Activity, "Partidos"],
-  ["Standings", Trophy, "Clasificación"],
+  ["Standings", Trophy, "Clasif."],
   ["Players", BarChart3, "Jugadores"],
   ["Spanish", Flag, "Españoles"],
+  ["Quiz", CircleHelp, "Quiz"],
 ];
 
 const STAT_CATEGORIES = [
@@ -120,12 +126,12 @@ const STAT_CATEGORIES = [
   {
     key: "three_point_makes_pg",
     label: "3PT",
-    title: "Triples anotados por partido",
+    title: "Triples por partido",
   },
   {
     key: "field_goal_pct",
     label: "TC%",
-    title: "Porcentaje de tiros de campo",
+    title: "Porcentaje de campo",
     percentage: true,
   },
   {
@@ -176,6 +182,224 @@ const SALARY_CATEGORIES = [
   },
 ];
 
+const FALLBACK_QUIZ_QUESTIONS = [
+  {
+    id: 1,
+    category: "Historia",
+    difficulty: "media",
+    question: "¿Qué jugador anotó 100 puntos en un partido NBA?",
+    options: [
+      "Michael Jordan",
+      "Kobe Bryant",
+      "Wilt Chamberlain",
+      "LeBron James",
+    ],
+    correctAnswer: 2,
+    explanation:
+      "Wilt Chamberlain anotó 100 puntos el 2 de marzo de 1962.",
+  },
+  {
+    id: 2,
+    category: "España",
+    difficulty: "fácil",
+    question: "¿Con qué equipo ganó Pau Gasol sus dos campeonatos NBA?",
+    options: [
+      "Memphis Grizzlies",
+      "Los Angeles Lakers",
+      "Chicago Bulls",
+      "San Antonio Spurs",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Pau Gasol ganó los campeonatos de 2009 y 2010 con Los Angeles Lakers.",
+  },
+  {
+    id: 3,
+    category: "Equipos",
+    difficulty: "fácil",
+    question: "¿En qué equipo desarrolló Tim Duncan toda su carrera NBA?",
+    options: [
+      "Houston Rockets",
+      "Dallas Mavericks",
+      "San Antonio Spurs",
+      "Phoenix Suns",
+    ],
+    correctAnswer: 2,
+    explanation:
+      "Tim Duncan jugó toda su carrera con San Antonio Spurs.",
+  },
+  {
+    id: 4,
+    category: "Historia",
+    difficulty: "media",
+    question: "¿Qué jugador recibió el apodo de Air Jordan?",
+    options: [
+      "Magic Johnson",
+      "Michael Jordan",
+      "Larry Bird",
+      "Julius Erving",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Michael Jordan fue conocido mundialmente como Air Jordan.",
+  },
+  {
+    id: 5,
+    category: "Récords",
+    difficulty: "fácil",
+    question: "¿Cuántos puntos anotó Kobe Bryant en su partido de mayor anotación?",
+    options: ["72", "75", "81", "100"],
+    correctAnswer: 2,
+    explanation:
+      "Kobe Bryant anotó 81 puntos frente a Toronto Raptors en 2006.",
+  },
+  {
+    id: 6,
+    category: "Equipos",
+    difficulty: "fácil",
+    question: "¿Qué equipo juega sus partidos en el Madison Square Garden?",
+    options: [
+      "Brooklyn Nets",
+      "Boston Celtics",
+      "New York Knicks",
+      "Philadelphia 76ers",
+    ],
+    correctAnswer: 2,
+    explanation:
+      "Madison Square Garden es la cancha de New York Knicks.",
+  },
+  {
+    id: 7,
+    category: "Jugadores",
+    difficulty: "fácil",
+    question: "¿Qué jugador es conocido como The King?",
+    options: [
+      "Stephen Curry",
+      "Kevin Durant",
+      "LeBron James",
+      "Shaquille O'Neal",
+    ],
+    correctAnswer: 2,
+    explanation:
+      "LeBron James es conocido como King James.",
+  },
+  {
+    id: 8,
+    category: "España",
+    difficulty: "media",
+    question: "¿Qué jugador español fue elegido número 3 del Draft de 2001?",
+    options: [
+      "Ricky Rubio",
+      "Pau Gasol",
+      "Marc Gasol",
+      "José Calderón",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Pau Gasol fue elegido en el número 3 del Draft de 2001.",
+  },
+  {
+    id: 9,
+    category: "Reglas",
+    difficulty: "fácil",
+    question: "¿Cuántos jugadores de cada equipo están en pista al mismo tiempo?",
+    options: ["4", "5", "6", "7"],
+    correctAnswer: 1,
+    explanation:
+      "Cada equipo tiene cinco jugadores en pista.",
+  },
+  {
+    id: 10,
+    category: "Récords",
+    difficulty: "media",
+    question: "¿Qué jugador superó el récord histórico de anotación de Kareem Abdul-Jabbar?",
+    options: [
+      "Kevin Durant",
+      "Stephen Curry",
+      "LeBron James",
+      "James Harden",
+    ],
+    correctAnswer: 2,
+    explanation:
+      "LeBron James superó el récord histórico de Kareem Abdul-Jabbar.",
+  },
+  {
+    id: 11,
+    category: "Equipos",
+    difficulty: "media",
+    question: "¿En qué ciudad juegan los Warriors?",
+    options: [
+      "San Francisco",
+      "Sacramento",
+      "Los Ángeles",
+      "Portland",
+    ],
+    correctAnswer: 0,
+    explanation:
+      "Golden State Warriors juega actualmente en San Francisco.",
+  },
+  {
+    id: 12,
+    category: "Historia",
+    difficulty: "media",
+    question: "¿Qué equipo seleccionó a Dirk Nowitzki en el Draft de 1998?",
+    options: [
+      "Dallas Mavericks",
+      "Milwaukee Bucks",
+      "Phoenix Suns",
+      "Denver Nuggets",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Milwaukee lo seleccionó y traspasó sus derechos a Dallas.",
+  },
+  {
+    id: 13,
+    category: "Premios",
+    difficulty: "fácil",
+    question: "¿Qué significan las siglas MVP?",
+    options: [
+      "Most Valuable Player",
+      "Maximum Value Performance",
+      "Most Versatile Position",
+      "Major Victory Player",
+    ],
+    correctAnswer: 0,
+    explanation:
+      "MVP significa Most Valuable Player.",
+  },
+  {
+    id: 14,
+    category: "Jugadores",
+    difficulty: "media",
+    question: "¿Qué jugador popularizó el tiro Sky Hook?",
+    options: [
+      "Wilt Chamberlain",
+      "Kareem Abdul-Jabbar",
+      "Bill Russell",
+      "Hakeem Olajuwon",
+    ],
+    correctAnswer: 1,
+    explanation:
+      "Kareem Abdul-Jabbar convirtió el Sky Hook en su movimiento característico.",
+  },
+  {
+    id: 15,
+    category: "España",
+    difficulty: "media",
+    question: "¿Qué español ganó el premio de Rookie del Año en la temporada 2001-02?",
+    options: [
+      "Ricky Rubio",
+      "Marc Gasol",
+      "Pau Gasol",
+      "Juan Carlos Navarro",
+    ],
+    correctAnswer: 2,
+    explanation:
+      "Pau Gasol fue Rookie del Año en la temporada 2001-02.",
+  },
+];
+
 function normalizeText(value = "") {
   return String(value)
     .normalize("NFD")
@@ -187,15 +411,11 @@ function normalizeText(value = "") {
 }
 
 function boxPlayerName(player) {
-  return `${player?.firstname || ""} ${
-    player?.lastname || ""
-  }`.trim();
+  return `${player?.firstname || ""} ${player?.lastname || ""}`.trim();
 }
 
 function reversedBoxPlayerName(player) {
-  return `${player?.lastname || ""} ${
-    player?.firstname || ""
-  }`.trim();
+  return `${player?.lastname || ""} ${player?.firstname || ""}`.trim();
 }
 
 function isSpanishName(name) {
@@ -203,23 +423,24 @@ function isSpanishName(name) {
 
   return SPANISH_PLAYERS.some((spanishName) => {
     const parts = spanishName.split(" ");
-    const reverse = `${parts.slice(1).join(" ")} ${parts[0]}`;
+    const reversed = `${parts.slice(1).join(" ")} ${parts[0]}`;
 
     return (
       normalized === normalizeText(spanishName) ||
-      normalized === normalizeText(reverse)
+      normalized === normalizeText(reversed)
     );
   });
 }
 
 function canonicalSpanishName(player) {
   const normal = normalizeText(boxPlayerName(player));
-  const reverse = normalizeText(reversedBoxPlayerName(player));
+  const reversed = normalizeText(reversedBoxPlayerName(player));
 
   return (
     SPANISH_PLAYERS.find((name) => {
       const expected = normalizeText(name);
-      return expected === normal || expected === reverse;
+
+      return expected === normal || expected === reversed;
     }) || boxPlayerName(player)
   );
 }
@@ -301,28 +522,14 @@ function formatGameStatus(game) {
   }
 
   if (game.status?.short === 2) {
-    const quarter = game.periods?.current;
+    const period = game.periods?.current;
 
-    return `${quarter ? `Q${quarter}` : "EN JUEGO"}${
+    return `${period ? `Q${period}` : "EN JUEGO"}${
       game.status?.clock ? ` · ${game.status.clock}` : ""
     }`;
   }
 
   return game.status?.long?.toUpperCase() || "PROGRAMADO";
-}
-
-function formatDate(value) {
-  if (!value) {
-    return "";
-  }
-
-  return new Date(value).toLocaleString("es-ES", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 function scrollTop() {
@@ -331,6 +538,21 @@ function scrollTop() {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
   });
+}
+
+function shuffleArray(items) {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+
+    [shuffled[index], shuffled[randomIndex]] = [
+      shuffled[randomIndex],
+      shuffled[index],
+    ];
+  }
+
+  return shuffled;
 }
 
 function Logo({
@@ -456,19 +678,15 @@ function mergeSeasonStatsAndSalaries(
   stats,
   salaries
 ) {
-  const salaryByPlayerAndTeam = new Map();
-  const salaryByPlayer = new Map();
+  const salaryByTeam = new Map();
+  const salaryByName = new Map();
 
   salaries.forEach((salary) => {
     const name = normalizeText(salary.player_name);
     const team = salary.team || "";
 
-    salaryByPlayerAndTeam.set(
-      `${name}|${team}`,
-      salary
-    );
-
-    salaryByPlayer.set(name, salary);
+    salaryByTeam.set(`${name}|${team}`, salary);
+    salaryByName.set(name, salary);
   });
 
   return stats.map((player) => {
@@ -476,8 +694,8 @@ function mergeSeasonStatsAndSalaries(
     const team = player.team || "";
 
     const salaryRecord =
-      salaryByPlayerAndTeam.get(`${name}|${team}`) ||
-      salaryByPlayer.get(name) ||
+      salaryByTeam.get(`${name}|${team}`) ||
+      salaryByName.get(name) ||
       null;
 
     const salary = Number(salaryRecord?.salary || 0);
@@ -525,7 +743,7 @@ function findSeasonPlayerForBoxScore(
     boxPlayerName(boxScore.player)
   );
 
-  const reverse = normalizeText(
+  const reversed = normalizeText(
     reversedBoxPlayerName(boxScore.player)
   );
 
@@ -535,12 +753,12 @@ function findSeasonPlayerForBoxScore(
     seasonPlayers.find(
       (player) =>
         player.team === team &&
-        [normal, reverse].includes(
+        [normal, reversed].includes(
           normalizeText(player.player_name)
         )
     ) ||
     seasonPlayers.find((player) =>
-      [normal, reverse].includes(
+      [normal, reversed].includes(
         normalizeText(player.player_name)
       )
     ) ||
@@ -552,10 +770,6 @@ function SeasonPlayerDetail({
   player,
   onBack,
 }) {
-  if (!player) {
-    return null;
-  }
-
   return (
     <section>
       <button
@@ -575,7 +789,7 @@ function SeasonPlayerDetail({
               size="large"
             />
 
-            <div className="min-w-0">
+            <div>
               <h1 className="text-2xl font-black">
                 {player.player_name}
               </h1>
@@ -597,31 +811,38 @@ function SeasonPlayerDetail({
               label="Partidos"
               value={player.games_played}
             />
+
             <StatBox
               label="Minutos"
               value={formatNumber(player.minutes_pg)}
             />
+
             <StatBox
               label="Puntos"
               value={formatNumber(player.points_pg)}
               featured
             />
+
             <StatBox
               label="Rebotes"
               value={formatNumber(player.rebounds_pg)}
             />
+
             <StatBox
               label="Asistencias"
               value={formatNumber(player.assists_pg)}
             />
+
             <StatBox
               label="Robos"
               value={formatNumber(player.steals_pg)}
             />
+
             <StatBox
               label="Tapones"
               value={formatNumber(player.blocks_pg)}
             />
+
             <StatBox
               label="Pérdidas"
               value={formatNumber(player.turnovers_pg)}
@@ -637,34 +858,29 @@ function SeasonPlayerDetail({
           <div className="grid grid-cols-2 gap-3">
             <StatBox
               label="TC"
-              value={formatPercentage(
-                player.field_goal_pct
-              )}
+              value={formatPercentage(player.field_goal_pct)}
             />
+
             <StatBox
               label="3PT"
-              value={formatPercentage(
-                player.three_point_pct
-              )}
+              value={formatPercentage(player.three_point_pct)}
             />
+
             <StatBox
               label="TL"
-              value={formatPercentage(
-                player.free_throw_pct
-              )}
+              value={formatPercentage(player.free_throw_pct)}
             />
+
             <StatBox
               label="True Shooting"
-              value={formatPercentage(
-                player.ts_pct
-              )}
+              value={formatPercentage(player.ts_pct)}
             />
+
             <StatBox
               label="Uso"
-              value={formatPercentage(
-                player.usage_rate
-              )}
+              value={formatPercentage(player.usage_rate)}
             />
+
             <StatBox
               label="Rating neto"
               value={formatNumber(player.net_rating)}
@@ -694,18 +910,22 @@ function SeasonPlayerDetail({
                   label="Coste/punto"
                   value={formatMoney(player.costPerPoint)}
                 />
+
                 <StatBox
                   label="Coste/rebote"
                   value={formatMoney(player.costPerRebound)}
                 />
+
                 <StatBox
                   label="Coste/asistencia"
                   value={formatMoney(player.costPerAssist)}
                 />
+
                 <StatBox
                   label="Coste/robo"
                   value={formatMoney(player.costPerSteal)}
                 />
+
                 <StatBox
                   label="Coste/tapón"
                   value={formatMoney(player.costPerBlock)}
@@ -753,12 +973,11 @@ function PlayersView({
     ) || categories[0];
 
   const rankedPlayers = useMemo(() => {
-    const searchValue =
-      normalizeText(search);
+    const searchValue = normalizeText(search);
 
     return players
       .filter((player) => {
-        const matchesSearch =
+        const matches =
           !searchValue ||
           normalizeText(player.player_name).includes(
             searchValue
@@ -767,14 +986,11 @@ function PlayersView({
             searchValue
           );
 
-        if (!matchesSearch) {
-          return false;
-        }
+        const value = Number(
+          player[category.key]
+        );
 
-        const value =
-          Number(player[category.key]);
-
-        if (!Number.isFinite(value)) {
+        if (!matches || !Number.isFinite(value)) {
           return false;
         }
 
@@ -788,29 +1004,17 @@ function PlayersView({
         return true;
       })
       .sort((first, second) => {
-        const firstValue =
-          Number(first[category.key]);
-
-        const secondValue =
-          Number(second[category.key]);
-
-        if (sortDirection === "asc") {
-          return (
-            firstValue - secondValue ||
-            String(first.player_name).localeCompare(
-              String(second.player_name),
-              "es"
-            )
-          );
-        }
-
-        return (
-          secondValue - firstValue ||
-          String(first.player_name).localeCompare(
-            String(second.player_name),
-            "es"
-          )
+        const firstValue = Number(
+          first[category.key]
         );
+
+        const secondValue = Number(
+          second[category.key]
+        );
+
+        return sortDirection === "asc"
+          ? firstValue - secondValue
+          : secondValue - firstValue;
       });
   }, [
     players,
@@ -820,48 +1024,17 @@ function PlayersView({
     sortDirection,
   ]);
 
-  function changeMode(nextMode) {
-    setMode(nextMode);
-    setLimit(50);
-
-    if (nextMode === "stats") {
-      setSortDirection("desc");
-    } else {
-      setSortDirection("asc");
-    }
-  }
-
-  function changeCategory(key) {
-    if (mode === "stats") {
-      setStatCategory(key);
-    } else {
-      setSalaryCategory(key);
-    }
-
-    setLimit(50);
-  }
-
   function displayValue(player) {
-    const value =
-      player[category.key];
+    const value = player[category.key];
 
     if (mode === "salary") {
-      return formatCompactMoney(
-        value
-      );
+      return formatCompactMoney(value);
     }
 
-    if (category.percentage) {
-      return formatPercentage(
-        value
-      );
-    }
-
-    return formatNumber(value);
+    return category.percentage
+      ? formatPercentage(value)
+      : formatNumber(value);
   }
-
-  const ascending =
-    sortDirection === "asc";
 
   return (
     <section>
@@ -875,9 +1048,10 @@ function PlayersView({
 
       <div className="my-4 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
         <button
-          onClick={() =>
-            changeMode("stats")
-          }
+          onClick={() => {
+            setMode("stats");
+            setSortDirection("desc");
+          }}
           className={`rounded-xl py-2 text-xs font-bold ${
             mode === "stats"
               ? "bg-white shadow-sm"
@@ -891,9 +1065,10 @@ function PlayersView({
         </button>
 
         <button
-          onClick={() =>
-            changeMode("salary")
-          }
+          onClick={() => {
+            setMode("salary");
+            setSortDirection("asc");
+          }}
           className={`rounded-xl py-2 text-xs font-bold ${
             mode === "salary"
               ? "bg-white shadow-sm"
@@ -908,64 +1083,55 @@ function PlayersView({
       </div>
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
-        {categories.map(
-          (item) => (
-            <button
-              key={item.key}
-              onClick={() =>
-                changeCategory(
-                  item.key
-                )
+        {categories.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => {
+              if (mode === "stats") {
+                setStatCategory(item.key);
+              } else {
+                setSalaryCategory(item.key);
               }
-              className={`flex-shrink-0 rounded-xl px-3 py-2 text-xs font-bold ${
-                category.key ===
-                item.key
-                  ? "bg-orange-500 text-white"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {item.label}
-            </button>
-          )
-        )}
+
+              setLimit(50);
+            }}
+            className={`flex-shrink-0 rounded-xl px-3 py-2 text-xs font-bold ${
+              category.key === item.key
+                ? "bg-orange-500 text-white"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
-      <div className="mb-4 grid grid-cols-2 rounded-2xl border border-slate-200 bg-white p-1">
+      <div className="mb-4 grid grid-cols-2 rounded-2xl border border-slate-200 p-1">
         <button
-          onClick={() => {
-            setSortDirection(
-              "desc"
-            );
-            setLimit(50);
-          }}
-          className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-bold ${
-            !ascending
+          onClick={() =>
+            setSortDirection("desc")
+          }
+          className={`flex items-center justify-center gap-1 rounded-xl py-2 text-[11px] font-bold ${
+            sortDirection === "desc"
               ? "bg-slate-950 text-white"
               : "text-slate-500"
           }`}
         >
-          <ArrowDownWideNarrow
-            size={15}
-          />
+          <ArrowDownWideNarrow size={15} />
           Mayor a menor
         </button>
 
         <button
-          onClick={() => {
-            setSortDirection(
-              "asc"
-            );
-            setLimit(50);
-          }}
-          className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-bold ${
-            ascending
+          onClick={() =>
+            setSortDirection("asc")
+          }
+          className={`flex items-center justify-center gap-1 rounded-xl py-2 text-[11px] font-bold ${
+            sortDirection === "asc"
               ? "bg-slate-950 text-white"
               : "text-slate-500"
           }`}
         >
-          <ArrowUpNarrowWide
-            size={15}
-          />
+          <ArrowUpNarrowWide size={15} />
           Menor a mayor
         </button>
       </div>
@@ -978,54 +1144,27 @@ function PlayersView({
 
         <input
           value={search}
-          onChange={(event) => {
-            setSearch(
-              event.target.value
-            );
-            setLimit(50);
-          }}
+          onChange={(event) =>
+            setSearch(event.target.value)
+          }
           placeholder="Buscar jugador o equipo"
           className="w-full rounded-2xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-orange-400"
         />
       </div>
 
       <div className="mb-3 rounded-2xl bg-orange-50 p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <div className="text-xs font-bold text-orange-700">
-              {category.title}
-            </div>
-
-            <div className="mt-1 text-[10px] text-orange-600">
-              Orden:{" "}
-              <strong>
-                {ascending
-                  ? "menor a mayor"
-                  : "mayor a menor"}
-              </strong>
-            </div>
-          </div>
-
-          {ascending ? (
-            <ArrowUpNarrowWide
-              size={20}
-              className="text-orange-600"
-            />
-          ) : (
-            <ArrowDownWideNarrow
-              size={20}
-              className="text-orange-600"
-            />
-          )}
+        <div className="text-xs font-bold text-orange-700">
+          {category.title}
         </div>
 
-        {mode === "salary" && (
-          <div className="mt-2 text-[10px] text-orange-600">
-            En eficiencia salarial, ordenar de menor a mayor
-            muestra primero a los jugadores con menor coste por
-            unidad estadística.
-          </div>
-        )}
+        <div className="mt-1 text-[10px] text-orange-600">
+          Orden:{" "}
+          <strong>
+            {sortDirection === "asc"
+              ? "menor a mayor"
+              : "mayor a menor"}
+          </strong>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200">
@@ -1039,75 +1178,47 @@ function PlayersView({
 
         {rankedPlayers
           .slice(0, limit)
-          .map(
-            (
-              player,
-              index
-            ) => (
-              <button
-                key={`${player.player_name}-${player.team}`}
-                onClick={() =>
-                  onSelect(player)
-                }
-                className="grid w-full grid-cols-[30px_minmax(0,1fr)_74px] items-center border-t border-slate-200 px-3 py-3 text-left active:bg-orange-50"
-              >
-                <div className="text-xs font-black text-slate-400">
-                  {index + 1}
-                </div>
+          .map((player, index) => (
+            <button
+              key={`${player.player_name}-${player.team}`}
+              onClick={() => onSelect(player)}
+              className="grid w-full grid-cols-[30px_minmax(0,1fr)_74px] items-center border-t border-slate-200 px-3 py-3 text-left active:bg-orange-50"
+            >
+              <div className="text-xs font-black text-slate-400">
+                {index + 1}
+              </div>
 
-                <div className="flex min-w-0 items-center gap-2">
-                  <Logo
-                    code={
-                      player.team
-                    }
-                    name={
-                      player.player_name
-                    }
-                  />
+              <div className="flex min-w-0 items-center gap-2">
+                <Logo
+                  code={player.team}
+                  name={player.player_name}
+                />
 
-                  <div className="min-w-0">
-                    <div className="whitespace-normal text-xs font-bold leading-4">
-                      {
-                        player.player_name
-                      }
-                    </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold leading-4">
+                    {player.player_name}
+                  </div>
 
-                    <div className="mt-0.5 text-[9px] text-slate-400">
-                      {player.team} ·{" "}
-                      {player.position ||
-                        "-"}{" "}
-                      ·{" "}
-                      {
-                        player.games_played
-                      }{" "}
-                      PJ
-                    </div>
+                  <div className="mt-0.5 text-[9px] text-slate-400">
+                    {player.team} ·{" "}
+                    {player.position || "-"} ·{" "}
+                    {player.games_played} PJ
                   </div>
                 </div>
+              </div>
 
-                <div className="text-right text-xs font-black text-orange-600">
-                  {displayValue(
-                    player
-                  )}
-                </div>
-              </button>
-            )
-          )}
+              <div className="text-right text-xs font-black text-orange-600">
+                {displayValue(player)}
+              </div>
+            </button>
+          ))}
       </div>
 
-      {rankedPlayers.length === 0 && (
-        <div className="rounded-b-2xl bg-slate-100 p-8 text-center text-sm text-slate-500">
-          No hay jugadores que cumplan los filtros seleccionados.
-        </div>
-      )}
-
-      {limit <
-        rankedPlayers.length && (
+      {limit < rankedPlayers.length && (
         <button
           onClick={() =>
             setLimit(
-              (current) =>
-                current + 50
+              (current) => current + 50
             )
           }
           className="mt-4 w-full rounded-2xl bg-slate-950 py-3 text-sm font-bold text-white"
@@ -1122,44 +1233,24 @@ function PlayersView({
 function StandingsView({
   standings,
 }) {
-  const [
-    conference,
-    setConference,
-  ] = useState("East");
+  const [conference, setConference] =
+    useState("East");
 
-  const teams =
-    useMemo(() => {
-      return standings
-        .filter(
-          (team) =>
-            conference ===
-            "East"
-              ? EAST_TEAMS.has(
-                  team.team
-                )
-              : !EAST_TEAMS.has(
-                  team.team
-                )
-        )
-        .sort(
-          (a, b) =>
-            Number(
-              b.win_pct || 0
-            ) -
-              Number(
-                a.win_pct || 0
-              ) ||
-            Number(
-              b.wins || 0
-            ) -
-              Number(
-                a.wins || 0
-              )
-        );
-    }, [
-      standings,
-      conference,
-    ]);
+  const teams = useMemo(() => {
+    return standings
+      .filter((team) =>
+        conference === "East"
+          ? EAST_TEAMS.has(team.team)
+          : !EAST_TEAMS.has(team.team)
+      )
+      .sort(
+        (a, b) =>
+          Number(b.win_pct || 0) -
+            Number(a.win_pct || 0) ||
+          Number(b.wins || 0) -
+            Number(a.wins || 0)
+      );
+  }, [standings, conference]);
 
   return (
     <section>
@@ -1173,14 +1264,9 @@ function StandingsView({
 
       <div className="mb-4 grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
         <button
-          onClick={() =>
-            setConference(
-              "East"
-            )
-          }
+          onClick={() => setConference("East")}
           className={`rounded-xl py-2 text-sm font-bold ${
-            conference ===
-            "East"
+            conference === "East"
               ? "bg-white shadow-sm"
               : "text-slate-500"
           }`}
@@ -1189,14 +1275,9 @@ function StandingsView({
         </button>
 
         <button
-          onClick={() =>
-            setConference(
-              "West"
-            )
-          }
+          onClick={() => setConference("West")}
           className={`rounded-xl py-2 text-sm font-bold ${
-            conference ===
-            "West"
+            conference === "West"
               ? "bg-white shadow-sm"
               : "text-slate-500"
           }`}
@@ -1209,75 +1290,52 @@ function StandingsView({
         <div className="grid grid-cols-[28px_minmax(0,1fr)_28px_28px_48px] bg-slate-100 px-2 py-2 text-[9px] font-bold uppercase text-slate-500">
           <div>#</div>
           <div>Equipo</div>
-          <div className="text-center">
-            V
-          </div>
-          <div className="text-center">
-            D
-          </div>
-          <div className="text-right">
-            %
-          </div>
+          <div className="text-center">V</div>
+          <div className="text-center">D</div>
+          <div className="text-right">%</div>
         </div>
 
-        {teams.map(
-          (team, index) => (
-            <div
-              key={team.team}
-              className={`grid grid-cols-[28px_minmax(0,1fr)_28px_28px_48px] items-center border-t border-slate-200 px-2 py-3 ${
-                index < 6
-                  ? "border-l-4 border-l-emerald-500"
-                  : index < 10
-                  ? "border-l-4 border-l-orange-400"
-                  : "border-l-4 border-l-slate-200"
-              }`}
-            >
-              <div className="text-xs font-black text-slate-400">
-                {index + 1}
-              </div>
+        {teams.map((team, index) => (
+          <div
+            key={team.team}
+            className="grid grid-cols-[28px_minmax(0,1fr)_28px_28px_48px] items-center border-t border-slate-200 px-2 py-3"
+          >
+            <div className="text-xs font-black text-slate-400">
+              {index + 1}
+            </div>
 
-              <div className="flex min-w-0 items-center gap-2">
-                <Logo
-                  code={team.team}
-                  name={
-                    team.team_name
-                  }
-                />
+            <div className="flex min-w-0 items-center gap-2">
+              <Logo
+                code={team.team}
+                name={team.team_name}
+              />
 
-                <div className="min-w-0">
-                  <div className="truncate text-xs font-bold">
-                    {
-                      team.team_name
-                    }
-                  </div>
+              <div className="min-w-0">
+                <div className="truncate text-xs font-bold">
+                  {team.team_name}
+                </div>
 
-                  <div className="text-[9px] text-slate-400">
-                    {team.team}
-                  </div>
+                <div className="text-[9px] text-slate-400">
+                  {team.team}
                 </div>
               </div>
-
-              <div className="text-center text-xs font-bold">
-                {team.wins}
-              </div>
-
-              <div className="text-center text-xs">
-                {team.losses}
-              </div>
-
-              <div className="text-right text-xs font-bold">
-                {Number(
-                  team.win_pct
-                )
-                  .toFixed(3)
-                  .replace(
-                    /^0/,
-                    ""
-                  )}
-              </div>
             </div>
-          )
-        )}
+
+            <div className="text-center text-xs font-bold">
+              {team.wins}
+            </div>
+
+            <div className="text-center text-xs">
+              {team.losses}
+            </div>
+
+            <div className="text-right text-xs font-bold">
+              {Number(team.win_pct)
+                .toFixed(3)
+                .replace(/^0/, "")}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -1288,22 +1346,16 @@ function PlayerBoxScore({
   stats,
   onSelect,
 }) {
-  const players =
-    stats
-      .filter(
-        (stat) =>
-          stat.team?.id ===
-          team?.id
-      )
-      .sort(
-        (a, b) =>
-          Number(
-            b.min || 0
-          ) -
-          Number(
-            a.min || 0
-          )
-      );
+  const players = stats
+    .filter(
+      (stat) =>
+        stat.team?.id === team?.id
+    )
+    .sort(
+      (a, b) =>
+        Number(b.min || 0) -
+        Number(a.min || 0)
+    );
 
   return (
     <div>
@@ -1327,55 +1379,39 @@ function PlayerBoxScore({
       <div className="overflow-hidden rounded-2xl border border-slate-200">
         <div className="grid grid-cols-[minmax(125px,1fr)_34px_36px_36px_36px] bg-slate-100 px-2 py-2 text-[9px] font-bold text-slate-500">
           <div>JUGADOR</div>
-          <div className="text-center">
-            MIN
-          </div>
-          <div className="text-center text-orange-600">
-            PTS
-          </div>
-          <div className="text-center">
-            REB
-          </div>
-          <div className="text-center">
-            AST
-          </div>
+          <div className="text-center">MIN</div>
+          <div className="text-center text-orange-600">PTS</div>
+          <div className="text-center">REB</div>
+          <div className="text-center">AST</div>
         </div>
 
-        {players.map(
-          (stat) => (
-            <button
-              key={
-                stat.player?.id
-              }
-              onClick={() =>
-                onSelect(stat)
-              }
-              className="grid w-full grid-cols-[minmax(125px,1fr)_34px_36px_36px_36px] items-center border-t border-slate-200 px-2 py-3 text-left"
-            >
-              <div className="pr-1 text-[13px] font-bold leading-4">
-                {boxPlayerName(
-                  stat.player
-                )}
-              </div>
+        {players.map((stat) => (
+          <button
+            key={stat.player?.id}
+            onClick={() => onSelect(stat)}
+            className="grid w-full grid-cols-[minmax(125px,1fr)_34px_36px_36px_36px] items-center border-t border-slate-200 px-2 py-3 text-left"
+          >
+            <div className="pr-1 text-[13px] font-bold leading-4">
+              {boxPlayerName(stat.player)}
+            </div>
 
-              <div className="text-center text-xs">
-                {stat.min ?? "-"}
-              </div>
+            <div className="text-center text-xs">
+              {stat.min ?? "-"}
+            </div>
 
-              <div className="text-center text-xs font-black text-orange-600">
-                {stat.points ?? 0}
-              </div>
+            <div className="text-center text-xs font-black text-orange-600">
+              {stat.points ?? 0}
+            </div>
 
-              <div className="text-center text-xs">
-                {stat.totReb ?? 0}
-              </div>
+            <div className="text-center text-xs">
+              {stat.totReb ?? 0}
+            </div>
 
-              <div className="text-center text-xs">
-                {stat.assists ?? 0}
-              </div>
-            </button>
-          )
-        )}
+            <div className="text-center text-xs">
+              {stat.assists ?? 0}
+            </div>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -1384,16 +1420,12 @@ function PlayerBoxScore({
 function GameDetail({
   game,
   stats,
-  loading,
   error,
   onBack,
   onPlayer,
 }) {
-  const visitors =
-    game.teams?.visitors;
-
-  const home =
-    game.teams?.home;
+  const visitors = game.teams?.visitors;
+  const home = game.teams?.home;
 
   return (
     <section>
@@ -1407,20 +1439,14 @@ function GameDetail({
 
       <article className="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
         <div className="bg-gradient-to-br from-orange-500 to-red-500 p-4 text-center text-sm font-black text-white">
-          {formatGameStatus(
-            game
-          )}
+          {formatGameStatus(game)}
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 p-5">
           <div className="flex flex-col items-center text-center">
             <Logo
-              code={
-                visitors?.code
-              }
-              name={
-                visitors?.name
-              }
+              code={visitors?.code}
+              name={visitors?.name}
               size="large"
             />
 
@@ -1431,19 +1457,13 @@ function GameDetail({
 
           <div className="flex items-center gap-2">
             <span className="text-3xl font-black">
-              {game.scores
-                ?.visitors
-                ?.points ?? "-"}
+              {game.scores?.visitors?.points ?? "-"}
             </span>
 
-            <span className="text-slate-300">
-              -
-            </span>
+            <span className="text-slate-300">-</span>
 
             <span className="text-3xl font-black">
-              {game.scores
-                ?.home
-                ?.points ?? "-"}
+              {game.scores?.home?.points ?? "-"}
             </span>
           </div>
 
@@ -1465,39 +1485,23 @@ function GameDetail({
             Estadísticas del partido
           </h3>
 
-          {loading && (
-            <Loading text="Cargando estadísticas..." />
-          )}
+          {error && <ErrorBox text={error} />}
 
-          {!loading &&
-            error && (
-              <ErrorBox
-                text={error}
+          {!error && stats.length > 0 && (
+            <div className="space-y-7">
+              <PlayerBoxScore
+                team={visitors}
+                stats={stats}
+                onSelect={onPlayer}
               />
-            )}
 
-          {!loading &&
-            !error &&
-            stats.length >
-              0 && (
-              <div className="space-y-7">
-                <PlayerBoxScore
-                  team={visitors}
-                  stats={stats}
-                  onSelect={
-                    onPlayer
-                  }
-                />
-
-                <PlayerBoxScore
-                  team={home}
-                  stats={stats}
-                  onSelect={
-                    onPlayer
-                  }
-                />
-              </div>
-            )}
+              <PlayerBoxScore
+                team={home}
+                stats={stats}
+                onSelect={onPlayer}
+              />
+            </div>
+          )}
         </div>
       </article>
     </section>
@@ -1522,14 +1526,11 @@ function GamePlayerDetail({
       <article className="overflow-hidden rounded-3xl border border-slate-200 shadow-lg">
         <div className="bg-gradient-to-br from-orange-500 to-red-500 p-5 text-white">
           <h1 className="text-2xl font-black">
-            {boxPlayerName(
-              stat.player
-            )}
+            {boxPlayerName(stat.player)}
           </h1>
 
           <p className="mt-1 text-sm text-orange-100">
-            {stat.team?.name} ·{" "}
-            {stat.pos || "-"}
+            {stat.team?.name} · {stat.pos || "-"}
           </p>
         </div>
 
@@ -1541,60 +1542,33 @@ function GamePlayerDetail({
           <div className="grid grid-cols-2 gap-3">
             <StatBox
               label="MIN"
-              value={
-                stat.min ?? "-"
-              }
+              value={stat.min ?? "-"}
             />
 
             <StatBox
               label="PTS"
-              value={
-                stat.points ?? 0
-              }
+              value={stat.points ?? 0}
               featured
             />
 
             <StatBox
               label="REB"
-              value={
-                stat.totReb ?? 0
-              }
+              value={stat.totReb ?? 0}
             />
 
             <StatBox
               label="AST"
-              value={
-                stat.assists ?? 0
-              }
+              value={stat.assists ?? 0}
             />
 
             <StatBox
               label="ROB"
-              value={
-                stat.steals ?? 0
-              }
+              value={stat.steals ?? 0}
             />
 
             <StatBox
               label="TAP"
-              value={
-                stat.blocks ?? 0
-              }
-            />
-
-            <StatBox
-              label="PERD"
-              value={
-                stat.turnovers ?? 0
-              }
-            />
-
-            <StatBox
-              label="+/-"
-              value={
-                stat.plusMinus ??
-                "-"
-              }
+              value={stat.blocks ?? 0}
             />
           </div>
         </div>
@@ -1608,59 +1582,23 @@ function GamePlayerDetail({
             <div className="grid grid-cols-2 gap-3">
               <StatBox
                 label="PJ"
-                value={
-                  seasonPlayer.games_played
-                }
-              />
-
-              <StatBox
-                label="MIN"
-                value={formatNumber(
-                  seasonPlayer.minutes_pg
-                )}
+                value={seasonPlayer.games_played}
               />
 
               <StatBox
                 label="PTS"
-                value={formatNumber(
-                  seasonPlayer.points_pg
-                )}
+                value={formatNumber(seasonPlayer.points_pg)}
                 featured
               />
 
               <StatBox
                 label="REB"
-                value={formatNumber(
-                  seasonPlayer.rebounds_pg
-                )}
+                value={formatNumber(seasonPlayer.rebounds_pg)}
               />
 
               <StatBox
                 label="AST"
-                value={formatNumber(
-                  seasonPlayer.assists_pg
-                )}
-              />
-
-              <StatBox
-                label="ROB"
-                value={formatNumber(
-                  seasonPlayer.steals_pg
-                )}
-              />
-
-              <StatBox
-                label="TAP"
-                value={formatNumber(
-                  seasonPlayer.blocks_pg
-                )}
-              />
-
-              <StatBox
-                label="TS%"
-                value={formatPercentage(
-                  seasonPlayer.ts_pct
-                )}
+                value={formatNumber(seasonPlayer.assists_pg)}
               />
             </div>
           </div>
@@ -1670,269 +1608,14 @@ function GamePlayerDetail({
   );
 }
 
-function SpanishDailyCard({
-  performance,
-  game,
-  seasonPlayer,
-  onOpenGame,
-}) {
-  const canonicalName =
-    canonicalSpanishName(
-      performance.player
-    );
-
-  const opponent = game
-    ? game.teams?.visitors
-        ?.id ===
-      performance.team?.id
-      ? game.teams?.home
-      : game.teams
-          ?.visitors
-    : null;
-
-  return (
-    <article className="rounded-3xl border border-orange-200 bg-orange-50/40 p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-3">
-        <Logo
-          code={
-            performance.team?.code
-          }
-          name={
-            performance.team?.name
-          }
-        />
-
-        <div className="min-w-0">
-          <h3 className="font-black">
-            {canonicalName}
-          </h3>
-
-          <p className="text-xs text-slate-500">
-            {
-              performance.team
-                ?.name
-            }
-            {opponent
-              ? ` vs ${opponent.name}`
-              : ""}
-          </p>
-
-          {game && (
-            <p className="mt-0.5 text-[10px] text-slate-400">
-              {formatGameStatus(
-                game
-              )}
-              {" · "}
-              {formatDate(
-                game.date?.start
-              )}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2">
-        <StatBox
-          label="MIN"
-          value={
-            performance.min ??
-            "-"
-          }
-        />
-
-        <StatBox
-          label="PTS"
-          value={
-            performance.points ??
-            0
-          }
-          featured
-        />
-
-        <StatBox
-          label="REB"
-          value={
-            performance.totReb ??
-            0
-          }
-        />
-
-        <StatBox
-          label="AST"
-          value={
-            performance.assists ??
-            0
-          }
-        />
-      </div>
-
-      {game && (
-        <button
-          onClick={() =>
-            onOpenGame(game)
-          }
-          className="mt-4 w-full rounded-2xl bg-orange-500 py-2.5 text-xs font-bold text-white"
-        >
-          Ver partido completo
-        </button>
-      )}
-
-      {seasonPlayer && (
-        <div className="mt-4 border-t border-orange-200 pt-3 text-[10px] text-slate-500">
-          Temporada:{" "}
-          <strong>
-            {formatNumber(
-              seasonPlayer.points_pg
-            )}{" "}
-            PTS
-          </strong>
-          {" · "}
-          {formatNumber(
-            seasonPlayer.rebounds_pg
-          )}{" "}
-          REB
-          {" · "}
-          {formatNumber(
-            seasonPlayer.assists_pg
-          )}{" "}
-          AST
-        </div>
-      )}
-    </article>
-  );
-}
-
-function SpanishSeasonCard({
-  player,
-  onSelect,
-}) {
-  return (
-    <button
-      onClick={() =>
-        onSelect(player)
-      }
-      className="w-full rounded-3xl border border-slate-200 bg-white p-5 text-left shadow-sm"
-    >
-      <div className="mb-4 flex items-center gap-3">
-        <Logo
-          code={player.team}
-          name={
-            player.player_name
-          }
-        />
-
-        <div>
-          <h3 className="font-black">
-            {player.player_name}
-          </h3>
-
-          <p className="text-xs text-slate-500">
-            {player.team} ·{" "}
-            {player.position ||
-              "-"}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2">
-        <StatBox
-          label="PJ"
-          value={
-            player.games_played
-          }
-        />
-
-        <StatBox
-          label="PTS"
-          value={formatNumber(
-            player.points_pg
-          )}
-          featured
-        />
-
-        <StatBox
-          label="REB"
-          value={formatNumber(
-            player.rebounds_pg
-          )}
-        />
-
-        <StatBox
-          label="AST"
-          value={formatNumber(
-            player.assists_pg
-          )}
-        />
-      </div>
-    </button>
-  );
-}
-
 function SpanishView({
-  seasonPlayers,
+  players,
   dailyPerformances,
-  games,
-  onOpenGame,
-  onSelectSeasonPlayer,
 }) {
-  const dailyItems =
-    dailyPerformances
-      .map(
-        (performance) => {
-          const game =
-            games.find(
-              (item) =>
-                String(
-                  item.id
-                ) ===
-                String(
-                  performance
-                    .game?.id
-                )
-            ) || null;
-
-          const seasonPlayer =
-            findSeasonPlayerForBoxScore(
-              performance,
-              seasonPlayers
-            );
-
-          return {
-            performance,
-            game,
-            seasonPlayer,
-          };
-        }
-      )
-      .sort(
-        (a, b) =>
-          Number(
-            b.performance
-              .points || 0
-          ) -
-          Number(
-            a.performance
-              .points || 0
-          )
-      );
-
-  const spanishSeasonPlayers =
-    seasonPlayers
-      .filter(
-        (player) =>
-          isSpanishName(
-            player.player_name
-          )
-      )
-      .sort(
-        (a, b) =>
-          Number(
-            b.points_pg || 0
-          ) -
-          Number(
-            a.points_pg || 0
-          )
-      );
+  const spanishPlayers = players.filter(
+    (player) =>
+      isSpanishName(player.player_name)
+  );
 
   return (
     <section>
@@ -1945,39 +1628,56 @@ function SpanishView({
       </h2>
 
       <div className="mt-4 space-y-4">
-        {dailyItems.length >
-        0 ? (
-          dailyItems.map(
-            ({
-              performance,
-              game,
-              seasonPlayer,
-            }) => (
-              <SpanishDailyCard
-                key={`${performance.game?.id}-${performance.player?.id}`}
-                performance={
-                  performance
-                }
-                game={game}
-                seasonPlayer={
-                  seasonPlayer
-                }
-                onOpenGame={
-                  onOpenGame
-                }
-              />
-            )
-          )
-        ) : (
-          <div className="rounded-3xl bg-slate-100 p-8 text-center">
-            <Flag
-              size={30}
-              className="mx-auto mb-3 text-orange-500"
-            />
+        {dailyPerformances.length > 0 ? (
+          dailyPerformances.map((stat) => (
+            <article
+              key={`${stat.game?.id}-${stat.player?.id}`}
+              className="rounded-3xl border border-orange-200 bg-orange-50/40 p-5"
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <Logo
+                  code={stat.team?.code}
+                  name={stat.team?.name}
+                />
 
-            <p className="font-bold">
-              Sin actuaciones españolas
-            </p>
+                <div>
+                  <h3 className="font-black">
+                    {canonicalSpanishName(stat.player)}
+                  </h3>
+
+                  <p className="text-xs text-slate-500">
+                    {stat.team?.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                <StatBox
+                  label="MIN"
+                  value={stat.min ?? "-"}
+                />
+
+                <StatBox
+                  label="PTS"
+                  value={stat.points ?? 0}
+                  featured
+                />
+
+                <StatBox
+                  label="REB"
+                  value={stat.totReb ?? 0}
+                />
+
+                <StatBox
+                  label="AST"
+                  value={stat.assists ?? 0}
+                />
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="rounded-3xl bg-slate-100 p-8 text-center text-sm text-slate-500">
+            Sin actuaciones españolas disponibles.
           </div>
         )}
       </div>
@@ -1993,108 +1693,425 @@ function SpanishView({
       </div>
 
       <div className="space-y-4">
-        {spanishSeasonPlayers.map(
-          (player) => (
-            <SpanishSeasonCard
-              key={`${player.player_name}-${player.team}`}
-              player={player}
-              onSelect={
-                onSelectSeasonPlayer
-              }
-            />
-          )
-        )}
+        {spanishPlayers.map((player) => (
+          <article
+            key={`${player.player_name}-${player.team}`}
+            className="rounded-3xl border border-slate-200 p-5"
+          >
+            <div className="mb-4 flex items-center gap-3">
+              <Logo
+                code={player.team}
+                name={player.player_name}
+              />
+
+              <div>
+                <h3 className="font-black">
+                  {player.player_name}
+                </h3>
+
+                <p className="text-xs text-slate-500">
+                  {player.team} · {player.position || "-"}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2">
+              <StatBox
+                label="PJ"
+                value={player.games_played}
+              />
+
+              <StatBox
+                label="PTS"
+                value={formatNumber(player.points_pg)}
+                featured
+              />
+
+              <StatBox
+                label="REB"
+                value={formatNumber(player.rebounds_pg)}
+              />
+
+              <StatBox
+                label="AST"
+                value={formatNumber(player.assists_pg)}
+              />
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );
 }
 
-export default function App() {
-  const [tab, setTab] =
-    useState("Scores");
-
-  const [games, setGames] =
+function QuizView({
+  questions,
+}) {
+  const [gameQuestions, setGameQuestions] =
     useState([]);
+  const [questionIndex, setQuestionIndex] =
+    useState(0);
+  const [selectedAnswer, setSelectedAnswer] =
+    useState(null);
+  const [score, setScore] = useState(0);
+  const [finished, setFinished] = useState(false);
 
-  const [
-    gameDate,
-    setGameDate,
-  ] = useState("");
+  function startGame() {
+    const selected = shuffleArray(questions).slice(
+      0,
+      Math.min(10, questions.length)
+    );
 
-  const [
-    standings,
-    setStandings,
-  ] = useState([]);
+    setGameQuestions(selected);
+    setQuestionIndex(0);
+    setSelectedAnswer(null);
+    setScore(0);
+    setFinished(false);
+    scrollTop();
+  }
 
-  const [
-    seasonStats,
-    setSeasonStats,
-  ] = useState([]);
+  useEffect(() => {
+    if (questions.length > 0) {
+      startGame();
+    }
+  }, [questions]);
 
-  const [
-    salaries,
-    setSalaries,
-  ] = useState([]);
+  if (questions.length === 0) {
+    return <Loading text="Cargando Quiz NBA..." />;
+  }
 
-  const [
-    boxScoreFile,
-    setBoxScoreFile,
-  ] = useState({});
+  if (finished) {
+    const total = gameQuestions.length;
+    const percentage = total
+      ? Math.round((score / total) * 100)
+      : 0;
 
-  const [
-    selectedGame,
-    setSelectedGame,
-  ] = useState(null);
+    let resultTitle = "Hay que seguir entrenando";
+    let resultText =
+      "Prueba otra partida y mejora el resultado.";
 
-  const [
-    selectedBoxPlayer,
-    setSelectedBoxPlayer,
-  ] = useState(null);
+    if (score === total) {
+      resultTitle = "🏆 Partido perfecto";
+      resultText =
+        "Has acertado todas las preguntas.";
+    } else if (score >= 8) {
+      resultTitle = "⭐ Nivel MVP";
+      resultText =
+        "Un resultado extraordinario.";
+    } else if (score >= 6) {
+      resultTitle = "🔥 Gran partido";
+      resultText =
+        "Tienes un buen conocimiento de la NBA.";
+    } else if (score >= 5) {
+      resultTitle = "🏀 Buen partido";
+      resultText =
+        "Has aprobado, pero todavía puedes mejorar.";
+    }
 
+    return (
+      <section>
+        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 p-6 text-center text-white shadow-lg">
+          <p className="text-xs font-bold uppercase tracking-widest text-orange-100">
+            Resultado final
+          </p>
+
+          <div className="mt-4 text-6xl font-black">
+            {score}/{total}
+          </div>
+
+          <div className="mt-2 text-xl font-black">
+            {percentage}%
+          </div>
+
+          <h2 className="mt-5 text-2xl font-black">
+            {resultTitle}
+          </h2>
+
+          <p className="mt-2 text-sm text-orange-50">
+            {resultText}
+          </p>
+        </div>
+
+        <button
+          onClick={startGame}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 text-sm font-black text-white"
+        >
+          <RotateCcw size={18} />
+          Jugar otra partida
+        </button>
+      </section>
+    );
+  }
+
+  const question =
+    gameQuestions[questionIndex];
+
+  if (!question) {
+    return null;
+  }
+
+  const answered = selectedAnswer !== null;
+  const correct =
+    selectedAnswer === question.correctAnswer;
+
+  function selectAnswer(optionIndex) {
+    if (answered) {
+      return;
+    }
+
+    setSelectedAnswer(optionIndex);
+
+    if (optionIndex === question.correctAnswer) {
+      setScore((current) => current + 1);
+    }
+  }
+
+  function nextQuestion() {
+    if (questionIndex >= gameQuestions.length - 1) {
+      setFinished(true);
+      scrollTop();
+      return;
+    }
+
+    setQuestionIndex((current) => current + 1);
+    setSelectedAnswer(null);
+    scrollTop();
+  }
+
+  return (
+    <section>
+      <div className="mb-5">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-orange-600">
+              QUIZ ÑBA
+            </p>
+
+            <h2 className="text-xl font-black">
+              Pregunta {questionIndex + 1} de{" "}
+              {gameQuestions.length}
+            </h2>
+          </div>
+
+          <div className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white">
+            {score} aciertos
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-1">
+          {gameQuestions.map((item, index) => {
+            let progressColor = "bg-slate-200";
+
+            if (index < questionIndex) {
+              progressColor = "bg-orange-500";
+            }
+
+            if (index === questionIndex) {
+              progressColor = "bg-slate-950";
+            }
+
+            return (
+              <div
+                key={item.id ?? index}
+                className={`h-1.5 flex-1 rounded-full ${progressColor}`}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex flex-wrap gap-2">
+          <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase text-orange-600">
+            {question.category || "NBA"}
+          </span>
+
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-500">
+            {question.difficulty || "media"}
+          </span>
+        </div>
+
+        <h3 className="mb-6 text-xl font-black leading-7">
+          {question.question}
+        </h3>
+
+        <div className="space-y-3">
+          {question.options.map((option, optionIndex) => {
+            const correctOption =
+              optionIndex === question.correctAnswer;
+
+            const chosenOption =
+              optionIndex === selectedAnswer;
+
+            let optionClass =
+              "border-slate-200 bg-white text-slate-800";
+
+            if (answered && correctOption) {
+              optionClass =
+                "border-emerald-500 bg-emerald-50 text-emerald-800";
+            } else if (
+              answered &&
+              chosenOption &&
+              !correctOption
+            ) {
+              optionClass =
+                "border-red-400 bg-red-50 text-red-700";
+            }
+
+            return (
+              <button
+                key={optionIndex}
+                type="button"
+                disabled={answered}
+                onClick={() =>
+                  selectAnswer(optionIndex)
+                }
+                className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left text-sm font-bold transition ${optionClass}`}
+              >
+                <span className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-full bg-slate-100 text-xs text-slate-700">
+                  {String.fromCharCode(
+                    65 + optionIndex
+                  )}
+                </span>
+
+                <span className="flex-1">
+                  {option}
+                </span>
+
+                {answered && correctOption && (
+                  <CheckCircle2
+                    size={20}
+                    className="flex-shrink-0 text-emerald-600"
+                  />
+                )}
+
+                {answered &&
+                  chosenOption &&
+                  !correctOption && (
+                    <XCircle
+                      size={20}
+                      className="flex-shrink-0 text-red-500"
+                    />
+                  )}
+              </button>
+            );
+          })}
+        </div>
+
+        {answered && (
+          <div
+            className={`mt-5 rounded-2xl p-4 ${
+              correct
+                ? "bg-emerald-50"
+                : "bg-red-50"
+            }`}
+          >
+            <div
+              className={`flex items-center gap-2 font-black ${
+                correct
+                  ? "text-emerald-700"
+                  : "text-red-700"
+              }`}
+            >
+              {correct ? (
+                <CheckCircle2 size={19} />
+              ) : (
+                <XCircle size={19} />
+              )}
+
+              {correct ? "Correcto" : "Incorrecto"}
+            </div>
+
+            {question.explanation && (
+              <p className="mt-2 text-sm leading-5 text-slate-600">
+                {question.explanation}
+              </p>
+            )}
+          </div>
+        )}
+
+        {answered && (
+          <button
+            onClick={nextQuestion}
+            className="mt-5 w-full rounded-2xl bg-slate-950 py-3.5 text-sm font-black text-white"
+          >
+            {questionIndex === gameQuestions.length - 1
+              ? "Ver resultado"
+              : "Siguiente pregunta"}
+          </button>
+        )}
+      </article>
+    </section>
+  );
+}
+
+export default function App() {
+  const [tab, setTab] = useState("Scores");
+  const [games, setGames] = useState([]);
+  const [gameDate, setGameDate] = useState("");
+  const [standings, setStandings] = useState([]);
+  const [seasonStats, setSeasonStats] = useState([]);
+  const [salaries, setSalaries] = useState([]);
+  const [boxScoreFile, setBoxScoreFile] =
+    useState({});
+  const [quizQuestions, setQuizQuestions] =
+    useState(FALLBACK_QUIZ_QUESTIONS);
+
+  const [selectedGame, setSelectedGame] =
+    useState(null);
+  const [selectedBoxPlayer, setSelectedBoxPlayer] =
+    useState(null);
   const [
     selectedSeasonPlayer,
     setSelectedSeasonPlayer,
   ] = useState(null);
 
-  const [
-    gameStats,
-    setGameStats,
-  ] = useState([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
+  const [gameStats, setGameStats] = useState([]);
+  const [gameStatsError, setGameStatsError] =
     useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [
-    gameStatsLoading,
-    setGameStatsLoading,
-  ] = useState(false);
+  async function getJson(url) {
+    const separator = url.includes("?") ? "&" : "?";
 
-  const [
-    gameStatsError,
-    setGameStatsError,
-  ] = useState("");
-
-  async function getJson(
-    url
-  ) {
-    const response =
-      await fetch(
-        `${url}?t=${Date.now()}`,
-        {
-          cache: "no-store",
-        }
-      );
+    const response = await fetch(
+      `${url}${separator}t=${Date.now()}`,
+      {
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
       throw new Error(
-        `HTTP ${response.status}`
+        `${url}: HTTP ${response.status}`
       );
     }
 
     return response.json();
+  }
+
+  async function loadQuizQuestions() {
+    try {
+      const quizData = await getJson(URLS.quiz);
+
+      const questions = Array.isArray(quizData.questions)
+        ? quizData.questions
+        : Array.isArray(quizData.response)
+        ? quizData.response
+        : [];
+
+      if (questions.length > 0) {
+        setQuizQuestions(questions);
+      }
+    } catch (quizError) {
+      console.warn(
+        "No se encontró quiz-questions.json. Se usa el banco incluido.",
+        quizError
+      );
+
+      setQuizQuestions(FALLBACK_QUIZ_QUESTIONS);
+    }
   }
 
   async function loadEverything() {
@@ -2110,68 +2127,48 @@ export default function App() {
         salariesData,
       ] = await Promise.all([
         getJson(URLS.games),
-        getJson(
-          URLS.boxScores
-        ),
-        getJson(
-          URLS.standings
-        ),
-        getJson(
-          URLS.seasonStats
-        ),
-        getJson(
-          URLS.salaries
-        ),
+        getJson(URLS.boxScores),
+        getJson(URLS.standings),
+        getJson(URLS.seasonStats),
+        getJson(URLS.salaries),
       ]);
 
       setGames(
-        Array.isArray(
-          gamesData.response
-        )
+        Array.isArray(gamesData.response)
           ? gamesData.response
           : []
       );
 
       setGameDate(
-        gamesData.parameters
-          ?.date || ""
+        gamesData.parameters?.date || ""
       );
 
       setBoxScoreFile(
-        boxScoresData.games ||
-          {}
+        boxScoresData.games || {}
       );
 
       setStandings(
-        Array.isArray(
-          standingsData.response
-        )
+        Array.isArray(standingsData.response)
           ? standingsData.response
           : []
       );
 
       setSeasonStats(
-        Array.isArray(
-          seasonData.response
-        )
+        Array.isArray(seasonData.response)
           ? seasonData.response
           : []
       );
 
       setSalaries(
-        Array.isArray(
-          salariesData.response
-        )
+        Array.isArray(salariesData.response)
           ? salariesData.response
           : []
       );
     } catch (loadError) {
-      console.error(
-        loadError
-      );
+      console.error(loadError);
 
       setError(
-        "No ha sido posible cargar todos los datos."
+        "No ha sido posible cargar todos los datos de ÑBA."
       );
     } finally {
       setLoading(false);
@@ -2180,6 +2177,7 @@ export default function App() {
 
   useEffect(() => {
     loadEverything();
+    loadQuizQuestions();
   }, []);
 
   useEffect(() => {
@@ -2196,113 +2194,71 @@ export default function App() {
     selectedSeasonPlayer,
   ]);
 
-  const enrichedPlayers =
-    useMemo(
-      () =>
-        mergeSeasonStatsAndSalaries(
-          seasonStats,
-          salaries
-        ),
-      [
+  const enrichedPlayers = useMemo(
+    () =>
+      mergeSeasonStatsAndSalaries(
         seasonStats,
-        salaries,
-      ]
-    );
+        salaries
+      ),
+    [seasonStats, salaries]
+  );
 
-  const spanishDailyPerformances =
-    useMemo(() => {
-      return Object.values(
-        boxScoreFile
-      )
-        .flatMap(
-          (gameData) =>
-            Array.isArray(
-              gameData?.response
-            )
-              ? gameData.response
-              : []
+  const spanishDailyPerformances = useMemo(
+    () =>
+      Object.values(boxScoreFile)
+        .flatMap((gameData) =>
+          Array.isArray(gameData?.response)
+            ? gameData.response
+            : []
         )
         .filter(
           (stat) =>
             isSpanishName(
-              boxPlayerName(
-                stat.player
-              )
+              boxPlayerName(stat.player)
             ) ||
             isSpanishName(
-              reversedBoxPlayerName(
-                stat.player
-              )
+              reversedBoxPlayerName(stat.player)
             )
-        );
-    }, [boxScoreFile]);
-
-  const boxPlayerSeason =
-    useMemo(
-      () =>
-        findSeasonPlayerForBoxScore(
-          selectedBoxPlayer,
-          enrichedPlayers
         ),
-      [
+    [boxScoreFile]
+  );
+
+  const selectedBoxPlayerSeason = useMemo(
+    () =>
+      findSeasonPlayerForBoxScore(
         selectedBoxPlayer,
-        enrichedPlayers,
-      ]
-    );
+        enrichedPlayers
+      ),
+    [
+      selectedBoxPlayer,
+      enrichedPlayers,
+    ]
+  );
 
   function openGame(game) {
     setSelectedGame(game);
-    setSelectedBoxPlayer(
-      null
-    );
-
+    setSelectedBoxPlayer(null);
     setGameStatsError("");
-    setGameStatsLoading(
-      true
-    );
 
     const savedGame =
-      boxScoreFile[
-        String(game.id)
-      ];
+      boxScoreFile[String(game.id)];
 
-    if (
-      Array.isArray(
-        savedGame?.response
-      )
-    ) {
-      setGameStats(
-        savedGame.response
+    if (Array.isArray(savedGame?.response)) {
+      setGameStats(savedGame.response);
+    } else {
+      setGameStats([]);
+
+      setGameStatsError(
+        "Las estadísticas de este partido todavía no están disponibles."
       );
-
-      setGameStatsLoading(
-        false
-      );
-
-      return;
     }
-
-    setGameStats([]);
-    setGameStatsLoading(
-      false
-    );
-
-    setGameStatsError(
-      "Las estadísticas de este partido todavía no están disponibles."
-    );
   }
 
-  function changeTab(
-    nextTab
-  ) {
+  function changeTab(nextTab) {
     setTab(nextTab);
     setSelectedGame(null);
-    setSelectedBoxPlayer(
-      null
-    );
-    setSelectedSeasonPlayer(
-      null
-    );
+    setSelectedBoxPlayer(null);
+    setSelectedSeasonPlayer(null);
     scrollTop();
   }
 
@@ -2323,9 +2279,7 @@ export default function App() {
         <div className="flex items-center px-4 py-3">
           <button
             onClick={() =>
-              changeTab(
-                "Scores"
-              )
+              changeTab("Scores")
             }
             className="flex items-center gap-3"
           >
@@ -2349,29 +2303,21 @@ export default function App() {
       <main className="mx-auto max-w-7xl px-4 py-5">
         {selectedSeasonPlayer ? (
           <SeasonPlayerDetail
-            player={
-              selectedSeasonPlayer
-            }
+            player={selectedSeasonPlayer}
             onBack={() => {
-              setSelectedSeasonPlayer(
-                null
-              );
+              setSelectedSeasonPlayer(null);
               scrollTop();
             }}
           />
         ) : selectedBoxPlayer &&
           selectedGame ? (
           <GamePlayerDetail
-            stat={
-              selectedBoxPlayer
-            }
+            stat={selectedBoxPlayer}
             seasonPlayer={
-              boxPlayerSeason
+              selectedBoxPlayerSeason
             }
             onBack={() => {
-              setSelectedBoxPlayer(
-                null
-              );
+              setSelectedBoxPlayer(null);
               scrollTop();
             }}
           />
@@ -2379,17 +2325,11 @@ export default function App() {
           <GameDetail
             game={selectedGame}
             stats={gameStats}
-            loading={
-              gameStatsLoading
-            }
-            error={
-              gameStatsError
-            }
+            error={gameStatsError}
             onBack={() => {
-              setSelectedGame(
-                null
-              );
+              setSelectedGame(null);
               setGameStats([]);
+              setGameStatsError("");
               scrollTop();
             }}
             onPlayer={
@@ -2398,38 +2338,36 @@ export default function App() {
           />
         ) : (
           <>
-            <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white">
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase">
-                <CalendarDays
-                  size={14}
-                />
-                ÑBA
-              </div>
+            {tab !== "Quiz" && (
+              <section className="mb-6 rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 px-5 py-4 text-white">
+                <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase">
+                  <CalendarDays size={14} />
+                  ÑBA
+                </div>
 
-              <h1 className="text-2xl font-black">
-                Baloncesto con Ñ.
-              </h1>
+                <h1 className="text-2xl font-black">
+                  Baloncesto con Ñ.
+                </h1>
 
-              <p className="mt-1 text-xs text-orange-50">
-                Resultados, clasificación, rankings y españoles.
-              </p>
-            </section>
+                <p className="mt-1 text-xs text-orange-50">
+                  Resultados, clasificación, rankings, españoles y Quiz.
+                </p>
+              </section>
+            )}
 
-            {loading && (
+            {loading && tab !== "Quiz" && (
               <Loading text="Cargando ÑBA..." />
             )}
 
             {!loading &&
-              error && (
-                <ErrorBox
-                  text={error}
-                />
+              error &&
+              tab !== "Quiz" && (
+                <ErrorBox text={error} />
               )}
 
             {!loading &&
               !error &&
-              tab ===
-                "Scores" && (
+              tab === "Scores" && (
                 <section>
                   <div className="mb-4 flex items-end justify-between">
                     <div>
@@ -2443,95 +2381,71 @@ export default function App() {
                     </div>
 
                     <button
-                      onClick={
-                        loadEverything
-                      }
+                      onClick={loadEverything}
                       className="flex items-center gap-2 rounded-xl border px-3 py-2 text-xs"
                     >
-                      <RefreshCw
-                        size={14}
-                      />
+                      <RefreshCw size={14} />
                       Actualizar
                     </button>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {games.map(
-                      (game) => (
-                        <button
-                          key={
-                            game.id
-                          }
-                          onClick={() =>
-                            openGame(
-                              game
-                            )
-                          }
-                          className="rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
-                        >
-                          <div className="mb-4 text-xs font-bold text-slate-500">
-                            {formatGameStatus(
-                              game
-                            )}
-                          </div>
+                    {games.map((game) => (
+                      <button
+                        key={game.id}
+                        onClick={() =>
+                          openGame(game)
+                        }
+                        className="rounded-3xl border border-slate-200 p-5 text-left shadow-sm"
+                      >
+                        <div className="mb-4 text-xs font-bold text-slate-500">
+                          {formatGameStatus(game)}
+                        </div>
 
-                          <div className="space-y-4">
-                            <TeamRow
-                              team={
-                                game
-                                  .teams
-                                  ?.visitors
-                              }
-                              score={
-                                game
-                                  .scores
-                                  ?.visitors
-                              }
-                            />
+                        <div className="space-y-4">
+                          <TeamRow
+                            team={
+                              game.teams
+                                ?.visitors
+                            }
+                            score={
+                              game.scores
+                                ?.visitors
+                            }
+                          />
 
-                            <TeamRow
-                              team={
-                                game
-                                  .teams
-                                  ?.home
-                              }
-                              score={
-                                game
-                                  .scores
-                                  ?.home
-                              }
-                            />
-                          </div>
+                          <TeamRow
+                            team={
+                              game.teams?.home
+                            }
+                            score={
+                              game.scores?.home
+                            }
+                          />
+                        </div>
 
-                          <div className="mt-4 text-right text-xs font-bold text-orange-600">
-                            Ver partido →
-                          </div>
-                        </button>
-                      )
-                    )}
+                        <div className="mt-4 text-right text-xs font-bold text-orange-600">
+                          Ver partido →
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </section>
               )}
 
             {!loading &&
               !error &&
-              tab ===
-                "Standings" && (
+              tab === "Standings" && (
                 <StandingsView
-                  standings={
-                    standings
-                  }
+                  standings={standings}
                 />
               )}
 
             {!loading &&
               !error &&
-              tab ===
-                "Players" && (
+              tab === "Players" && (
                 <PlayersView
-                  players={
-                    enrichedPlayers
-                  }
+                  players={enrichedPlayers}
                   onSelect={
                     setSelectedSeasonPlayer
                   }
@@ -2540,57 +2454,49 @@ export default function App() {
 
             {!loading &&
               !error &&
-              tab ===
-                "Spanish" && (
+              tab === "Spanish" && (
                 <SpanishView
-                  seasonPlayers={
-                    enrichedPlayers
-                  }
+                  players={enrichedPlayers}
                   dailyPerformances={
                     spanishDailyPerformances
                   }
-                  games={games}
-                  onOpenGame={
-                    openGame
-                  }
-                  onSelectSeasonPlayer={
-                    setSelectedSeasonPlayer
-                  }
                 />
               )}
+
+            {tab === "Quiz" && (
+              <QuizView
+                questions={quizQuestions}
+              />
+            )}
           </>
         )}
       </main>
 
       {showNavigation && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-1 pt-2 backdrop-blur md:hidden"
+          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-1 pt-2 backdrop-blur md:hidden"
           style={{
             paddingBottom:
               "calc(0.5rem + env(safe-area-inset-bottom))",
           }}
         >
           {NAV.map(
-            ([
-              key,
-              Icon,
-              label,
-            ]) => (
+            ([key, Icon, label]) => (
               <button
                 key={key}
                 onClick={() =>
                   changeTab(key)
                 }
-                className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[9px] ${
+                className={`flex min-w-0 flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[8px] ${
                   tab === key
                     ? "bg-slate-950 text-white"
                     : "text-slate-500"
                 }`}
               >
-                <Icon
-                  size={17}
-                />
-                {label}
+                <Icon size={17} />
+                <span className="max-w-full truncate">
+                  {label}
+                </span>
               </button>
             )
           )}
