@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-20T14:16:20.406629+00:00",
+  "updatedAt": "2026-11-20T14:20:44.837118+00:00",
   "source": "Basketball-Reference",
   "results": 30,
   "response": [
@@ -48,8 +48,8 @@
     },
     {
       "season": "2026-27",
-      "team": "ATL",
-      "team_name": "Atlanta Hawks",
+      "team": "MIA",
+      "team_name": "Miami Heat",
       "conference": "East",
       "conference_position": 4,
       "wins": 9,
@@ -57,13 +57,13 @@
       "win_pct": 0.6,
       "games": 15,
       "games_back": 3.5,
-      "points_pg": 117.7,
-      "opponent_points_pg": 115.8
+      "points_pg": 120.5,
+      "opponent_points_pg": 119.9
     },
     {
       "season": "2026-27",
-      "team": "MIA",
-      "team_name": "Miami Heat",
+      "team": "ATL",
+      "team_name": "Atlanta Hawks",
       "conference": "East",
       "conference_position": 5,
       "wins": 9,
@@ -71,8 +71,8 @@
       "win_pct": 0.6,
       "games": 15,
       "games_back": 3.5,
-      "points_pg": 120.5,
-      "opponent_points_pg": 119.9
+      "points_pg": 117.7,
+      "opponent_points_pg": 115.8
     },
     {
       "season": "2026-27",
@@ -118,8 +118,8 @@
     },
     {
       "season": "2026-27",
-      "team": "IND",
-      "team_name": "Indiana Pacers",
+      "team": "TOR",
+      "team_name": "Toronto Raptors",
       "conference": "East",
       "conference_position": 9,
       "wins": 5,
@@ -127,13 +127,13 @@
       "win_pct": 0.333,
       "games": 15,
       "games_back": 7.5,
-      "points_pg": 111.5,
-      "opponent_points_pg": 114.8
+      "points_pg": 112.0,
+      "opponent_points_pg": 112.0
     },
     {
       "season": "2026-27",
-      "team": "TOR",
-      "team_name": "Toronto Raptors",
+      "team": "IND",
+      "team_name": "Indiana Pacers",
       "conference": "East",
       "conference_position": 10,
       "wins": 5,
@@ -141,8 +141,8 @@
       "win_pct": 0.333,
       "games": 15,
       "games_back": 7.5,
-      "points_pg": 112.0,
-      "opponent_points_pg": 112.0
+      "points_pg": 111.5,
+      "opponent_points_pg": 114.8
     },
     {
       "season": "2026-27",
@@ -216,8 +216,8 @@
     },
     {
       "season": "2026-27",
-      "team": "LAL",
-      "team_name": "Los Angeles Lakers",
+      "team": "SAS",
+      "team_name": "San Antonio Spurs",
       "conference": "West",
       "conference_position": 1,
       "wins": 13,
@@ -225,13 +225,13 @@
       "win_pct": 0.813,
       "games": 16,
       "games_back": 0.0,
-      "points_pg": 120.9,
-      "opponent_points_pg": 114.4
+      "points_pg": 117.5,
+      "opponent_points_pg": 106.3
     },
     {
       "season": "2026-27",
-      "team": "SAS",
-      "team_name": "San Antonio Spurs",
+      "team": "LAL",
+      "team_name": "Los Angeles Lakers",
       "conference": "West",
       "conference_position": 2,
       "wins": 13,
@@ -239,8 +239,8 @@
       "win_pct": 0.813,
       "games": 16,
       "games_back": 0.0,
-      "points_pg": 117.5,
-      "opponent_points_pg": 106.3
+      "points_pg": 120.9,
+      "opponent_points_pg": 114.4
     },
     {
       "season": "2026-27",
