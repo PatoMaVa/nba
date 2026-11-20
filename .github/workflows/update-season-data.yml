@@ -2,9 +2,7 @@ name: Update NBA season data
 
 on:
   schedule:
-    # Se ejecuta cada hora, en el minuto 1.
     - cron: "01 * * * *"
-
   workflow_dispatch:
 
 permissions:
@@ -206,7 +204,7 @@ jobs:
 
                           if not raw_content:
                               raise RuntimeError(
-                                  "Downloaded file is empty"
+                                  "Downloaded content is empty"
                               )
 
                           return raw_content.decode(
@@ -307,8 +305,13 @@ jobs:
               value = (
                   value
                   .replace("−", "-")
+                  .replace("—", "")
                   .replace(",", "")
+                  .strip()
               )
+
+              if not value:
+                  return default
 
               try:
                   return float(value)
@@ -339,27 +342,24 @@ jobs:
                   )
 
                   tables.extend(
-                      comment_soup.find_all(
-                          "table"
-                      )
+                      comment_soup.find_all("table")
                   )
 
               unique_tables = []
-              seen_ids = set()
+              seen_table_ids = set()
 
               for table in tables:
                   table_id = table.get("id")
 
-                  identity = (
-                      table_id
-                      if table_id
-                      else str(table)
-                  )
+                  if table_id:
+                      identity = table_id.lower()
+                  else:
+                      identity = str(table)
 
-                  if identity in seen_ids:
+                  if identity in seen_table_ids:
                       continue
 
-                  seen_ids.add(identity)
+                  seen_table_ids.add(identity)
                   unique_tables.append(table)
 
               return unique_tables
@@ -368,12 +368,7 @@ jobs:
           def find_standings_tables(html):
               tables = get_all_tables(html)
 
-              conference_tables = []
-
-              valid_table_ids = {
-                  "confs_standings_e",
-                  "confs_standings_w",
-              }
+              tables_by_id = {}
 
               for table in tables:
                   table_id = (
@@ -381,51 +376,76 @@ jobs:
                       or ""
                   ).lower()
 
-                  if table_id in valid_table_ids:
-                      conference_tables.append(table)
+                  if table_id:
+                      tables_by_id[table_id] = table
 
-              if len(conference_tables) != 2:
-                  available_ids = sorted({
-                      table.get("id")
-                      for table in tables
-                      if table.get("id")
-                  })
+              required_table_ids = [
+                  "confs_standings_e",
+                  "confs_standings_w",
+              ]
 
-                  raise RuntimeError(
-                      "Could not find the two conference "
-                      "standings tables. "
-                      "Expected IDs: "
-                      "confs_standings_E and "
-                      "confs_standings_W. "
-                      f"Available table IDs: {available_ids}"
+              missing_table_ids = [
+                  table_id
+                  for table_id in required_table_ids
+                  if table_id not in tables_by_id
+              ]
+
+              if missing_table_ids:
+                  available_ids = sorted(
+                      tables_by_id.keys()
                   )
 
-              return conference_tables
+                  raise RuntimeError(
+                      "Could not find the conference "
+                      "standings tables. "
+                      f"Missing IDs: {missing_table_ids}. "
+                      f"Available IDs: {available_ids}"
+                  )
+
+              # Se devuelve primero Este y después Oeste
+              # de forma explícita.
+              return [
+                  tables_by_id["confs_standings_e"],
+                  tables_by_id["confs_standings_w"],
+              ]
 
 
-          def standings_sort_key(team):
-              return (
-                  -float(
-                      team.get("win_pct")
-                      or 0
-                  ),
-                  -int(
-                      team.get("wins")
-                      or 0
-                  ),
-                  int(
-                      team.get("losses")
-                      or 0
-                  ),
-                  str(
-                      team.get("team")
-                      or ""
-                  ),
+          def parse_games_back(cell):
+              if cell is None:
+                  return None
+
+              value = cell.get_text(
+                  " ",
+                  strip=True,
               )
+
+              if value in {
+                  "",
+                  "—",
+                  "-",
+              }:
+                  return 0.0
+
+              value = (
+                  value
+                  .replace("−", "-")
+                  .replace(",", "")
+                  .strip()
+              )
+
+              try:
+                  return float(value)
+
+              except ValueError:
+                  return None
 
 
           def parse_standings(html):
               rows_by_team = {}
+              conference_rows = {
+                  "East": [],
+                  "West": [],
+              }
 
               tables = find_standings_tables(
                   html
@@ -458,7 +478,7 @@ jobs:
                       table_id,
                   )
 
-                  conference_team_count = 0
+                  conference_position = 0
 
                   for row in table.select(
                       "tbody tr"
@@ -554,8 +574,7 @@ jobs:
 
                       if team_code in rows_by_team:
                           raise RuntimeError(
-                              "Duplicate team detected in "
-                              "conference standings: "
+                              "Duplicate team detected: "
                               f"{team_code}"
                           )
 
@@ -594,31 +613,9 @@ jobs:
                               else 0
                           )
 
-                      games_back = None
-
-                      if games_back_cell is not None:
-                          games_back_text = (
-                              games_back_cell
-                              .get_text(
-                                  strip=True
-                              )
-                          )
-
-                          if games_back_text in {
-                              "",
-                              "—",
-                              "-",
-                          }:
-                              games_back = 0.0
-
-                          else:
-                              try:
-                                  games_back = float(
-                                      games_back_text
-                                  )
-
-                              except ValueError:
-                                  games_back = None
+                      games_back = parse_games_back(
+                          games_back_cell
+                      )
 
                       points_pg = parse_number(
                           points_cell
@@ -630,12 +627,19 @@ jobs:
                           )
                       )
 
-                      rows_by_team[team_code] = {
+                      # La posición se obtiene directamente
+                      # del orden oficial de la fuente.
+                      # No se recalcula ningún desempate.
+                      conference_position += 1
+
+                      team_record = {
                           "season": SEASON,
                           "team": team_code,
                           "team_name": team_name,
                           "conference": conference,
-                          "conference_position": None,
+                          "conference_position": (
+                              conference_position
+                          ),
                           "wins": wins,
                           "losses": losses,
                           "win_pct": round(
@@ -650,62 +654,55 @@ jobs:
                           ),
                       }
 
-                      conference_team_count += 1
+                      rows_by_team[
+                          team_code
+                      ] = team_record
+
+                      conference_rows[
+                          conference
+                      ].append(team_record)
 
                   print(
                       f"{conference} teams parsed:",
-                      conference_team_count,
+                      len(
+                          conference_rows[
+                              conference
+                          ]
+                      ),
                   )
 
               received_codes = set(
                   rows_by_team.keys()
               )
 
-              if len(rows_by_team) != 30:
-                  missing = sorted(
-                      EXPECTED_TEAM_CODES
-                      - received_codes
-                  )
+              missing_codes = sorted(
+                  EXPECTED_TEAM_CODES
+                  - received_codes
+              )
 
-                  unexpected = sorted(
-                      received_codes
-                      - EXPECTED_TEAM_CODES
-                  )
+              unexpected_codes = sorted(
+                  received_codes
+                  - EXPECTED_TEAM_CODES
+              )
 
+              if (
+                  len(rows_by_team) != 30
+                  or missing_codes
+                  or unexpected_codes
+              ):
                   raise RuntimeError(
-                      "Expected 30 NBA teams, "
-                      f"received {len(rows_by_team)}. "
-                      f"Missing: {missing}. "
-                      f"Unexpected: {unexpected}"
+                      "NBA team validation failed. "
+                      f"Received: {len(rows_by_team)}. "
+                      f"Missing: {missing_codes}. "
+                      f"Unexpected: {unexpected_codes}"
                   )
 
-              if received_codes != EXPECTED_TEAM_CODES:
-                  missing = sorted(
-                      EXPECTED_TEAM_CODES
-                      - received_codes
-                  )
-
-                  unexpected = sorted(
-                      received_codes
-                      - EXPECTED_TEAM_CODES
-                  )
-
-                  raise RuntimeError(
-                      "NBA team code validation failed. "
-                      f"Missing: {missing}. "
-                      f"Unexpected: {unexpected}"
-                  )
-
-              east_teams = [
-                  team
-                  for team in rows_by_team.values()
-                  if team["conference"] == "East"
+              east_teams = conference_rows[
+                  "East"
               ]
 
-              west_teams = [
-                  team
-                  for team in rows_by_team.values()
-                  if team["conference"] == "West"
+              west_teams = conference_rows[
+                  "West"
               ]
 
               if len(east_teams) != 15:
@@ -722,43 +719,52 @@ jobs:
                       f"{len(west_teams)}"
                   )
 
-              east_teams.sort(
-                  key=standings_sort_key
+              expected_positions = list(
+                  range(1, 16)
               )
 
-              west_teams.sort(
-                  key=standings_sort_key
-              )
+              east_positions = [
+                  team["conference_position"]
+                  for team in east_teams
+              ]
 
-              for position, team in enumerate(
-                  east_teams,
-                  start=1,
-              ):
-                  team[
-                      "conference_position"
-                  ] = position
+              west_positions = [
+                  team["conference_position"]
+                  for team in west_teams
+              ]
 
-              for position, team in enumerate(
-                  west_teams,
-                  start=1,
-              ):
-                  team[
-                      "conference_position"
-                  ] = position
+              if east_positions != expected_positions:
+                  raise RuntimeError(
+                      "Invalid Eastern Conference "
+                      "source positions: "
+                      f"{east_positions}"
+                  )
+
+              if west_positions != expected_positions:
+                  raise RuntimeError(
+                      "Invalid Western Conference "
+                      "source positions: "
+                      f"{west_positions}"
+                  )
 
               standings = (
                   east_teams
                   + west_teams
               )
 
+              print("")
               print(
-                  "Eastern Conference teams:",
-                  len(east_teams),
+                  "Eastern Conference leader:",
+                  east_teams[0]["team_name"],
+                  f"{east_teams[0]['wins']}-"
+                  f"{east_teams[0]['losses']}",
               )
 
               print(
-                  "Western Conference teams:",
-                  len(west_teams),
+                  "Western Conference leader:",
+                  west_teams[0]["team_name"],
+                  f"{west_teams[0]['wins']}-"
+                  f"{west_teams[0]['losses']}",
               )
 
               return standings
@@ -824,8 +830,8 @@ jobs:
 
           if "Conference Standings" not in standings_html:
               raise RuntimeError(
-                  "The downloaded Basketball-Reference "
-                  "page does not appear to contain "
+                  "The Basketball-Reference page "
+                  "does not appear to contain "
                   "conference standings"
               )
 
@@ -835,7 +841,9 @@ jobs:
 
 
           print("")
-          print("Downloading NBA player statistics...")
+          print(
+              "Downloading NBA player statistics..."
+          )
 
           players_csv = download_text(
               PLAYERS_URL
@@ -905,11 +913,6 @@ jobs:
           print("")
           print(
               "Season data generated successfully"
-          )
-
-          print(
-              "Standings source:",
-              standings_output["source"],
           )
 
           print(
@@ -994,11 +997,6 @@ jobs:
               if team.get("conference") == "West"
           ]
 
-          team_codes = [
-              team.get("team")
-              for team in teams
-          ]
-
 
           if standings_data.get("season") != "2026-27":
               raise RuntimeError(
@@ -1009,7 +1007,7 @@ jobs:
 
           if standings_data.get("results") != 30:
               raise RuntimeError(
-                  "Standings results field must be 30, "
+                  "Standings results must be 30, "
                   "received "
                   f"{standings_data.get('results')}"
               )
@@ -1020,6 +1018,12 @@ jobs:
                   "Expected 30 teams, got "
                   f"{len(teams)}"
               )
+
+
+          team_codes = [
+              team.get("team")
+              for team in teams
+          ]
 
 
           if len(set(team_codes)) != 30:
@@ -1037,7 +1041,7 @@ jobs:
 
           if None in team_codes:
               raise RuntimeError(
-                  "A team without a team code was found"
+                  "A team without a code was found"
               )
 
 
@@ -1060,15 +1064,15 @@ jobs:
           )
 
           east_positions = [
-              team.get(
-                  "conference_position"
+              int(
+                  team["conference_position"]
               )
               for team in east
           ]
 
           west_positions = [
-              team.get(
-                  "conference_position"
+              int(
+                  team["conference_position"]
               )
               for team in west
           ]
@@ -1120,7 +1124,9 @@ jobs:
                   + int(team["losses"])
               )
 
-              if team["games"] != expected_games:
+              if int(
+                  team["games"]
+              ) != expected_games:
                   raise RuntimeError(
                       "Invalid games total for "
                       f"{team['team']}: "
@@ -1138,45 +1144,22 @@ jobs:
                   )
 
 
-          def sort_key(team):
-              return (
-                  -float(
-                      team.get("win_pct")
-                      or 0
-                  ),
-                  -int(
-                      team.get("wins")
-                      or 0
-                  ),
-                  int(
-                      team.get("losses")
-                      or 0
-                  ),
-                  str(
-                      team.get("team")
-                      or ""
-                  ),
-              )
+          # Control específico para impedir que se vuelva
+          # a aplicar el antiguo desempate alfabético.
+          west_leader = west[0]
 
+          print(
+              "Western Conference source leader:",
+              west_leader.get("team_name"),
+          )
 
-          if east != sorted(
-              east,
-              key=sort_key,
-          ):
-              raise RuntimeError(
-                  "Eastern Conference is not "
-                  "correctly sorted"
-              )
-
-
-          if west != sorted(
-              west,
-              key=sort_key,
-          ):
-              raise RuntimeError(
-                  "Western Conference is not "
-                  "correctly sorted"
-              )
+          print(
+              "Western Conference source order:",
+              " > ".join(
+                  team["team"]
+                  for team in west[:5]
+              ),
+          )
 
 
           if len(players) < 300:
@@ -1190,11 +1173,12 @@ jobs:
               "results"
           ) != len(players):
               raise RuntimeError(
-                  "Player results field does not match "
-                  "the player response length"
+                  "Player results does not match "
+                  "the response length"
               )
 
 
+          print("")
           print("Standings validation passed")
           print("East teams:", len(east))
           print("West teams:", len(west))
@@ -1285,6 +1269,8 @@ jobs:
                   f"{team.get('wins')}-"
                   f"{team.get('losses')}",
                   team.get("win_pct"),
+                  "GB:",
+                  team.get("games_back"),
               )
 
 
@@ -1302,6 +1288,8 @@ jobs:
                   f"{team.get('wins')}-"
                   f"{team.get('losses')}",
                   team.get("win_pct"),
+                  "GB:",
+                  team.get("games_back"),
               )
 
 
