@@ -144,6 +144,10 @@ jobs:
 
           def find_exact_player(candidates, expected_name):
               expected = normalize(expected_name)
+              expected_parts = expected.split()
+              expected_first = expected_parts[0] if expected_parts else ""
+              expected_surname = expected_parts[-1] if expected_parts else ""
+
               exact = [
                   player for player in candidates
                   if normalize(player_full_name(player)) == expected
@@ -151,9 +155,34 @@ jobs:
 
               if len(exact) == 1:
                   return exact[0]
-              if len(exact) > 1:
+
+              # API-NBA sometimes abbreviates first names, for example
+              # "S. de Larrea" instead of "Sergio De Larrea".
+              abbreviated = []
+              for player in candidates:
+                  first = normalize(player.get("firstname"))
+                  last = normalize(player.get("lastname"))
+                  full = normalize(player_full_name(player))
+
+                  first_initial_matches = (
+                      first and expected_first and first[0] == expected_first[0]
+                  )
+                  surname_matches = (
+                      last == expected_surname
+                      or full.endswith(" " + " ".join(expected_parts[1:]))
+                  )
+
+                  if first_initial_matches and surname_matches:
+                      abbreviated.append(player)
+
+              matches = exact or abbreviated
+
+              if len(matches) == 1:
+                  return matches[0]
+
+              if len(matches) > 1:
                   active = [
-                      player for player in exact
+                      player for player in matches
                       if (
                           player.get("leagues", {})
                           .get("standard", {})
@@ -162,9 +191,10 @@ jobs:
                   ]
                   if len(active) == 1:
                       return active[0]
+
                   raise RuntimeError(
-                      f"Multiple exact API-NBA matches for {expected_name}: "
-                      f"{[player.get('id') for player in exact]}"
+                      f"Multiple API-NBA matches for {expected_name}: "
+                      f"{[(player.get('id'), player_full_name(player)) for player in matches]}"
                   )
 
               return None
