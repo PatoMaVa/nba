@@ -2,7 +2,7 @@ name: Update NBA season data
 
 on:
   schedule:
-    - cron: "01 * * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -27,36 +27,37 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install \
-            beautifulsoup4 \
-            lxml
-
       - name: Create data folder
-        run: |
-          mkdir -p public/data
+        run: mkdir -p public/data
 
       - name: Download and convert season data
+        env:
+          API_NINJAS_KEY: ${{ secrets.API_NINJAS_KEY }}
         run: |
           python <<'PYTHON'
           import csv
           import io
           import json
-          import re
+          import os
           import time
+          import urllib.parse
           import urllib.request
           from datetime import datetime, timezone
           from pathlib import Path
 
-          from bs4 import BeautifulSoup, Comment
-
-
           SEASON = "2026-27"
+          SEASON_YEAR = 2026
 
-          BASKETBALL_REFERENCE_URL = (
-              "https://www.basketball-reference.com/"
-              "leagues/NBA_2027_standings.html"
+          API_KEY = os.environ.get("API_NINJAS_KEY", "").strip()
+          if not API_KEY:
+              raise RuntimeError("Missing GitHub secret API_NINJAS_KEY")
+
+          STANDINGS_URL = (
+              "https://api.api-ninjas.com/v1/basketballstandings?"
+              + urllib.parse.urlencode({
+                  "league": "nba",
+                  "season": SEASON_YEAR,
+              })
           )
 
           PLAYERS_URL = (
@@ -65,1258 +66,374 @@ jobs:
           )
 
           OUTPUT_DIRECTORY = Path("public/data")
-
-          STANDINGS_FILE = (
-              OUTPUT_DIRECTORY
-              / "standings.json"
-          )
-
-          PLAYERS_FILE = (
-              OUTPUT_DIRECTORY
-              / "season-player-stats.json"
-          )
-
-          OUTPUT_DIRECTORY.mkdir(
-              parents=True,
-              exist_ok=True,
-          )
-
-
-          TEAM_CODES = {
-              "Atlanta Hawks": "ATL",
-              "Boston Celtics": "BOS",
-              "Brooklyn Nets": "BKN",
-              "Charlotte Hornets": "CHA",
-              "Chicago Bulls": "CHI",
-              "Cleveland Cavaliers": "CLE",
-              "Dallas Mavericks": "DAL",
-              "Denver Nuggets": "DEN",
-              "Detroit Pistons": "DET",
-              "Golden State Warriors": "GSW",
-              "Houston Rockets": "HOU",
-              "Indiana Pacers": "IND",
-              "Los Angeles Clippers": "LAC",
-              "LA Clippers": "LAC",
-              "Los Angeles Lakers": "LAL",
-              "Memphis Grizzlies": "MEM",
-              "Miami Heat": "MIA",
-              "Milwaukee Bucks": "MIL",
-              "Minnesota Timberwolves": "MIN",
-              "New Orleans Pelicans": "NOP",
-              "New York Knicks": "NYK",
-              "Oklahoma City Thunder": "OKC",
-              "Orlando Magic": "ORL",
-              "Philadelphia 76ers": "PHI",
-              "Phoenix Suns": "PHX",
-              "Portland Trail Blazers": "POR",
-              "Sacramento Kings": "SAC",
-              "San Antonio Spurs": "SAS",
-              "Toronto Raptors": "TOR",
-              "Utah Jazz": "UTA",
-              "Washington Wizards": "WAS",
-          }
-
+          STANDINGS_FILE = OUTPUT_DIRECTORY / "standings.json"
+          PLAYERS_FILE = OUTPUT_DIRECTORY / "season-player-stats.json"
+          OUTPUT_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
           EXPECTED_TEAM_CODES = {
-              "ATL",
-              "BOS",
-              "BKN",
-              "CHA",
-              "CHI",
-              "CLE",
-              "DAL",
-              "DEN",
-              "DET",
-              "GSW",
-              "HOU",
-              "IND",
-              "LAC",
-              "LAL",
-              "MEM",
-              "MIA",
-              "MIL",
-              "MIN",
-              "NOP",
-              "NYK",
-              "OKC",
-              "ORL",
-              "PHI",
-              "PHX",
-              "POR",
-              "SAC",
-              "SAS",
-              "TOR",
-              "UTA",
-              "WAS",
+              "ATL", "BOS", "BKN", "CHA", "CHI", "CLE",
+              "DAL", "DEN", "DET", "GSW", "HOU", "IND",
+              "LAC", "LAL", "MEM", "MIA", "MIL", "MIN",
+              "NOP", "NYK", "OKC", "ORL", "PHI", "PHX",
+              "POR", "SAC", "SAS", "TOR", "UTA", "WAS",
           }
 
-
-          def download_text(url):
+          def download(url, headers=None):
               print(f"Downloading: {url}")
+              request_headers = {
+                  "User-Agent": "Mozilla/5.0 GitHub-Actions-NBA-App/1.0",
+                  "Accept": "*/*",
+                  "Cache-Control": "no-cache",
+              }
+              if headers:
+                  request_headers.update(headers)
 
-              request = urllib.request.Request(
-                  url,
-                  headers={
-                      "User-Agent": (
-                          "Mozilla/5.0 "
-                          "(Windows NT 10.0; Win64; x64) "
-                          "AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) "
-                          "Chrome/131.0.0.0 "
-                          "Safari/537.36"
-                      ),
-                      "Accept": (
-                          "text/html,"
-                          "application/xhtml+xml,"
-                          "application/xml;q=0.9,"
-                          "text/csv;q=0.9,"
-                          "*/*;q=0.8"
-                      ),
-                      "Accept-Language": (
-                          "en-US,en;q=0.9"
-                      ),
-                      "Cache-Control": "no-cache",
-                      "Pragma": "no-cache",
-                  },
-              )
-
+              request = urllib.request.Request(url, headers=request_headers)
               last_error = None
 
               for attempt in range(1, 4):
                   try:
-                      with urllib.request.urlopen(
-                          request,
-                          timeout=60,
-                      ) as response:
-                          status = getattr(
-                              response,
-                              "status",
-                              200,
-                          )
-
+                      with urllib.request.urlopen(request, timeout=60) as response:
+                          status = getattr(response, "status", 200)
                           if status != 200:
-                              raise RuntimeError(
-                                  "Unexpected HTTP status: "
-                                  f"{status}"
-                              )
-
-                          raw_content = response.read()
-
-                          if not raw_content:
-                              raise RuntimeError(
-                                  "Downloaded content is empty"
-                              )
-
-                          return raw_content.decode(
-                              "utf-8-sig",
-                              errors="replace",
-                          )
-
+                              raise RuntimeError(f"Unexpected HTTP status: {status}")
+                          raw = response.read()
+                          if not raw:
+                              raise RuntimeError("Downloaded content is empty")
+                          return raw.decode("utf-8-sig", errors="replace")
                   except Exception as error:
                       last_error = error
-
-                      print(
-                          f"Attempt {attempt} failed: "
-                          f"{error}"
-                      )
-
+                      print(f"Attempt {attempt} failed: {error}")
                       if attempt < 3:
-                          wait_seconds = attempt * 5
+                          time.sleep(attempt * 5)
 
-                          print(
-                              "Waiting "
-                              f"{wait_seconds} seconds..."
-                          )
-
-                          time.sleep(wait_seconds)
-
-              raise RuntimeError(
-                  f"Could not download {url}: "
-                  f"{last_error}"
-              )
-
+              raise RuntimeError(f"Could not download {url}: {last_error}")
 
           def clean_value(value):
               if value is None:
                   return None
-
               value = str(value).strip()
-
-              if value == "":
+              if not value:
                   return None
-
               try:
                   if "." in value:
                       return float(value)
-
                   return int(value)
-
               except ValueError:
                   return value
 
-
           def clean_rows(rows):
               return [
-                  {
-                      key: clean_value(value)
-                      for key, value in row.items()
-                  }
+                  {key: clean_value(value) for key, value in row.items()}
                   for row in rows
               ]
 
+          def normalize_conference(value):
+              value = str(value or "").strip().lower()
+              if value in {"eastern", "east", "e"}:
+                  return "East"
+              if value in {"western", "west", "w"}:
+                  return "West"
+              raise RuntimeError(f"Unknown conference returned by API Ninjas: {value}")
 
-          def clean_team_name(value):
-              value = str(value or "")
-
-              value = (
-                  value
-                  .replace("*", "")
-                  .replace("\xa0", " ")
-                  .strip()
-              )
-
-              value = re.sub(
-                  r"\s+\(\d+\)$",
-                  "",
-                  value,
-              )
-
-              value = re.sub(
-                  r"\s+",
-                  " ",
-                  value,
-              )
-
-              return value.strip()
-
-
-          def parse_number(cell, default=None):
-              if cell is None:
+          def as_float(value, default=None):
+              if value is None or value == "":
                   return default
-
-              value = cell.get_text(
-                  " ",
-                  strip=True,
-              )
-
-              if not value:
-                  return default
-
-              value = (
-                  value
-                  .replace("−", "-")
-                  .replace("—", "")
-                  .replace(",", "")
-                  .strip()
-              )
-
-              if not value:
-                  return default
-
               try:
                   return float(value)
-
-              except ValueError:
+              except (TypeError, ValueError):
                   return default
 
-
-          def get_all_tables(html):
-              soup = BeautifulSoup(
-                  html,
-                  "lxml",
-              )
-
-              tables = list(
-                  soup.find_all("table")
-              )
-
-              for comment in soup.find_all(
-                  string=lambda text: (
-                      isinstance(text, Comment)
-                      and "<table" in text
-                  )
-              ):
-                  comment_soup = BeautifulSoup(
-                      comment,
-                      "lxml",
-                  )
-
-                  tables.extend(
-                      comment_soup.find_all("table")
-                  )
-
-              unique_tables = []
-              seen_table_ids = set()
-
-              for table in tables:
-                  table_id = table.get("id")
-
-                  if table_id:
-                      identity = table_id.lower()
-                  else:
-                      identity = str(table)
-
-                  if identity in seen_table_ids:
-                      continue
-
-                  seen_table_ids.add(identity)
-                  unique_tables.append(table)
-
-              return unique_tables
-
-
-          def find_standings_tables(html):
-              tables = get_all_tables(html)
-
-              tables_by_id = {}
-
-              for table in tables:
-                  table_id = (
-                      table.get("id")
-                      or ""
-                  ).lower()
-
-                  if table_id:
-                      tables_by_id[table_id] = table
-
-              required_table_ids = [
-                  "confs_standings_e",
-                  "confs_standings_w",
-              ]
-
-              missing_table_ids = [
-                  table_id
-                  for table_id in required_table_ids
-                  if table_id not in tables_by_id
-              ]
-
-              if missing_table_ids:
-                  available_ids = sorted(
-                      tables_by_id.keys()
-                  )
-
-                  raise RuntimeError(
-                      "Could not find the conference "
-                      "standings tables. "
-                      f"Missing IDs: {missing_table_ids}. "
-                      f"Available IDs: {available_ids}"
-                  )
-
-              # Se devuelve primero Este y después Oeste
-              # de forma explícita.
-              return [
-                  tables_by_id["confs_standings_e"],
-                  tables_by_id["confs_standings_w"],
-              ]
-
-
-          def parse_games_back(cell):
-              if cell is None:
-                  return None
-
-              value = cell.get_text(
-                  " ",
-                  strip=True,
-              )
-
-              if value in {
-                  "",
-                  "—",
-                  "-",
-              }:
-                  return 0.0
-
-              value = (
-                  value
-                  .replace("−", "-")
-                  .replace(",", "")
-                  .strip()
-              )
-
+          def as_int(value, default=None):
+              if value is None or value == "":
+                  return default
               try:
-                  return float(value)
+                  return int(value)
+              except (TypeError, ValueError):
+                  return default
 
-              except ValueError:
-                  return None
-
-
-          def parse_standings(html):
-              rows_by_team = {}
-              conference_rows = {
-                  "East": [],
-                  "West": [],
-              }
-
-              tables = find_standings_tables(
-                  html
-              )
-
-              print(
-                  "Conference standings tables:",
-                  len(tables),
-              )
-
-              for table in tables:
-                  table_id = (
-                      table.get("id")
-                      or ""
-                  ).lower()
-
-                  if table_id == "confs_standings_e":
-                      conference = "East"
-
-                  elif table_id == "confs_standings_w":
-                      conference = "West"
-
-                  else:
-                      continue
-
-                  print(
-                      "Parsing conference:",
-                      conference,
-                      "- table:",
-                      table_id,
-                  )
-
-                  conference_position = 0
-
-                  for row in table.select(
-                      "tbody tr"
-                  ):
-                      row_classes = (
-                          row.get("class")
-                          or []
-                      )
-
-                      if "thead" in row_classes:
-                          continue
-
-                      team_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "team_name"
-                          },
-                      )
-
-                      if team_cell is None:
-                          team_cell = row.find(
-                              ["th", "td"],
-                              attrs={
-                                  "data-stat": "team"
-                              },
-                          )
-
-                      wins_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "wins"
-                          },
-                      )
-
-                      losses_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "losses"
-                          },
-                      )
-
-                      percentage_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "win_loss_pct"
-                          },
-                      )
-
-                      games_back_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "gb"
-                          },
-                      )
-
-                      points_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "pts_per_g"
-                          },
-                      )
-
-                      opponent_points_cell = row.find(
-                          ["th", "td"],
-                          attrs={
-                              "data-stat": "opp_pts_per_g"
-                          },
-                      )
-
-                      if (
-                          team_cell is None
-                          or wins_cell is None
-                          or losses_cell is None
-                      ):
-                          continue
-
-                      team_name = clean_team_name(
-                          team_cell.get_text(
-                              " ",
-                              strip=True,
-                          )
-                      )
-
-                      team_code = TEAM_CODES.get(
-                          team_name
-                      )
-
-                      if not team_code:
-                          raise RuntimeError(
-                              "Unknown NBA team name: "
-                              f"{team_name}"
-                          )
-
-                      if team_code in rows_by_team:
-                          raise RuntimeError(
-                              "Duplicate team detected: "
-                              f"{team_code}"
-                          )
-
-                      wins_text = wins_cell.get_text(
-                          strip=True
-                      )
-
-                      losses_text = (
-                          losses_cell.get_text(
-                              strip=True
-                          )
-                      )
-
-                      try:
-                          wins = int(wins_text)
-                          losses = int(losses_text)
-
-                      except ValueError as error:
-                          raise RuntimeError(
-                              "Invalid win/loss record for "
-                              f"{team_name}: "
-                              f"W={wins_text}, "
-                              f"L={losses_text}"
-                          ) from error
-
-                      games = wins + losses
-
-                      win_pct = parse_number(
-                          percentage_cell
-                      )
-
-                      if win_pct is None:
-                          win_pct = (
-                              wins / games
-                              if games
-                              else 0
-                          )
-
-                      games_back = parse_games_back(
-                          games_back_cell
-                      )
-
-                      points_pg = parse_number(
-                          points_cell
-                      )
-
-                      opponent_points_pg = (
-                          parse_number(
-                              opponent_points_cell
-                          )
-                      )
-
-                      # La posición se obtiene directamente
-                      # del orden oficial de la fuente.
-                      # No se recalcula ningún desempate.
-                      conference_position += 1
-
-                      team_record = {
-                          "season": SEASON,
-                          "team": team_code,
-                          "team_name": team_name,
-                          "conference": conference,
-                          "conference_position": (
-                              conference_position
-                          ),
-                          "wins": wins,
-                          "losses": losses,
-                          "win_pct": round(
-                              float(win_pct),
-                              4,
-                          ),
-                          "games": games,
-                          "games_back": games_back,
-                          "points_pg": points_pg,
-                          "opponent_points_pg": (
-                              opponent_points_pg
-                          ),
-                      }
-
-                      rows_by_team[
-                          team_code
-                      ] = team_record
-
-                      conference_rows[
-                          conference
-                      ].append(team_record)
-
-                  print(
-                      f"{conference} teams parsed:",
-                      len(
-                          conference_rows[
-                              conference
-                          ]
-                      ),
-                  )
-
-              received_codes = set(
-                  rows_by_team.keys()
-              )
-
-              missing_codes = sorted(
-                  EXPECTED_TEAM_CODES
-                  - received_codes
-              )
-
-              unexpected_codes = sorted(
-                  received_codes
-                  - EXPECTED_TEAM_CODES
-              )
-
-              if (
-                  len(rows_by_team) != 30
-                  or missing_codes
-                  or unexpected_codes
-              ):
+          def parse_standings(payload):
+              if not isinstance(payload, list):
                   raise RuntimeError(
-                      "NBA team validation failed. "
-                      f"Received: {len(rows_by_team)}. "
-                      f"Missing: {missing_codes}. "
-                      f"Unexpected: {unexpected_codes}"
+                      f"API Ninjas returned {type(payload).__name__}, expected list"
                   )
 
-              east_teams = conference_rows[
-                  "East"
-              ]
+              rows = []
+              seen = set()
 
-              west_teams = conference_rows[
-                  "West"
-              ]
+              for item in payload:
+                  team_data = item.get("team") or {}
+                  team_code = str(team_data.get("abbreviation") or "").upper().strip()
+                  team_name = str(team_data.get("name") or "").strip()
 
-              if len(east_teams) != 15:
+                  if team_code not in EXPECTED_TEAM_CODES:
+                      raise RuntimeError(
+                          f"Unexpected NBA team from API Ninjas: {team_code} / {team_name}"
+                      )
+                  if team_code in seen:
+                      raise RuntimeError(f"Duplicate team returned by API Ninjas: {team_code}")
+                  seen.add(team_code)
+
+                  conference = normalize_conference(item.get("conference"))
+                  conference_position = as_int(item.get("conference_rank"))
+                  wins = as_int(item.get("wins"), 0)
+                  losses = as_int(item.get("losses"), 0)
+                  games = as_int(item.get("games_played"), wins + losses)
+                  win_pct = as_float(item.get("win_pct"))
+                  games_back = as_float(item.get("games_behind"))
+                  points_for = as_float(item.get("points_for"))
+                  points_against = as_float(item.get("points_against"))
+
+                  if conference_position is None:
+                      raise RuntimeError(f"Missing conference_rank for {team_code}")
+                  if games != wins + losses:
+                      raise RuntimeError(
+                          f"Invalid record for {team_code}: games={games}, W={wins}, L={losses}"
+                      )
+                  if win_pct is None:
+                      win_pct = wins / games if games else 0
+
+                  points_pg = (
+                      round(points_for / games, 1)
+                      if points_for is not None and games
+                      else None
+                  )
+                  opponent_points_pg = (
+                      round(points_against / games, 1)
+                      if points_against is not None and games
+                      else None
+                  )
+
+                  rows.append({
+                      "season": SEASON,
+                      "team": team_code,
+                      "team_name": team_name,
+                      "conference": conference,
+                      "conference_position": conference_position,
+                      "wins": wins,
+                      "losses": losses,
+                      "win_pct": round(float(win_pct), 4),
+                      "games": games,
+                      "games_back": games_back,
+                      "points_pg": points_pg,
+                      "opponent_points_pg": opponent_points_pg,
+                  })
+
+              missing = sorted(EXPECTED_TEAM_CODES - seen)
+              unexpected = sorted(seen - EXPECTED_TEAM_CODES)
+              if len(rows) != 30 or missing or unexpected:
                   raise RuntimeError(
-                      "Expected 15 Eastern Conference "
-                      "teams, received "
-                      f"{len(east_teams)}"
+                      f"Expected 30 NBA teams, got {len(rows)}. "
+                      f"Missing: {missing}. Unexpected: {unexpected}"
                   )
 
-              if len(west_teams) != 15:
-                  raise RuntimeError(
-                      "Expected 15 Western Conference "
-                      "teams, received "
-                      f"{len(west_teams)}"
-                  )
-
-              expected_positions = list(
-                  range(1, 16)
+              east = sorted(
+                  [row for row in rows if row["conference"] == "East"],
+                  key=lambda row: row["conference_position"],
+              )
+              west = sorted(
+                  [row for row in rows if row["conference"] == "West"],
+                  key=lambda row: row["conference_position"],
               )
 
-              east_positions = [
-                  team["conference_position"]
-                  for team in east_teams
-              ]
+              if len(east) != 15 or len(west) != 15:
+                  raise RuntimeError(
+                      f"Expected 15 teams per conference. East={len(east)}, West={len(west)}"
+                  )
 
-              west_positions = [
-                  team["conference_position"]
-                  for team in west_teams
-              ]
+              expected_positions = list(range(1, 16))
+              east_positions = [row["conference_position"] for row in east]
+              west_positions = [row["conference_position"] for row in west]
 
               if east_positions != expected_positions:
-                  raise RuntimeError(
-                      "Invalid Eastern Conference "
-                      "source positions: "
-                      f"{east_positions}"
-                  )
-
+                  raise RuntimeError(f"Invalid East conference ranks: {east_positions}")
               if west_positions != expected_positions:
-                  raise RuntimeError(
-                      "Invalid Western Conference "
-                      "source positions: "
-                      f"{west_positions}"
-                  )
+                  raise RuntimeError(f"Invalid West conference ranks: {west_positions}")
 
-              standings = (
-                  east_teams
-                  + west_teams
-              )
-
-              print("")
-              print(
-                  "Eastern Conference leader:",
-                  east_teams[0]["team_name"],
-                  f"{east_teams[0]['wins']}-"
-                  f"{east_teams[0]['losses']}",
-              )
-
-              print(
-                  "Western Conference leader:",
-                  west_teams[0]["team_name"],
-                  f"{west_teams[0]['wins']}-"
-                  f"{west_teams[0]['losses']}",
-              )
-
-              return standings
-
+              return east + west
 
           def parse_players_csv(csv_text):
               if not csv_text.strip():
-                  raise RuntimeError(
-                      "Player CSV is empty"
-                  )
+                  raise RuntimeError("Player CSV is empty")
 
-              raw_rows = list(
-                  csv.DictReader(
-                      io.StringIO(csv_text)
-                  )
-              )
-
+              raw_rows = list(csv.DictReader(io.StringIO(csv_text)))
               if not raw_rows:
-                  raise RuntimeError(
-                      "Player CSV does not contain rows"
-                  )
+                  raise RuntimeError("Player CSV does not contain rows")
 
-              player_rows = clean_rows(
-                  raw_rows
-              )
-
+              player_rows = clean_rows(raw_rows)
               if len(player_rows) < 300:
-                  raise RuntimeError(
-                      "Too few player statistics: "
-                      f"{len(player_rows)}"
-                  )
+                  raise RuntimeError(f"Too few player statistics: {len(player_rows)}")
 
               player_rows.sort(
                   key=lambda row: (
-                      -float(
-                          row.get("points_pg")
-                          or 0
-                      ),
-                      -float(
-                          row.get("rebounds_pg")
-                          or 0
-                      ),
-                      -float(
-                          row.get("assists_pg")
-                          or 0
-                      ),
-                      str(
-                          row.get("player_name")
-                          or ""
-                      ),
+                      -float(row.get("points_pg") or 0),
+                      -float(row.get("rebounds_pg") or 0),
+                      -float(row.get("assists_pg") or 0),
+                      str(row.get("player_name") or ""),
                   )
               )
-
               return player_rows
 
-
-          print("")
-          print("Downloading NBA standings...")
-
-          standings_html = download_text(
-              BASKETBALL_REFERENCE_URL
+          print("Downloading NBA standings from API Ninjas...")
+          standings_json = download(
+              STANDINGS_URL,
+              headers={
+                  "X-Api-Key": API_KEY,
+                  "Accept": "application/json",
+              },
           )
 
-          if "Conference Standings" not in standings_html:
-              raise RuntimeError(
-                  "The Basketball-Reference page "
-                  "does not appear to contain "
-                  "conference standings"
-              )
+          try:
+              standings_payload = json.loads(standings_json)
+          except json.JSONDecodeError as error:
+              raise RuntimeError("API Ninjas returned invalid JSON") from error
 
-          standings_rows = parse_standings(
-              standings_html
-          )
+          standings_rows = parse_standings(standings_payload)
 
+          print("Downloading NBA player statistics from BoxScore Lab...")
+          players_csv = download(PLAYERS_URL)
+          player_rows = parse_players_csv(players_csv)
 
-          print("")
-          print(
-              "Downloading NBA player statistics..."
-          )
-
-          players_csv = download_text(
-              PLAYERS_URL
-          )
-
-          player_rows = parse_players_csv(
-              players_csv
-          )
-
-
-          updated_at = datetime.now(
-              timezone.utc
-          ).isoformat()
-
+          updated_at = datetime.now(timezone.utc).isoformat()
 
           standings_output = {
               "season": SEASON,
               "updatedAt": updated_at,
-              "source": "Basketball-Reference",
-              "results": len(
-                  standings_rows
-              ),
+              "source": "API Ninjas",
+              "results": len(standings_rows),
               "response": standings_rows,
           }
-
 
           players_output = {
               "season": SEASON,
               "updatedAt": updated_at,
               "source": "BoxScore Lab",
               "license": "CC BY 4.0",
-              "results": len(
-                  player_rows
-              ),
+              "results": len(player_rows),
               "response": player_rows,
           }
 
-
-          with STANDINGS_FILE.open(
-              "w",
-              encoding="utf-8",
-          ) as file:
-              json.dump(
-                  standings_output,
-                  file,
-                  ensure_ascii=False,
-                  indent=2,
-              )
-
+          with STANDINGS_FILE.open("w", encoding="utf-8") as file:
+              json.dump(standings_output, file, ensure_ascii=False, indent=2)
               file.write("\n")
 
-
-          with PLAYERS_FILE.open(
-              "w",
-              encoding="utf-8",
-          ) as file:
-              json.dump(
-                  players_output,
-                  file,
-                  ensure_ascii=False,
-                  indent=2,
-              )
-
+          with PLAYERS_FILE.open("w", encoding="utf-8") as file:
+              json.dump(players_output, file, ensure_ascii=False, indent=2)
               file.write("\n")
 
-
-          print("")
-          print(
-              "Season data generated successfully"
-          )
-
-          print(
-              "Standings teams:",
-              len(standings_rows),
-          )
-
-          print(
-              "Season players:",
-              len(player_rows),
-          )
+          print("Season data generated successfully")
+          print("Standings source: API Ninjas")
+          print("Standings teams:", len(standings_rows))
+          print("Season players:", len(player_rows))
           PYTHON
 
       - name: Verify generated files
         run: |
-          python -m json.tool \
-            public/data/standings.json \
-            > /dev/null
-
-          python -m json.tool \
-            public/data/season-player-stats.json \
-            > /dev/null
+          python -m json.tool public/data/standings.json > /dev/null
+          python -m json.tool public/data/season-player-stats.json > /dev/null
 
           python <<'PYTHON'
           import json
           from pathlib import Path
 
+          standings_path = Path("public/data/standings.json")
+          players_path = Path("public/data/season-player-stats.json")
 
-          standings_path = Path(
-              "public/data/standings.json"
-          )
-
-          players_path = Path(
-              "public/data/season-player-stats.json"
-          )
-
-
-          if not standings_path.exists():
-              raise RuntimeError(
-                  "standings.json was not generated"
-              )
-
-          if not players_path.exists():
-              raise RuntimeError(
-                  "season-player-stats.json "
-                  "was not generated"
-              )
-
-
-          with standings_path.open(
-              encoding="utf-8",
-          ) as file:
+          with standings_path.open(encoding="utf-8") as file:
               standings_data = json.load(file)
-
-
-          with players_path.open(
-              encoding="utf-8",
-          ) as file:
+          with players_path.open(encoding="utf-8") as file:
               players_data = json.load(file)
 
+          teams = standings_data.get("response", [])
+          players = players_data.get("response", [])
+          east = [team for team in teams if team.get("conference") == "East"]
+          west = [team for team in teams if team.get("conference") == "West"]
 
-          teams = standings_data.get(
-              "response",
-              [],
-          )
-
-          players = players_data.get(
-              "response",
-              [],
-          )
-
-
-          east = [
-              team
-              for team in teams
-              if team.get("conference") == "East"
-          ]
-
-          west = [
-              team
-              for team in teams
-              if team.get("conference") == "West"
-          ]
-
-
+          if standings_data.get("source") != "API Ninjas":
+              raise RuntimeError(f"Unexpected standings source: {standings_data.get('source')}")
           if standings_data.get("season") != "2026-27":
-              raise RuntimeError(
-                  "Unexpected standings season: "
-                  f"{standings_data.get('season')}"
-              )
+              raise RuntimeError(f"Unexpected season: {standings_data.get('season')}")
+          if len(teams) != 30 or standings_data.get("results") != 30:
+              raise RuntimeError(f"Expected 30 teams, got {len(teams)}")
+          if len(east) != 15 or len(west) != 15:
+              raise RuntimeError(f"Invalid conference sizes: East={len(east)}, West={len(west)}")
 
+          codes = [team.get("team") for team in teams]
+          if len(set(codes)) != 30:
+              raise RuntimeError("Duplicate team codes found")
 
-          if standings_data.get("results") != 30:
-              raise RuntimeError(
-                  "Standings results must be 30, "
-                  "received "
-                  f"{standings_data.get('results')}"
-              )
-
-
-          if len(teams) != 30:
-              raise RuntimeError(
-                  "Expected 30 teams, got "
-                  f"{len(teams)}"
-              )
-
-
-          team_codes = [
-              team.get("team")
-              for team in teams
-          ]
-
-
-          if len(set(team_codes)) != 30:
-              duplicates = sorted({
-                  code
-                  for code in team_codes
-                  if team_codes.count(code) > 1
-              })
-
-              raise RuntimeError(
-                  "Duplicate teams found: "
-                  f"{duplicates}"
-              )
-
-
-          if None in team_codes:
-              raise RuntimeError(
-                  "A team without a code was found"
-              )
-
-
-          if len(east) != 15:
-              raise RuntimeError(
-                  "Expected 15 East teams, got "
-                  f"{len(east)}"
-              )
-
-
-          if len(west) != 15:
-              raise RuntimeError(
-                  "Expected 15 West teams, got "
-                  f"{len(west)}"
-              )
-
-
-          expected_positions = list(
-              range(1, 16)
-          )
-
-          east_positions = [
-              int(
-                  team["conference_position"]
-              )
-              for team in east
-          ]
-
-          west_positions = [
-              int(
-                  team["conference_position"]
-              )
-              for team in west
-          ]
-
-
-          if east_positions != expected_positions:
-              raise RuntimeError(
-                  "Invalid Eastern Conference "
-                  "positions: "
-                  f"{east_positions}"
-              )
-
-
-          if west_positions != expected_positions:
-              raise RuntimeError(
-                  "Invalid Western Conference "
-                  "positions: "
-                  f"{west_positions}"
-              )
-
+          expected_positions = list(range(1, 16))
+          if [int(t["conference_position"]) for t in east] != expected_positions:
+              raise RuntimeError("East conference_rank sequence is invalid")
+          if [int(t["conference_position"]) for t in west] != expected_positions:
+              raise RuntimeError("West conference_rank sequence is invalid")
 
           for team in teams:
-              required_fields = {
-                  "season",
-                  "team",
-                  "team_name",
-                  "conference",
-                  "conference_position",
-                  "wins",
-                  "losses",
-                  "win_pct",
-                  "games",
-              }
-
-              missing_fields = (
-                  required_fields
-                  - set(team.keys())
-              )
-
-              if missing_fields:
-                  raise RuntimeError(
-                      "Missing fields for "
-                      f"{team.get('team')}: "
-                      f"{sorted(missing_fields)}"
-                  )
-
-              expected_games = (
-                  int(team["wins"])
-                  + int(team["losses"])
-              )
-
-              if int(
-                  team["games"]
-              ) != expected_games:
-                  raise RuntimeError(
-                      "Invalid games total for "
-                      f"{team['team']}: "
-                      f"{team['games']} instead of "
-                      f"{expected_games}"
-                  )
-
-              if not 0 <= float(
-                  team["win_pct"]
-              ) <= 1:
-                  raise RuntimeError(
-                      "Invalid winning percentage for "
-                      f"{team['team']}: "
-                      f"{team['win_pct']}"
-                  )
-
-
-          # Control específico para impedir que se vuelva
-          # a aplicar el antiguo desempate alfabético.
-          west_leader = west[0]
-
-          print(
-              "Western Conference source leader:",
-              west_leader.get("team_name"),
-          )
-
-          print(
-              "Western Conference source order:",
-              " > ".join(
-                  team["team"]
-                  for team in west[:5]
-              ),
-          )
-
+              if int(team["games"]) != int(team["wins"]) + int(team["losses"]):
+                  raise RuntimeError(f"Invalid games total for {team['team']}")
+              if not 0 <= float(team["win_pct"]) <= 1:
+                  raise RuntimeError(f"Invalid win_pct for {team['team']}")
 
           if len(players) < 300:
-              raise RuntimeError(
-                  "Expected at least 300 players, got "
-                  f"{len(players)}"
-              )
+              raise RuntimeError(f"Expected at least 300 players, got {len(players)}")
+          if players_data.get("results") != len(players):
+              raise RuntimeError("Player result count mismatch")
 
-
-          if players_data.get(
-              "results"
-          ) != len(players):
-              raise RuntimeError(
-                  "Player results does not match "
-                  "the response length"
-              )
-
-
-          print("")
           print("Standings validation passed")
-          print("East teams:", len(east))
-          print("West teams:", len(west))
+          print("East leader:", east[0]["team"], east[0]["wins"], "-", east[0]["losses"])
+          print("West leader:", west[0]["team"], west[0]["wins"], "-", west[0]["losses"])
+          print("West top 5:", " > ".join(team["team"] for team in west[:5]))
           print("Player records:", len(players))
           PYTHON
-
-          echo ""
-          echo "JSON files are valid"
-
-          echo ""
-          echo "Standings:"
-          ls -lh public/data/standings.json
-
-          echo ""
-          echo "Season player statistics:"
-          ls -lh public/data/season-player-stats.json
 
       - name: Show data summary
         run: |
           python <<'PYTHON'
           import json
 
-
-          with open(
-              "public/data/standings.json",
-              encoding="utf-8",
-          ) as file:
+          with open("public/data/standings.json", encoding="utf-8") as file:
               standings = json.load(file)
-
-
-          with open(
-              "public/data/season-player-stats.json",
-              encoding="utf-8",
-          ) as file:
+          with open("public/data/season-player-stats.json", encoding="utf-8") as file:
               players = json.load(file)
 
+          rows = standings.get("response", [])
+          east = [team for team in rows if team.get("conference") == "East"]
+          west = [team for team in rows if team.get("conference") == "West"]
 
-          standings_rows = standings.get(
-              "response",
-              [],
-          )
+          print("Standings source:", standings.get("source"))
+          print("Standings updated:", standings.get("updatedAt"))
+          print("Standings teams:", standings.get("results"))
+          print("Season players:", players.get("results"))
 
-          east = [
-              team
-              for team in standings_rows
-              if team.get("conference") == "East"
-          ]
-
-          west = [
-              team
-              for team in standings_rows
-              if team.get("conference") == "West"
-          ]
-
-
-          print(
-              "Standings source:",
-              standings.get("source"),
-          )
-
-          print(
-              "Standings updated:",
-              standings.get("updatedAt"),
-          )
-
-          print(
-              "Standings teams:",
-              standings.get("results"),
-          )
-
-          print(
-              "Season players:",
-              players.get("results"),
-          )
-
-
-          print("")
-          print("Eastern Conference:")
-
+          print("\nEastern Conference:")
           for team in east:
               print(
-                  str(
-                      team.get(
-                          "conference_position"
-                      )
-                  ).rjust(2),
-                  team.get("team"),
-                  f"{team.get('wins')}-"
-                  f"{team.get('losses')}",
-                  team.get("win_pct"),
-                  "GB:",
-                  team.get("games_back"),
+                  str(team["conference_position"]).rjust(2),
+                  team["team"],
+                  f"{team['wins']}-{team['losses']}",
+                  team["win_pct"],
+                  "GB:", team.get("games_back"),
               )
 
-
-          print("")
-          print("Western Conference:")
-
+          print("\nWestern Conference:")
           for team in west:
               print(
-                  str(
-                      team.get(
-                          "conference_position"
-                      )
-                  ).rjust(2),
-                  team.get("team"),
-                  f"{team.get('wins')}-"
-                  f"{team.get('losses')}",
-                  team.get("win_pct"),
-                  "GB:",
-                  team.get("games_back"),
+                  str(team["conference_position"]).rjust(2),
+                  team["team"],
+                  f"{team['wins']}-{team['losses']}",
+                  team["win_pct"],
+                  "GB:", team.get("games_back"),
               )
 
-
-          print("")
-          print("Top 5 scorers:")
-
-          for player in players.get(
-              "response",
-              [],
-          )[:5]:
-              print(
-                  player.get("player_name"),
-                  "-",
-                  player.get("points_pg"),
-                  "PPG",
-              )
+          print("\nTop 5 scorers:")
+          for player in players.get("response", [])[:5]:
+              print(player.get("player_name"), "-", player.get("points_pg"), "PPG")
           PYTHON
 
       - name: Commit updated season data
         run: |
-          git config \
-            user.name \
-            "github-actions[bot]"
-
-          git config \
-            user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add public/data/standings.json
           git add public/data/season-player-stats.json
@@ -1326,16 +443,10 @@ jobs:
             exit 0
           fi
 
-          git commit \
-            -m "Update NBA season standings and player stats"
+          git commit -m "Update NBA season standings and player stats"
 
           echo "Synchronizing with latest main..."
-
-          git pull \
-            --rebase \
-            origin \
-            main
+          git pull --rebase origin main
 
           echo "Pushing season data..."
-
           git push origin main
