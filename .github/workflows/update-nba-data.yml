@@ -31,7 +31,7 @@ jobs:
       - name: Create data folder
         run: mkdir -p public/data
 
-      - name: Download NBA games and completed player statistics
+      - name: Download NBA games, player statistics and Spanish player IDs
         env:
           API_NBA_KEY: ${{ secrets.API_NBA_KEY }}
         run: |
@@ -39,6 +39,7 @@ jobs:
           import json
           import os
           import time
+          import unicodedata
           import urllib.parse
           import urllib.request
           from datetime import datetime
@@ -49,19 +50,19 @@ jobs:
           API_KEY = os.environ["API_NBA_KEY"]
 
           DATA_FOLDER = Path("public/data")
+          SCOREBOARD_FILE = DATA_FOLDER / "scoreboard.json"
+          PLAYER_STATS_FILE = DATA_FOLDER / "player-stats.json"
+          SPANISH_PLAYERS_FILE = DATA_FOLDER / "spanish-players.json"
 
-          SCOREBOARD_FILE = (
-              DATA_FOLDER / "scoreboard.json"
-          )
+          DATA_FOLDER.mkdir(parents=True, exist_ok=True)
 
-          PLAYER_STATS_FILE = (
-              DATA_FOLDER / "player-stats.json"
-          )
-
-          DATA_FOLDER.mkdir(
-              parents=True,
-              exist_ok=True,
-          )
+          SPANISH_PLAYERS = [
+              {"name": "Santi Aldama", "search": "Aldama"},
+              {"name": "Sergio De Larrea", "search": "Larrea"},
+              {"name": "Hugo Gonzalez", "search": "Gonzalez"},
+              {"name": "Aday Mara", "search": "Mara"},
+              {"name": "Baba Miller", "search": "Miller"},
+          ]
 
           today = datetime.now(
               ZoneInfo("Europe/Madrid")
@@ -69,86 +70,204 @@ jobs:
 
           print(f"NBA date: {today}")
 
-          def api_request(
-              endpoint,
-              parameters,
-          ):
-              query = urllib.parse.urlencode(
-                  parameters
+          def normalize(value):
+              value = unicodedata.normalize("NFD", str(value or ""))
+              value = "".join(
+                  char for char in value
+                  if unicodedata.category(char) != "Mn"
+              )
+              return " ".join(value.lower().replace(".", " ").split())
+
+          def player_full_name(player):
+              return " ".join(
+                  part for part in [
+                      str(player.get("firstname") or "").strip(),
+                      str(player.get("lastname") or "").strip(),
+                  ]
+                  if part
               )
 
-              url = (
-                  f"{API_BASE}/"
-                  f"{endpoint}?{query}"
-              )
-
-              print(
-                  f"Requesting: "
-                  f"{endpoint}?{query}"
-              )
+          def api_request(endpoint, parameters):
+              query = urllib.parse.urlencode(parameters)
+              url = f"{API_BASE}/{endpoint}?{query}"
+              print(f"Requesting: {endpoint}?{query}")
 
               request = urllib.request.Request(
                   url,
                   headers={
                       "x-apisports-key": API_KEY,
                       "Accept": "application/json",
-                      "User-Agent": (
-                          "NBAStatsApp-"
-                          "GitHub-Action/1.0"
-                      ),
+                      "User-Agent": "NBAStatsApp-GitHub-Action/1.0",
                   },
               )
 
-              with urllib.request.urlopen(
-                  request,
-                  timeout=45,
-              ) as response:
-                  body = (
-                      response
-                      .read()
-                      .decode("utf-8")
-                  )
+              with urllib.request.urlopen(request, timeout=45) as response:
+                  body = response.read().decode("utf-8")
 
               data = json.loads(body)
-
               errors = data.get("errors")
 
-              if (
-                  isinstance(errors, dict)
-                  and len(errors) > 0
-              ):
-                  raise RuntimeError(
-                      f"API-Sports error: "
-                      f"{errors}"
-                  )
-
-              if (
-                  isinstance(errors, list)
-                  and len(errors) > 0
-              ):
-                  raise RuntimeError(
-                      f"API-Sports error: "
-                      f"{errors}"
-                  )
+              if isinstance(errors, dict) and errors:
+                  raise RuntimeError(f"API-Sports error: {errors}")
+              if isinstance(errors, list) and errors:
+                  raise RuntimeError(f"API-Sports error: {errors}")
 
               return data
 
-          scoreboard = api_request(
-              "games",
-              {
-                  "date": today,
-              },
-          )
+          def load_spanish_registry():
+              registry = {
+                  "updatedAt": None,
+                  "players": [],
+              }
 
-          games = scoreboard.get(
-              "response",
-              [],
-          )
+              if not SPANISH_PLAYERS_FILE.exists():
+                  return registry
 
-          with SCOREBOARD_FILE.open(
-              "w",
-              encoding="utf-8",
-          ) as file:
+              try:
+                  with SPANISH_PLAYERS_FILE.open("r", encoding="utf-8") as file:
+                      existing = json.load(file)
+
+                  if isinstance(existing.get("players"), list):
+                      registry = existing
+                      print("Existing Spanish player IDs loaded")
+              except Exception as error:
+                  print(f"Could not read Spanish player IDs: {error}")
+
+              return registry
+
+          def registry_by_name(registry):
+              return {
+                  normalize(item.get("name")): item
+                  for item in registry.get("players", [])
+                  if item.get("id") is not None and item.get("name")
+              }
+
+          def find_exact_player(candidates, expected_name):
+              expected = normalize(expected_name)
+              exact = [
+                  player for player in candidates
+                  if normalize(player_full_name(player)) == expected
+              ]
+
+              if len(exact) == 1:
+                  return exact[0]
+              if len(exact) > 1:
+                  active = [
+                      player for player in exact
+                      if (
+                          player.get("leagues", {})
+                          .get("standard", {})
+                          .get("active") is True
+                      )
+                  ]
+                  if len(active) == 1:
+                      return active[0]
+                  raise RuntimeError(
+                      f"Multiple exact API-NBA matches for {expected_name}: "
+                      f"{[player.get('id') for player in exact]}"
+                  )
+
+              return None
+
+          def discover_spanish_players(registry, all_box_stats):
+              known = registry_by_name(registry)
+
+              # First use today's box scores. This costs no additional request
+              # and also handles abbreviated names such as A. Mara by surname.
+              for target in SPANISH_PLAYERS:
+                  key = normalize(target["name"])
+                  if key in known:
+                      continue
+
+                  target_parts = key.split()
+                  target_surname = target_parts[-1]
+                  matches = []
+
+                  for stat in all_box_stats:
+                      player = stat.get("player") or {}
+                      full_name = normalize(player_full_name(player))
+                      lastname = normalize(player.get("lastname"))
+
+                      if full_name == key or lastname == target_surname:
+                          matches.append(player)
+
+                  unique = {
+                      player.get("id"): player
+                      for player in matches
+                      if player.get("id") is not None
+                  }
+
+                  if len(unique) == 1:
+                      player = next(iter(unique.values()))
+                      known[key] = {
+                          "id": int(player["id"]),
+                          "name": target["name"],
+                          "apiName": player_full_name(player),
+                      }
+                      print(
+                          f"Spanish player found in box score: "
+                          f"{target['name']} = {player['id']}"
+                      )
+
+              # Query API-NBA only for players still missing. Once stored in
+              # spanish-players.json, later hourly runs do not repeat the call.
+              for target in SPANISH_PLAYERS:
+                  key = normalize(target["name"])
+                  if key in known:
+                      continue
+
+                  result = api_request(
+                      "players",
+                      {"search": target["search"]},
+                  )
+                  candidates = result.get("response", [])
+                  player = find_exact_player(candidates, target["name"])
+
+                  if player is None:
+                      candidate_names = [
+                          player_full_name(item)
+                          for item in candidates
+                      ]
+                      raise RuntimeError(
+                          f"Could not identify {target['name']} in API-NBA. "
+                          f"Candidates: {candidate_names}"
+                      )
+
+                  known[key] = {
+                      "id": int(player["id"]),
+                      "name": target["name"],
+                      "apiName": player_full_name(player),
+                  }
+                  print(
+                      f"Spanish player found through API-NBA: "
+                      f"{target['name']} = {player['id']}"
+                  )
+                  time.sleep(1)
+
+              ordered = [
+                  known[normalize(target["name"])]
+                  for target in SPANISH_PLAYERS
+              ]
+
+              ids = [item["id"] for item in ordered]
+              if len(set(ids)) != len(ids):
+                  raise RuntimeError(
+                      f"Duplicate Spanish player IDs detected: {ids}"
+                  )
+
+              return {
+                  "updatedAt": datetime.now(
+                      ZoneInfo("Europe/Madrid")
+                  ).isoformat(),
+                  "source": "API-NBA / API-Sports",
+                  "results": len(ordered),
+                  "players": ordered,
+              }
+
+          scoreboard = api_request("games", {"date": today})
+          games = scoreboard.get("response", [])
+
+          with SCOREBOARD_FILE.open("w", encoding="utf-8") as file:
               json.dump(
                   scoreboard,
                   file,
@@ -156,10 +275,7 @@ jobs:
                   separators=(",", ":"),
               )
 
-          print(
-              f"Downloaded "
-              f"{len(games)} games"
-          )
+          print(f"Downloaded {len(games)} games")
 
           player_stats_data = {
               "date": today,
@@ -169,45 +285,18 @@ jobs:
 
           if PLAYER_STATS_FILE.exists():
               try:
-                  with PLAYER_STATS_FILE.open(
-                      "r",
-                      encoding="utf-8",
-                  ) as file:
-                      saved_data = (
-                          json.load(file)
-                      )
+                  with PLAYER_STATS_FILE.open("r", encoding="utf-8") as file:
+                      saved_data = json.load(file)
 
-                  if (
-                      saved_data.get("date")
-                      == today
-                  ):
-                      player_stats_data = (
-                          saved_data
-                      )
-
-                      print(
-                          "Existing player "
-                          "statistics loaded"
-                      )
-
+                  if saved_data.get("date") == today:
+                      player_stats_data = saved_data
+                      print("Existing player statistics loaded")
                   else:
-                      print(
-                          "Existing player "
-                          "statistics belong "
-                          "to another date"
-                      )
-
+                      print("Existing player statistics belong to another date")
               except Exception as error:
-                  print(
-                      "Could not read existing "
-                      "player statistics: "
-                      f"{error}"
-                  )
+                  print(f"Could not read existing player statistics: {error}")
 
-          player_stats_data.setdefault(
-              "games",
-              {},
-          )
+          player_stats_data.setdefault("games", {})
 
           downloaded = 0
           skipped = 0
@@ -216,111 +305,54 @@ jobs:
 
           for game in games:
               game_id = game.get("id")
-
-              game_status = (
-                  game
-                  .get("status", {})
-                  .get("short")
-              )
+              game_status = game.get("status", {}).get("short")
 
               if game_id is None:
                   continue
 
               game_key = str(game_id)
 
-              if (
-                  game_key
-                  in player_stats_data[
-                      "games"
-                  ]
-              ):
-                  print(
-                      f"Game {game_key}: "
-                      "statistics already saved"
-                  )
-
+              if game_key in player_stats_data["games"]:
+                  print(f"Game {game_key}: statistics already saved")
                   skipped += 1
                   continue
 
               if game_status != 3:
-                  print(
-                      f"Game {game_key}: "
-                      "not finished yet"
-                  )
-
+                  print(f"Game {game_key}: not finished yet")
                   pending += 1
                   continue
 
               try:
                   stats = api_request(
                       "players/statistics",
-                      {
-                          "game": game_id,
-                      },
+                      {"game": game_id},
                   )
 
-                  player_stats_data[
-                      "games"
-                  ][game_key] = {
+                  player_stats_data["games"][game_key] = {
                       "gameId": game_id,
-                      "updatedAt": (
-                          datetime.now(
-                              ZoneInfo(
-                                  "Europe/Madrid"
-                              )
-                          ).isoformat()
-                      ),
-                      "results": (
-                          stats.get(
-                              "results",
-                              0,
-                          )
-                      ),
-                      "response": (
-                          stats.get(
-                              "response",
-                              [],
-                          )
-                      ),
+                      "updatedAt": datetime.now(
+                          ZoneInfo("Europe/Madrid")
+                      ).isoformat(),
+                      "results": stats.get("results", 0),
+                      "response": stats.get("response", []),
                   }
 
                   downloaded += 1
-
                   print(
                       f"Game {game_key}: "
-                      f"{stats.get('results', 0)} "
-                      "player records"
+                      f"{stats.get('results', 0)} player records"
                   )
-
                   time.sleep(1)
-
               except Exception as error:
                   failed += 1
+                  print(f"Game {game_key}: statistics failed: {error}")
 
-                  print(
-                      f"Game {game_key}: "
-                      "statistics failed: "
-                      f"{error}"
-                  )
+          player_stats_data["date"] = today
+          player_stats_data["updatedAt"] = datetime.now(
+              ZoneInfo("Europe/Madrid")
+          ).isoformat()
 
-          player_stats_data["date"] = (
-              today
-          )
-
-          player_stats_data[
-              "updatedAt"
-          ] = (
-              datetime.now(
-                  ZoneInfo(
-                      "Europe/Madrid"
-                  )
-              ).isoformat()
-          )
-
-          with PLAYER_STATS_FILE.open(
-              "w",
-              encoding="utf-8",
-          ) as file:
+          with PLAYER_STATS_FILE.open("w", encoding="utf-8") as file:
               json.dump(
                   player_stats_data,
                   file,
@@ -328,36 +360,90 @@ jobs:
                   separators=(",", ":"),
               )
 
+          all_box_stats = []
+          for game_data in player_stats_data.get("games", {}).values():
+              all_box_stats.extend(game_data.get("response", []))
+
+          spanish_registry = load_spanish_registry()
+          spanish_registry = discover_spanish_players(
+              spanish_registry,
+              all_box_stats,
+          )
+
+          with SPANISH_PLAYERS_FILE.open("w", encoding="utf-8") as file:
+              json.dump(
+                  spanish_registry,
+                  file,
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              file.write("\n")
+
           print("")
           print("NBA update completed")
-          print(
-              f"Games today: "
-              f"{len(games)}"
-          )
-          print(
-              f"New statistics: "
-              f"{downloaded}"
-          )
-          print(
-              f"Previously saved: "
-              f"{skipped}"
-          )
-          print(
-              f"Pending games: "
-              f"{pending}"
-          )
-          print(
-              f"Failed statistics: "
-              f"{failed}"
-          )
+          print(f"Games today: {len(games)}")
+          print(f"New statistics: {downloaded}")
+          print(f"Previously saved: {skipped}")
+          print(f"Pending games: {pending}")
+          print(f"Failed statistics: {failed}")
+          print("Spanish players:")
+          for player in spanish_registry["players"]:
+              print(f"  {player['name']}: {player['id']} ({player['apiName']})")
           PYTHON
 
       - name: Verify generated JSON files
         run: |
           python -m json.tool public/data/scoreboard.json > /dev/null
           python -m json.tool public/data/player-stats.json > /dev/null
+          python -m json.tool public/data/spanish-players.json > /dev/null
 
-          echo "Both JSON files are valid"
+          python <<'PYTHON'
+          import json
+
+          with open(
+              "public/data/spanish-players.json",
+              encoding="utf-8",
+          ) as file:
+              data = json.load(file)
+
+          players = data.get("players", [])
+          expected_names = {
+              "Santi Aldama",
+              "Sergio De Larrea",
+              "Hugo Gonzalez",
+              "Aday Mara",
+              "Baba Miller",
+          }
+          received_names = {
+              player.get("name")
+              for player in players
+          }
+          ids = [player.get("id") for player in players]
+
+          if len(players) != 5:
+              raise RuntimeError(
+                  f"Expected 5 Spanish players, got {len(players)}"
+              )
+          if received_names != expected_names:
+              raise RuntimeError(
+                  f"Invalid Spanish player names: {received_names}"
+              )
+          if None in ids or len(set(ids)) != 5:
+              raise RuntimeError(
+                  f"Invalid Spanish player IDs: {ids}"
+              )
+
+          print("Spanish player IDs validated:")
+          for player in players:
+              print(
+                  player["name"],
+                  "=",
+                  player["id"],
+                  f"({player.get('apiName')})",
+              )
+          PYTHON
+
+          echo "All JSON files are valid"
 
           echo ""
           echo "Scoreboard:"
@@ -367,6 +453,10 @@ jobs:
           echo "Player statistics:"
           ls -lh public/data/player-stats.json
 
+          echo ""
+          echo "Spanish players:"
+          ls -lh public/data/spanish-players.json
+
       - name: Commit NBA data
         run: |
           git config user.name "github-actions[bot]"
@@ -374,18 +464,17 @@ jobs:
 
           git add public/data/scoreboard.json
           git add public/data/player-stats.json
+          git add public/data/spanish-players.json
 
           if git diff --cached --quiet; then
             echo "No NBA data changes"
             exit 0
           fi
 
-          git commit -m "Update NBA games and player statistics"
+          git commit -m "Update NBA games, player statistics and Spanish player IDs"
 
           echo "Synchronizing with latest main..."
-
           git pull --rebase origin main
 
           echo "Pushing NBA data..."
-
           git push origin main
