@@ -201,14 +201,25 @@ function reversedBoxPlayerName(player) {
 
 function isSpanishName(name) {
   const normalized = normalizeText(name);
+  const parts = normalized.split(" ").filter(Boolean);
+  const first = parts[0] || "";
+  const last = parts[parts.length - 1] || "";
 
   return SPANISH_PLAYERS.some((spanishName) => {
-    const parts = spanishName.split(" ");
-    const reverse = `${parts.slice(1).join(" ")} ${parts[0]}`;
+    const spanishNormalized = normalizeText(spanishName);
+
+    if (normalized === spanishNormalized) {
+      return true;
+    }
+
+    const spanishParts = spanishNormalized.split(" ").filter(Boolean);
+    const spanishFirst = spanishParts[0] || "";
+    const spanishLast = spanishParts[spanishParts.length - 1] || "";
 
     return (
-      normalized === normalizeText(spanishName) ||
-      normalized === normalizeText(reverse)
+      first.length === 1 &&
+      first === spanishFirst[0] &&
+      last === spanishLast
     );
   });
 }
@@ -532,7 +543,7 @@ function findSeasonPlayerForBoxScore(
 
   const team = boxScore.team?.code;
 
-  return (
+  const exactMatch =
     seasonPlayers.find(
       (player) =>
         player.team === team &&
@@ -544,9 +555,46 @@ function findSeasonPlayerForBoxScore(
       [normal, reverse].includes(
         normalizeText(player.player_name)
       )
-    ) ||
-    null
+    );
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const boxFirst = normalizeText(
+    boxScore.player?.firstname
   );
+  const boxLast = normalizeText(
+    boxScore.player?.lastname
+  );
+
+  if (!boxFirst || !boxLast || !team) {
+    return null;
+  }
+
+  const abbreviatedMatches =
+    seasonPlayers.filter((player) => {
+      if (player.team !== team) {
+        return false;
+      }
+
+      const parts = normalizeText(
+        player.player_name
+      ).split(" ").filter(Boolean);
+
+      const first = parts[0] || "";
+      const last = parts[parts.length - 1] || "";
+
+      return (
+        first &&
+        last === boxLast &&
+        first[0] === boxFirst[0]
+      );
+    });
+
+  return abbreviatedMatches.length === 1
+    ? abbreviatedMatches[0]
+    : null;
 }
 
 function SeasonPlayerDetail({
