@@ -5,9 +5,6 @@ on:
     branches:
       - main
 
-  schedule:
-    - cron: "17 * * * *"
-
   workflow_dispatch:
 
 permissions:
@@ -24,20 +21,138 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout latest main
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify source standings
+        run: |
+          echo "Commit being deployed:"
+          git rev-parse HEAD
+
+          echo ""
+          echo "Source standings:"
+          python <<'PYTHON'
+          import json
+
+          with open(
+              "public/data/standings.json",
+              encoding="utf-8",
+          ) as file:
+              data = json.load(file)
+
+          print(
+              "Source:",
+              data.get("source"),
+          )
+
+          print(
+              "Updated:",
+              data.get("updatedAt"),
+          )
+
+          lakers = next(
+              (
+                  team
+                  for team in data.get(
+                      "response",
+                      []
+                  )
+                  if team.get("team") == "LAL"
+              ),
+              None,
+          )
+
+          if not lakers:
+              raise RuntimeError(
+                  "LAL not found in source standings"
+              )
+
+          print(
+              "LAL:",
+              lakers.get("wins"),
+              "-",
+              lakers.get("losses"),
+          )
+
+          print(
+              "Position:",
+              lakers.get(
+                  "conference_position"
+              ),
+          )
+          PYTHON
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          
 
       - name: Install dependencies
         run: npm install
 
       - name: Build
         run: npm run build
+
+      - name: Verify standings in build
+        run: |
+          if [ ! -f dist/data/standings.json ]; then
+            echo "ERROR: dist/data/standings.json does not exist"
+            exit 1
+          fi
+
+          python <<'PYTHON'
+          import json
+
+          with open(
+              "dist/data/standings.json",
+              encoding="utf-8",
+          ) as file:
+              data = json.load(file)
+
+          print(
+              "Build source:",
+              data.get("source"),
+          )
+
+          print(
+              "Build updated:",
+              data.get("updatedAt"),
+          )
+
+          lakers = next(
+              (
+                  team
+                  for team in data.get(
+                      "response",
+                      []
+                  )
+                  if team.get("team") == "LAL"
+              ),
+              None,
+          )
+
+          if not lakers:
+              raise RuntimeError(
+                  "LAL not found in built standings"
+              )
+
+          print(
+              "LAL in dist:",
+              lakers.get("wins"),
+              "-",
+              lakers.get("losses"),
+          )
+
+          print(
+              "Position:",
+              lakers.get(
+                  "conference_position"
+              ),
+          )
+          PYTHON
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
