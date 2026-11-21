@@ -59,7 +59,7 @@ jobs:
           SPANISH_PLAYERS = [
               {"name": "Santi Aldama", "search": "Aldama"},
               {"name": "Sergio De Larrea", "search": "Larrea"},
-              {"name": "Hugo Gonzalez", "search": "Gonzalez"},
+              {"name": "Hugo Gonzalez", "search": "Hugo"},
               {"name": "Aday Mara", "search": "Mara"},
               {"name": "Baba Miller", "search": "Miller"},
           ]
