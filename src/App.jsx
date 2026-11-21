@@ -2346,7 +2346,7 @@ export default function App() {
             "env(safe-area-inset-top)",
         }}
       >
-        <div className="flex items-center px-4 py-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
           <button
             onClick={() =>
               changeTab(
@@ -2369,6 +2369,25 @@ export default function App() {
               </div>
             </div>
           </button>
+
+          {showNavigation && (
+            <nav className="hidden items-center gap-1 md:flex">
+              {NAV.map(([key, Icon, label]) => (
+                <button
+                  key={key}
+                  onClick={() => changeTab(key)}
+                  className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${
+                    tab === key
+                      ? "bg-slate-950 text-white"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Icon size={16} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+          )}
         </div>
       </header>
 
