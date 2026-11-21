@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-21T21:11:26.035350+00:00",
+  "updatedAt": "2026-11-21T21:52:09.891464+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -10,13 +10,13 @@
       "team_name": "Philadelphia 76ers",
       "conference": "East",
       "conference_position": 1,
-      "wins": 13,
+      "wins": 14,
       "losses": 3,
-      "win_pct": 0.8125,
-      "games": 16,
+      "win_pct": 0.8235,
+      "games": 17,
       "games_back": 0.0,
-      "points_pg": 114.5,
-      "opponent_points_pg": 111.6
+      "points_pg": 115.5,
+      "opponent_points_pg": 112.6
     },
     {
       "season": "2026-27",
@@ -28,7 +28,7 @@
       "losses": 4,
       "win_pct": 0.7333,
       "games": 15,
-      "games_back": 1.5,
+      "games_back": 2.0,
       "points_pg": 113.9,
       "opponent_points_pg": 103.4
     },
@@ -84,7 +84,7 @@
       "losses": 6,
       "win_pct": 0.6,
       "games": 15,
-      "games_back": 3.5,
+      "games_back": 4.0,
       "points_pg": 109.5,
       "opponent_points_pg": 103.5
     },
@@ -126,7 +126,7 @@
       "losses": 10,
       "win_pct": 0.375,
       "games": 16,
-      "games_back": 7.0,
+      "games_back": 7.5,
       "points_pg": 111.6,
       "opponent_points_pg": 111.4
     },
@@ -196,7 +196,7 @@
       "losses": 12,
       "win_pct": 0.2,
       "games": 15,
-      "games_back": 9.5,
+      "games_back": 10.0,
       "points_pg": 110.9,
       "opponent_points_pg": 118.8
     },
@@ -207,12 +207,12 @@
       "conference": "East",
       "conference_position": 15,
       "wins": 1,
-      "losses": 15,
-      "win_pct": 0.0625,
-      "games": 16,
-      "games_back": 9.5,
-      "points_pg": 108.1,
-      "opponent_points_pg": 121.1
+      "losses": 16,
+      "win_pct": 0.0588,
+      "games": 17,
+      "games_back": 10.0,
+      "points_pg": 109.4,
+      "opponent_points_pg": 121.7
     },
     {
       "season": "2026-27",
