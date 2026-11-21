@@ -4,7 +4,6 @@ import {
   Trophy,
   BarChart3,
   Flag,
-  CircleHelp,
   CalendarDays,
   RefreshCw,
   AlertCircle,
@@ -14,9 +13,6 @@ import {
   TrendingUp,
   ArrowDownWideNarrow,
   ArrowUpNarrowWide,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL;
@@ -27,7 +23,7 @@ const URLS = {
   standings: `${BASE}data/standings.json`,
   seasonStats: `${BASE}data/season-player-stats.json`,
   salaries: `${BASE}data/player-salaries.json`,
-  quiz: `${BASE}data/quiz-questions.json`,
+  spanishPlayers: `${BASE}data/spanish-players.json`,
 };
 
 const NBA_TEAM_IDS = {
@@ -94,7 +90,6 @@ const NAV = [
   ["Standings", Trophy, "Clasificación"],
   ["Players", BarChart3, "Jugadores"],
   ["Spanish", Flag, "Españoles"],
-  ["Quiz", CircleHelp, "Quiz"],
 ];
 
 const STAT_CATEGORIES = [
@@ -435,7 +430,7 @@ function TeamRow({
   score,
 }) {
   return (
-    <div className="flex flex-shrink-0 items-center gap-3">
+    <div className="flex items-center gap-3">
       <Logo
         code={team?.code}
         name={team?.name}
@@ -2015,48 +2010,6 @@ function SpanishView({
   );
 }
 
-
-function Quiz({ questions }) {
-  const [game, setGame] = useState([]);
-  const [index, setIndex] = useState(0);
-  const [answer, setAnswer] = useState(null);
-  const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(false);
-
-  function start() {
-    const mixed = [...questions];
-    for (let i = mixed.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [mixed[i], mixed[j]] = [mixed[j], mixed[i]];
-    }
-    setGame(mixed.slice(0, Math.min(10, mixed.length)));
-    setIndex(0);
-    setAnswer(null);
-    setScore(0);
-    setFinished(false);
-    scrollTop();
-  }
-
-  useEffect(() => {
-    if (questions.length) start();
-  }, [questions]);
-
-  if (!questions.length) return <ErrorBox text="No se han podido cargar las preguntas del Quiz." />;
-  if (!game.length) return <Loading text="Preparando Quiz..." />;
-
-  if (finished) {
-    return <section><div className="rounded-3xl bg-gradient-to-br from-orange-500 to-red-500 p-7 text-center text-white"><p className="text-xs font-bold uppercase tracking-widest text-orange-100">Resultado</p><div className="mt-4 text-6xl font-black">{score}/{game.length}</div><div className="mt-2 text-xl font-black">{Math.round(score/game.length*100)}%</div></div><button onClick={start} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 py-4 font-black text-white"><RotateCcw size={18}/>Jugar otra vez</button></section>;
-  }
-
-  const q = game[index];
-  const answered = answer !== null;
-  const correct = answer === q.correctAnswer;
-  function choose(i) { if (answered) return; setAnswer(i); if (i === q.correctAnswer) setScore(s => s + 1); }
-  function next() { if (index === game.length - 1) { setFinished(true); scrollTop(); } else { setIndex(i => i + 1); setAnswer(null); scrollTop(); } }
-
-  return <section><div className="mb-5"><div className="flex items-end justify-between"><div><p className="text-xs font-semibold uppercase text-orange-600">QUIZ ÑBA</p><h2 className="text-xl font-black">Pregunta {index+1} de {game.length}</h2></div><div className="rounded-full bg-slate-950 px-3 py-1.5 text-xs font-black text-white">{score} aciertos</div></div><div className="mt-4 flex gap-1">{game.map((_,i)=><div key={i} className={`h-1.5 flex-1 rounded-full ${i<index?"bg-orange-500":i===index?"bg-slate-950":"bg-slate-200"}`}/>)}</div></div><article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex gap-2"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase text-orange-600">{q.category||"NBA"}</span></div><h3 className="mb-6 text-xl font-black leading-7">{q.question}</h3><div className="space-y-3">{q.options.map((option,i)=>{let cls="border-slate-200 bg-white";if(answered&&i===q.correctAnswer)cls="border-emerald-500 bg-emerald-50 text-emerald-800";else if(answered&&i===answer)cls="border-red-400 bg-red-50 text-red-700";return <button key={i} disabled={answered} onClick={()=>choose(i)} className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left text-sm font-bold ${cls}`}><span className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-xs">{String.fromCharCode(65+i)}</span><span className="flex-1">{option}</span>{answered&&i===q.correctAnswer&&<CheckCircle2 size={20}/>} {answered&&i===answer&&i!==q.correctAnswer&&<XCircle size={20}/>}</button>})}</div>{answered&&<div className={`mt-5 rounded-2xl p-4 ${correct?"bg-emerald-50":"bg-red-50"}`}><div className={`font-black ${correct?"text-emerald-700":"text-red-700"}`}>{correct?"✓ Correcto":"✕ Incorrecto"}</div>{q.explanation&&<p className="mt-2 text-sm text-slate-600">{q.explanation}</p>}</div>}{answered&&<button onClick={next} className="mt-5 w-full rounded-2xl bg-slate-950 py-3.5 font-black text-white">{index===game.length-1?"Ver resultado":"Siguiente pregunta"}</button>}</article></section>;
-}
-
 export default function App() {
   const [tab, setTab] =
     useState("Scores");
@@ -2090,6 +2043,11 @@ export default function App() {
   ] = useState({});
 
   const [
+    spanishPlayerIds,
+    setSpanishPlayerIds,
+  ] = useState([]);
+
+  const [
     selectedGame,
     setSelectedGame,
   ] = useState(null);
@@ -2114,9 +2072,6 @@ export default function App() {
 
   const [error, setError] =
     useState("");
-
-  const [questions, setQuestions] =
-    useState([]);
 
   const [
     gameStatsLoading,
@@ -2159,6 +2114,7 @@ export default function App() {
         standingsData,
         seasonData,
         salariesData,
+        spanishPlayersData,
       ] = await Promise.all([
         getJson(URLS.games),
         getJson(
@@ -2172,6 +2128,9 @@ export default function App() {
         ),
         getJson(
           URLS.salaries
+        ),
+        getJson(
+          URLS.spanishPlayers
         ),
       ]);
 
@@ -2216,6 +2175,16 @@ export default function App() {
           ? salariesData.response
           : []
       );
+
+      setSpanishPlayerIds(
+        Array.isArray(
+          spanishPlayersData.players
+        )
+          ? spanishPlayersData.players
+              .map((player) => Number(player.id))
+              .filter((id) => Number.isFinite(id))
+          : []
+      );
     } catch (loadError) {
       console.error(
         loadError
@@ -2226,14 +2195,6 @@ export default function App() {
       );
     } finally {
       setLoading(false);
-    }
-
-    try {
-      const quizData = await getJson(URLS.quiz);
-      setQuestions(Array.isArray(quizData) ? quizData : Array.isArray(quizData.questions) ? quizData.questions : Array.isArray(quizData.response) ? quizData.response : []);
-    } catch (quizError) {
-      console.error("No se ha podido cargar quiz-questions.json", quizError);
-      setQuestions([]);
     }
   }
 
@@ -2283,6 +2244,9 @@ export default function App() {
         )
         .filter(
           (stat) =>
+            spanishPlayerIds.includes(
+              Number(stat.player?.id)
+            ) ||
             isSpanishName(
               boxPlayerName(
                 stat.player
@@ -2294,7 +2258,10 @@ export default function App() {
               )
             )
         );
-    }, [boxScoreFile]);
+    }, [
+      boxScoreFile,
+      spanishPlayerIds,
+    ]);
 
   const boxPlayerSeason =
     useMemo(
@@ -2379,7 +2346,7 @@ export default function App() {
             "env(safe-area-inset-top)",
         }}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+        <div className="flex items-center px-4 py-3">
           <button
             onClick={() =>
               changeTab(
@@ -2402,16 +2369,6 @@ export default function App() {
               </div>
             </div>
           </button>
-
-          {showNavigation && (
-            <nav className="hidden items-center gap-1 md:flex">
-              {NAV.map(([key, Icon, label]) => (
-                <button key={key} onClick={() => changeTab(key)} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition ${tab === key ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
-                  <Icon size={16}/><span>{label}</span>
-                </button>
-              ))}
-            </nav>
-          )}
         </div>
       </header>
 
@@ -2627,15 +2584,13 @@ export default function App() {
                   }
                 />
               )}
-
-            {tab === "Quiz" && <Quiz questions={questions} />}
           </>
         )}
       </main>
 
       {showNavigation && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-1 pt-2 backdrop-blur md:hidden"
+          className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-1 pt-2 backdrop-blur md:hidden"
           style={{
             paddingBottom:
               "calc(0.5rem + env(safe-area-inset-bottom))",
