@@ -2091,8 +2091,8 @@ export default function App() {
   ] = useState({});
 
   const [
-    spanishPlayerIds,
-    setSpanishPlayerIds,
+    spanishPlayersRegistry,
+    setSpanishPlayersRegistry,
   ] = useState([]);
 
   const [
@@ -2224,13 +2224,11 @@ export default function App() {
           : []
       );
 
-      setSpanishPlayerIds(
+      setSpanishPlayersRegistry(
         Array.isArray(
           spanishPlayersData.players
         )
           ? spanishPlayersData.players
-              .map((player) => Number(player.id))
-              .filter((id) => Number.isFinite(id))
           : []
       );
     } catch (loadError) {
@@ -2290,25 +2288,59 @@ export default function App() {
               ? gameData.response
               : []
         )
-        .filter(
-          (stat) =>
-            spanishPlayerIds.includes(
-              Number(stat.player?.id)
-            ) ||
-            isSpanishName(
-              boxPlayerName(
-                stat.player
+        .filter((stat) => {
+          const statId = Number(
+            stat.player?.id
+          );
+          const statFirst = normalizeText(
+            stat.player?.firstname
+          );
+          const statLast = normalizeText(
+            stat.player?.lastname
+          );
+
+          const registryMatch =
+            spanishPlayersRegistry.find(
+              (player) =>
+                Number(player.id) === statId
+            );
+
+          if (registryMatch) {
+            const expectedParts = normalizeText(
+              registryMatch.name
+            ).split(" ").filter(Boolean);
+            const expectedFirst = expectedParts[0] || "";
+            const expectedLast = expectedParts[expectedParts.length - 1] || "";
+
+            if (
+              statLast === expectedLast &&
+              (
+                statFirst === expectedFirst ||
+                (
+                  statFirst.length === 1 &&
+                  expectedFirst &&
+                  statFirst === expectedFirst[0]
+                )
               )
+            ) {
+              return true;
+            }
+          }
+
+          return (
+            isSpanishName(
+              boxPlayerName(stat.player)
             ) ||
             isSpanishName(
               reversedBoxPlayerName(
                 stat.player
               )
             )
-        );
+          );
+        });
     }, [
       boxScoreFile,
-      spanishPlayerIds,
+      spanishPlayersRegistry,
     ]);
 
   const boxPlayerSeason =
