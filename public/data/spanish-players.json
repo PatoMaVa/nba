@@ -1,0 +1,27 @@
+{
+  "updatedAt": "2026-11-21T08:04:18.020343+01:00",
+  "source": "API-NBA / API-Sports",
+  "results": 4,
+  "players": [
+    {
+      "id": 2786,
+      "name": "Santi Aldama",
+      "apiName": "Santi Aldama"
+    },
+    {
+      "id": 4408,
+      "name": "Sergio De Larrea",
+      "apiName": "Sergio De Larrea"
+    },
+    {
+      "id": 4358,
+      "name": "Aday Mara",
+      "apiName": "Aday Mara"
+    },
+    {
+      "id": 3950,
+      "name": "Baba Miller",
+      "apiName": "Baba Miller"
+    }
+  ]
+}
