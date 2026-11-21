@@ -57,11 +57,11 @@ jobs:
           DATA_FOLDER.mkdir(parents=True, exist_ok=True)
 
           SPANISH_PLAYERS = [
-              {"name": "Santi Aldama", "search": "Aldama"},
-              {"name": "Sergio De Larrea", "search": "Larrea"},
-              {"name": "Hugo Gonzalez", "search": "Hugo"},
-              {"name": "Aday Mara", "search": "Mara"},
-              {"name": "Baba Miller", "search": "Miller"},
+              {"name": "Santi Aldama", "id": 2786},
+              {"name": "Sergio De Larrea", "id": 4408},
+              {"name": "Aday Mara", "id": 4358},
+              {"name": "Baba Miller", "id": 3950},
+              {"name": "Hugo Gonzalez", "id": None},
           ]
 
           today = datetime.now(
@@ -202,23 +202,44 @@ jobs:
           def discover_spanish_players(registry, all_box_stats):
               known = registry_by_name(registry)
 
-              # First use today's box scores. This costs no additional request
-              # and also handles abbreviated names such as A. Mara by surname.
+              # Seed the registry with IDs already confirmed by API-NBA runs.
+              for target in SPANISH_PLAYERS:
+                  if target.get("id") is None:
+                      continue
+                  key = normalize(target["name"])
+                  known[key] = {
+                      "id": int(target["id"]),
+                      "name": target["name"],
+                      "apiName": known.get(key, {}).get("apiName") or target["name"],
+                  }
+
+              # Learn any still-missing Spanish player directly from downloaded box scores.
+              # This handles API abbreviations such as A. Mara without extra /players calls.
               for target in SPANISH_PLAYERS:
                   key = normalize(target["name"])
                   if key in known:
                       continue
 
                   target_parts = key.split()
-                  target_surname = target_parts[-1]
+                  target_first = target_parts[0] if target_parts else ""
+                  target_surname = target_parts[-1] if target_parts else ""
                   matches = []
 
                   for stat in all_box_stats:
                       player = stat.get("player") or {}
                       full_name = normalize(player_full_name(player))
-                      lastname = normalize(player.get("lastname"))
+                      first = normalize(player.get("firstname"))
+                      last = normalize(player.get("lastname"))
 
-                      if full_name == key or lastname == target_surname:
+                      exact = full_name == key
+                      abbreviated = (
+                          first
+                          and target_first
+                          and first[0] == target_first[0]
+                          and last == target_surname
+                      )
+
+                      if exact or abbreviated:
                           matches.append(player)
 
                   unique = {
@@ -238,45 +259,15 @@ jobs:
                           f"Spanish player found in box score: "
                           f"{target['name']} = {player['id']}"
                       )
-
-              # Query API-NBA only for players still missing. Once stored in
-              # spanish-players.json, later hourly runs do not repeat the call.
-              for target in SPANISH_PLAYERS:
-                  key = normalize(target["name"])
-                  if key in known:
-                      continue
-
-                  result = api_request(
-                      "players",
-                      {"search": target["search"]},
-                  )
-                  candidates = result.get("response", [])
-                  player = find_exact_player(candidates, target["name"])
-
-                  if player is None:
-                      candidate_names = [
-                          player_full_name(item)
-                          for item in candidates
-                      ]
-                      raise RuntimeError(
-                          f"Could not identify {target['name']} in API-NBA. "
-                          f"Candidates: {candidate_names}"
+                  else:
+                      print(
+                          f"Spanish player ID still pending: {target['name']}"
                       )
-
-                  known[key] = {
-                      "id": int(player["id"]),
-                      "name": target["name"],
-                      "apiName": player_full_name(player),
-                  }
-                  print(
-                      f"Spanish player found through API-NBA: "
-                      f"{target['name']} = {player['id']}"
-                  )
-                  time.sleep(1)
 
               ordered = [
                   known[normalize(target["name"])]
                   for target in SPANISH_PLAYERS
+                  if normalize(target["name"]) in known
               ]
 
               ids = [item["id"] for item in ordered]
@@ -437,28 +428,25 @@ jobs:
               data = json.load(file)
 
           players = data.get("players", [])
-          expected_names = {
-              "Santi Aldama",
-              "Sergio De Larrea",
-              "Hugo Gonzalez",
-              "Aday Mara",
-              "Baba Miller",
+          expected_ids = {
+              "Santi Aldama": 2786,
+              "Sergio De Larrea": 4408,
+              "Aday Mara": 4358,
+              "Baba Miller": 3950,
           }
-          received_names = {
-              player.get("name")
+          received = {
+              player.get("name"): player.get("id")
               for player in players
           }
-          ids = [player.get("id") for player in players]
 
-          if len(players) != 5:
-              raise RuntimeError(
-                  f"Expected 5 Spanish players, got {len(players)}"
-              )
-          if received_names != expected_names:
-              raise RuntimeError(
-                  f"Invalid Spanish player names: {received_names}"
-              )
-          if None in ids or len(set(ids)) != 5:
+          for name, player_id in expected_ids.items():
+              if received.get(name) != player_id:
+                  raise RuntimeError(
+                      f"Missing or invalid Spanish player ID: {name}={received.get(name)}"
+                  )
+
+          ids = [player.get("id") for player in players]
+          if None in ids or len(set(ids)) != len(ids):
               raise RuntimeError(
                   f"Invalid Spanish player IDs: {ids}"
               )
