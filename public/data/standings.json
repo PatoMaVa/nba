@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-22T22:55:27.092997+00:00",
+  "updatedAt": "2026-11-22T23:34:42.596086+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -34,38 +34,24 @@
     },
     {
       "season": "2026-27",
-      "team": "DET",
-      "team_name": "Detroit Pistons",
-      "conference": "East",
-      "conference_position": 3,
-      "wins": 10,
-      "losses": 5,
-      "win_pct": 0.6667,
-      "games": 15,
-      "games_back": 0.0,
-      "points_pg": 114.5,
-      "opponent_points_pg": 108.7
-    },
-    {
-      "season": "2026-27",
       "team": "ATL",
       "team_name": "Atlanta Hawks",
       "conference": "East",
-      "conference_position": 4,
-      "wins": 10,
+      "conference_position": 3,
+      "wins": 11,
       "losses": 6,
-      "win_pct": 0.625,
-      "games": 16,
+      "win_pct": 0.6471,
+      "games": 17,
       "games_back": 0.0,
-      "points_pg": 117.3,
-      "opponent_points_pg": 114.6
+      "points_pg": 116.7,
+      "opponent_points_pg": 113.6
     },
     {
       "season": "2026-27",
       "team": "NYK",
       "team_name": "New York Knicks",
       "conference": "East",
-      "conference_position": 5,
+      "conference_position": 4,
       "wins": 10,
       "losses": 6,
       "win_pct": 0.625,
@@ -73,6 +59,20 @@
       "games_back": 3.5,
       "points_pg": 108.7,
       "opponent_points_pg": 103.1
+    },
+    {
+      "season": "2026-27",
+      "team": "DET",
+      "team_name": "Detroit Pistons",
+      "conference": "East",
+      "conference_position": 5,
+      "wins": 10,
+      "losses": 6,
+      "win_pct": 0.625,
+      "games": 16,
+      "games_back": 0.0,
+      "points_pg": 113.4,
+      "opponent_points_pg": 108.6
     },
     {
       "season": "2026-27",
@@ -84,7 +84,7 @@
       "losses": 6,
       "win_pct": 0.6,
       "games": 15,
-      "games_back": 0.5,
+      "games_back": 1.0,
       "points_pg": 120.5,
       "opponent_points_pg": 119.9
     },
@@ -98,7 +98,7 @@
       "losses": 8,
       "win_pct": 0.5294,
       "games": 17,
-      "games_back": 2.0,
+      "games_back": 1.5,
       "points_pg": 118.8,
       "opponent_points_pg": 116.5
     },
@@ -112,7 +112,7 @@
       "losses": 8,
       "win_pct": 0.4667,
       "games": 15,
-      "games_back": 2.5,
+      "games_back": 3.0,
       "points_pg": 109.6,
       "opponent_points_pg": 112.7
     },
@@ -140,7 +140,7 @@
       "losses": 11,
       "win_pct": 0.3529,
       "games": 17,
-      "games_back": 4.5,
+      "games_back": 5.0,
       "points_pg": 110.0,
       "opponent_points_pg": 116.5
     },
@@ -154,7 +154,7 @@
       "losses": 11,
       "win_pct": 0.3125,
       "games": 16,
-      "games_back": 5.5,
+      "games_back": 5.0,
       "points_pg": 112.0,
       "opponent_points_pg": 115.6
     },
@@ -168,7 +168,7 @@
       "losses": 11,
       "win_pct": 0.2667,
       "games": 15,
-      "games_back": 5.5,
+      "games_back": 6.0,
       "points_pg": 99.9,
       "opponent_points_pg": 110.5
     },
@@ -182,7 +182,7 @@
       "losses": 11,
       "win_pct": 0.2667,
       "games": 15,
-      "games_back": 6.0,
+      "games_back": 5.5,
       "points_pg": 114.7,
       "opponent_points_pg": 122.8
     },
@@ -210,7 +210,7 @@
       "losses": 16,
       "win_pct": 0.0588,
       "games": 17,
-      "games_back": 10.0,
+      "games_back": 9.5,
       "points_pg": 109.4,
       "opponent_points_pg": 121.7
     },
