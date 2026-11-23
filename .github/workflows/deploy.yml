@@ -6,10 +6,11 @@ on:
       - main
 
   workflow_run:
-    workflows:
-      - "Update NBA data"
-    types:
-      - completed
+  workflows:
+    - "Update NBA data"
+    - "Update NBA season data"
+  types:
+    - completed
 
   workflow_dispatch:
 
