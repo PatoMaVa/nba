@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-23T02:50:09.200504+00:00",
+  "updatedAt": "2026-11-23T03:53:33.435069+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -179,12 +179,12 @@
       "conference": "East",
       "conference_position": 13,
       "wins": 4,
-      "losses": 11,
-      "win_pct": 0.2667,
-      "games": 15,
-      "games_back": 5.5,
-      "points_pg": 114.7,
-      "opponent_points_pg": 122.8
+      "losses": 12,
+      "win_pct": 0.25,
+      "games": 16,
+      "games_back": 6.0,
+      "points_pg": 116.6,
+      "opponent_points_pg": 124.6
     },
     {
       "season": "2026-27",
@@ -290,13 +290,13 @@
       "team_name": "Denver Nuggets",
       "conference": "West",
       "conference_position": 6,
-      "wins": 9,
+      "wins": 10,
       "losses": 5,
-      "win_pct": 0.6429,
-      "games": 14,
-      "games_back": 1.5,
-      "points_pg": 114.6,
-      "opponent_points_pg": 113.1
+      "win_pct": 0.6667,
+      "games": 15,
+      "games_back": 1.0,
+      "points_pg": 117.0,
+      "opponent_points_pg": 115.2
     },
     {
       "season": "2026-27",
