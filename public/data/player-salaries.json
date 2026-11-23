@@ -1,8 +1,8 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-18T14:56:57.479127+00:00",
+  "updatedAt": "2026-11-23T17:17:34.901862+00:00",
   "source": "Basketball-Reference",
-  "results": 462,
+  "results": 463,
   "response": [
     {
       "player_name": "Stephen Curry",
@@ -2208,6 +2208,11 @@
       "player_name": "Mason Plumlee",
       "team": "SAC",
       "salary": 2139724
+    },
+    {
+      "player_name": "Orlando Robinson",
+      "team": "CHI",
+      "salary": 2125647
     },
     {
       "player_name": "John Konchar",
