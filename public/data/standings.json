@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-24T04:57:16.783133+00:00",
+  "updatedAt": "2026-11-24T05:56:22.501556+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -220,12 +220,12 @@
       "team_name": "San Antonio Spurs",
       "conference": "West",
       "conference_position": 1,
-      "wins": 14,
+      "wins": 15,
       "losses": 3,
-      "win_pct": 0.8235,
-      "games": 17,
+      "win_pct": 0.8333,
+      "games": 18,
       "games_back": 0.0,
-      "points_pg": 117.3,
+      "points_pg": 117.6,
       "opponent_points_pg": 105.4
     },
     {
@@ -266,7 +266,7 @@
       "losses": 5,
       "win_pct": 0.7222,
       "games": 18,
-      "games_back": 1.5,
+      "games_back": 2.0,
       "points_pg": 118.1,
       "opponent_points_pg": 110.2
     },
@@ -280,7 +280,7 @@
       "losses": 5,
       "win_pct": 0.7222,
       "games": 18,
-      "games_back": 1.5,
+      "games_back": 2.0,
       "points_pg": 120.3,
       "opponent_points_pg": 111.4
     },
@@ -322,7 +322,7 @@
       "losses": 7,
       "win_pct": 0.5882,
       "games": 17,
-      "games_back": 4.0,
+      "games_back": 4.5,
       "points_pg": 112.4,
       "opponent_points_pg": 112.5
     },
@@ -378,7 +378,7 @@
       "losses": 14,
       "win_pct": 0.2632,
       "games": 19,
-      "games_back": 10.0,
+      "games_back": 10.5,
       "points_pg": 114.5,
       "opponent_points_pg": 122.5
     },
@@ -417,12 +417,12 @@
       "conference": "West",
       "conference_position": 15,
       "wins": 2,
-      "losses": 14,
-      "win_pct": 0.125,
-      "games": 16,
-      "games_back": 11.5,
+      "losses": 15,
+      "win_pct": 0.1176,
+      "games": 17,
+      "games_back": 12.0,
       "points_pg": 106.8,
-      "opponent_points_pg": 119.1
+      "opponent_points_pg": 119.4
     }
   ]
 }
