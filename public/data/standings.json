@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-25T03:05:57.714810+00:00",
+  "updatedAt": "2026-11-25T04:17:13.595750+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -20,10 +20,24 @@
     },
     {
       "season": "2026-27",
+      "team": "BOS",
+      "team_name": "Boston Celtics",
+      "conference": "East",
+      "conference_position": 2,
+      "wins": 12,
+      "losses": 6,
+      "win_pct": 0.6667,
+      "games": 18,
+      "games_back": 2.0,
+      "points_pg": 112.3,
+      "opponent_points_pg": 102.9
+    },
+    {
+      "season": "2026-27",
       "team": "ATL",
       "team_name": "Atlanta Hawks",
       "conference": "East",
-      "conference_position": 2,
+      "conference_position": 3,
       "wins": 11,
       "losses": 6,
       "win_pct": 0.6471,
@@ -34,24 +48,24 @@
     },
     {
       "season": "2026-27",
-      "team": "BOS",
-      "team_name": "Boston Celtics",
+      "team": "DET",
+      "team_name": "Detroit Pistons",
       "conference": "East",
-      "conference_position": 3,
+      "conference_position": 4,
       "wins": 11,
       "losses": 6,
       "win_pct": 0.6471,
       "games": 17,
-      "games_back": 2.5,
-      "points_pg": 111.2,
-      "opponent_points_pg": 102.1
+      "games_back": 0.0,
+      "points_pg": 112.8,
+      "opponent_points_pg": 107.2
     },
     {
       "season": "2026-27",
       "team": "NYK",
       "team_name": "New York Knicks",
       "conference": "East",
-      "conference_position": 4,
+      "conference_position": 5,
       "wins": 11,
       "losses": 6,
       "win_pct": 0.6471,
@@ -59,20 +73,6 @@
       "games_back": 2.5,
       "points_pg": 108.9,
       "opponent_points_pg": 103.2
-    },
-    {
-      "season": "2026-27",
-      "team": "DET",
-      "team_name": "Detroit Pistons",
-      "conference": "East",
-      "conference_position": 5,
-      "wins": 10,
-      "losses": 6,
-      "win_pct": 0.625,
-      "games": 16,
-      "games_back": 0.0,
-      "points_pg": 113.4,
-      "opponent_points_pg": 108.6
     },
     {
       "season": "2026-27",
@@ -98,7 +98,7 @@
       "losses": 9,
       "win_pct": 0.5,
       "games": 18,
-      "games_back": 2.0,
+      "games_back": 2.5,
       "points_pg": 118.2,
       "opponent_points_pg": 116.8
     },
@@ -109,12 +109,12 @@
       "conference": "East",
       "conference_position": 8,
       "wins": 7,
-      "losses": 9,
-      "win_pct": 0.4375,
-      "games": 16,
-      "games_back": 3.5,
-      "points_pg": 108.8,
-      "opponent_points_pg": 112.9
+      "losses": 10,
+      "win_pct": 0.4118,
+      "games": 17,
+      "games_back": 4.0,
+      "points_pg": 107.4,
+      "opponent_points_pg": 112.4
     },
     {
       "season": "2026-27",
@@ -123,12 +123,12 @@
       "conference": "East",
       "conference_position": 9,
       "wins": 7,
-      "losses": 11,
-      "win_pct": 0.3889,
-      "games": 18,
-      "games_back": 4.5,
-      "points_pg": 110.3,
-      "opponent_points_pg": 115.4
+      "losses": 12,
+      "win_pct": 0.3684,
+      "games": 19,
+      "games_back": 5.0,
+      "points_pg": 110.6,
+      "opponent_points_pg": 116.2
     },
     {
       "season": "2026-27",
@@ -154,7 +154,7 @@
       "losses": 12,
       "win_pct": 0.3333,
       "games": 18,
-      "games_back": 5.0,
+      "games_back": 5.5,
       "points_pg": 112.4,
       "opponent_points_pg": 115.7
     },
@@ -168,7 +168,7 @@
       "losses": 12,
       "win_pct": 0.2941,
       "games": 17,
-      "games_back": 5.5,
+      "games_back": 6.0,
       "points_pg": 116.9,
       "opponent_points_pg": 123.6
     },
@@ -210,7 +210,7 @@
       "losses": 16,
       "win_pct": 0.1111,
       "games": 18,
-      "games_back": 9.0,
+      "games_back": 9.5,
       "points_pg": 109.7,
       "opponent_points_pg": 121.1
     },
