@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-26T03:50:39.606672+00:00",
+  "updatedAt": "2026-11-26T04:57:16.078886+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -192,13 +192,13 @@
       "team_name": "Brooklyn Nets",
       "conference": "East",
       "conference_position": 14,
-      "wins": 3,
+      "wins": 4,
       "losses": 13,
-      "win_pct": 0.1875,
-      "games": 16,
-      "games_back": 10.5,
-      "points_pg": 111.2,
-      "opponent_points_pg": 120.2
+      "win_pct": 0.2353,
+      "games": 17,
+      "games_back": 10.0,
+      "points_pg": 110.8,
+      "opponent_points_pg": 118.9
     },
     {
       "season": "2026-27",
@@ -207,12 +207,12 @@
       "conference": "East",
       "conference_position": 15,
       "wins": 2,
-      "losses": 16,
-      "win_pct": 0.1111,
-      "games": 18,
-      "games_back": 9.5,
-      "points_pg": 109.7,
-      "opponent_points_pg": 121.1
+      "losses": 17,
+      "win_pct": 0.1053,
+      "games": 19,
+      "games_back": 10.0,
+      "points_pg": 109.1,
+      "opponent_points_pg": 120.2
     },
     {
       "season": "2026-27",
@@ -262,13 +262,13 @@
       "team_name": "Houston Rockets",
       "conference": "West",
       "conference_position": 4,
-      "wins": 13,
+      "wins": 14,
       "losses": 5,
-      "win_pct": 0.7222,
-      "games": 18,
-      "games_back": 2.0,
-      "points_pg": 118.1,
-      "opponent_points_pg": 110.2
+      "win_pct": 0.7368,
+      "games": 19,
+      "games_back": 1.5,
+      "points_pg": 118.0,
+      "opponent_points_pg": 109.9
     },
     {
       "season": "2026-27",
@@ -276,13 +276,13 @@
       "team_name": "Memphis Grizzlies",
       "conference": "West",
       "conference_position": 5,
-      "wins": 13,
+      "wins": 14,
       "losses": 5,
-      "win_pct": 0.7222,
-      "games": 18,
-      "games_back": 2.0,
-      "points_pg": 120.3,
-      "opponent_points_pg": 111.4
+      "win_pct": 0.7368,
+      "games": 19,
+      "games_back": 1.5,
+      "points_pg": 120.1,
+      "opponent_points_pg": 110.7
     },
     {
       "season": "2026-27",
@@ -333,12 +333,12 @@
       "conference": "West",
       "conference_position": 9,
       "wins": 9,
-      "losses": 7,
-      "win_pct": 0.5625,
-      "games": 16,
-      "games_back": 5.0,
-      "points_pg": 114.4,
-      "opponent_points_pg": 115.0
+      "losses": 8,
+      "win_pct": 0.5294,
+      "games": 17,
+      "games_back": 5.5,
+      "points_pg": 113.8,
+      "opponent_points_pg": 115.1
     },
     {
       "season": "2026-27",
@@ -389,12 +389,12 @@
       "conference": "West",
       "conference_position": 13,
       "wins": 4,
-      "losses": 12,
-      "win_pct": 0.25,
-      "games": 16,
-      "games_back": 10.0,
-      "points_pg": 110.7,
-      "opponent_points_pg": 117.5
+      "losses": 13,
+      "win_pct": 0.2353,
+      "games": 17,
+      "games_back": 10.5,
+      "points_pg": 109.9,
+      "opponent_points_pg": 117.4
     },
     {
       "season": "2026-27",
