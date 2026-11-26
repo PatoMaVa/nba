@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-26T04:57:16.078886+00:00",
+  "updatedAt": "2026-11-26T05:56:59.927170+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -328,22 +328,22 @@
     },
     {
       "season": "2026-27",
-      "team": "PHX",
-      "team_name": "Phoenix Suns",
+      "team": "GSW",
+      "team_name": "Golden State Warriors",
       "conference": "West",
       "conference_position": 9,
-      "wins": 9,
+      "wins": 10,
       "losses": 8,
-      "win_pct": 0.5294,
-      "games": 17,
-      "games_back": 5.5,
-      "points_pg": 113.8,
-      "opponent_points_pg": 115.1
+      "win_pct": 0.5556,
+      "games": 18,
+      "games_back": 5.0,
+      "points_pg": 112.2,
+      "opponent_points_pg": 111.9
     },
     {
       "season": "2026-27",
-      "team": "GSW",
-      "team_name": "Golden State Warriors",
+      "team": "PHX",
+      "team_name": "Phoenix Suns",
       "conference": "West",
       "conference_position": 10,
       "wins": 9,
@@ -351,8 +351,8 @@
       "win_pct": 0.5294,
       "games": 17,
       "games_back": 5.5,
-      "points_pg": 111.2,
-      "opponent_points_pg": 112.1
+      "points_pg": 113.8,
+      "opponent_points_pg": 115.1
     },
     {
       "season": "2026-27",
@@ -417,12 +417,12 @@
       "conference": "West",
       "conference_position": 15,
       "wins": 2,
-      "losses": 15,
-      "win_pct": 0.1176,
-      "games": 17,
-      "games_back": 12.5,
-      "points_pg": 106.8,
-      "opponent_points_pg": 119.4
+      "losses": 16,
+      "win_pct": 0.1111,
+      "games": 18,
+      "games_back": 13.0,
+      "points_pg": 107.0,
+      "opponent_points_pg": 119.9
     }
   ]
 }
