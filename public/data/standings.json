@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "updatedAt": "2026-11-26T05:56:59.927170+00:00",
+  "updatedAt": "2026-11-26T07:06:38.663032+00:00",
   "source": "API Ninjas",
   "results": 30,
   "response": [
@@ -216,8 +216,8 @@
     },
     {
       "season": "2026-27",
-      "team": "SAS",
-      "team_name": "San Antonio Spurs",
+      "team": "LAL",
+      "team_name": "Los Angeles Lakers",
       "conference": "West",
       "conference_position": 1,
       "wins": 15,
@@ -225,22 +225,22 @@
       "win_pct": 0.8333,
       "games": 18,
       "games_back": 0.0,
-      "points_pg": 117.6,
-      "opponent_points_pg": 105.4
+      "points_pg": 119.4,
+      "opponent_points_pg": 112.7
     },
     {
       "season": "2026-27",
-      "team": "LAL",
-      "team_name": "Los Angeles Lakers",
+      "team": "SAS",
+      "team_name": "San Antonio Spurs",
       "conference": "West",
       "conference_position": 2,
       "wins": 15,
-      "losses": 3,
-      "win_pct": 0.8333,
-      "games": 18,
+      "losses": 4,
+      "win_pct": 0.7895,
+      "games": 19,
       "games_back": 0.0,
-      "points_pg": 119.4,
-      "opponent_points_pg": 112.7
+      "points_pg": 117.3,
+      "opponent_points_pg": 106.0
     },
     {
       "season": "2026-27",
@@ -266,7 +266,7 @@
       "losses": 5,
       "win_pct": 0.7368,
       "games": 19,
-      "games_back": 1.5,
+      "games_back": 1.0,
       "points_pg": 118.0,
       "opponent_points_pg": 109.9
     },
@@ -280,7 +280,7 @@
       "losses": 5,
       "win_pct": 0.7368,
       "games": 19,
-      "games_back": 1.5,
+      "games_back": 1.0,
       "points_pg": 120.1,
       "opponent_points_pg": 110.7
     },
@@ -290,11 +290,11 @@
       "team_name": "Portland Trail Blazers",
       "conference": "West",
       "conference_position": 6,
-      "wins": 11,
+      "wins": 12,
       "losses": 6,
-      "win_pct": 0.6471,
-      "games": 17,
-      "games_back": 2.0,
+      "win_pct": 0.6667,
+      "games": 18,
+      "games_back": 1.5,
       "points_pg": 116.8,
       "opponent_points_pg": 110.4
     },
@@ -322,7 +322,7 @@
       "losses": 7,
       "win_pct": 0.6111,
       "games": 18,
-      "games_back": 4.0,
+      "games_back": 3.5,
       "points_pg": 112.8,
       "opponent_points_pg": 111.8
     },
@@ -378,7 +378,7 @@
       "losses": 14,
       "win_pct": 0.2632,
       "games": 19,
-      "games_back": 10.5,
+      "games_back": 10.0,
       "points_pg": 114.5,
       "opponent_points_pg": 122.5
     },
